@@ -3,120 +3,120 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+var (
+	titleStyle = func() lipgloss.Style {
+		b := lipgloss.RoundedBorder()
+		b.Right = "├"
+		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
+	}()
+
+	infoStyle = func() lipgloss.Style {
+		b := lipgloss.RoundedBorder()
+		b.Left = "┤"
+		return titleStyle.Copy().BorderStyle(b)
+	}()
 )
 
 type model struct {
-	choices  []string           // items on the to-do list
-	cursor   int                // which to-do list item our cursor is pointing at
-	selected map[int]struct{}   // which to-do items are selected
-}
-
-func initialModel() model {
-	return model{
-		// Our shopping list is a grocery list
-		choices:  []string{"Buy carrots", "Buy celery", "Buy kohlrabi"},
-
-		// A map which indicates which choices are selected. We're using
-		// the  map like a mathematical set. The keys refer to the indexes
-		// of the `choices` slice, above.
-		selected: make(map[int]struct{}),
-	}
+	content  string
+	ready    bool
+	viewport viewport.Model
 }
 
 func (m model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
+
 	switch msg := msg.(type) {
-
-	// Is it a key press?
 	case tea.KeyMsg:
-		//fmt.Println(msg.String())
-
-		// Cool, what was the actual key pressed?
-		switch msg.String() {
-
-		// These keys should exit the program.
-		case "ctrl+c", "q":
+		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
 			return m, tea.Quit
+		}
 
-		// The "up" and "k" keys move the cursor up
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
+	case tea.WindowSizeMsg:
+		headerHeight := lipgloss.Height(m.headerView())
+		footerHeight := lipgloss.Height(m.footerView())
+		verticalMarginHeight := headerHeight + footerHeight
 
-		// The "down" and "j" keys move the cursor down
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-
-		// The "enter" key and the spacebar (a literal space) toggle
-		// the selected state for the item that the cursor is pointing at.
-		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
-
-		case "backspace":
-			delete(m.selected, m.cursor)
-			var newChoices []string
-			for _, choice := range m.choices {
-				if choice != m.choices[m.cursor] {
-					newChoices = append(newChoices, choice)
-				}
-			}
-			m.choices = newChoices
+		if !m.ready {
+			// Since this program is using the full size of the viewport we
+			// need to wait until we've received the window dimensions before
+			// we can initialize the viewport. The initial dimensions come in
+			// quickly, though asynchronously, which is why we wait for them
+			// here.
+			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.viewport.YPosition = headerHeight
+			m.viewport.SetContent(m.content)
+			m.ready = true
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - verticalMarginHeight
 		}
 	}
 
-	// Return the updated model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
-	return m, nil
+	// Handle keyboard and mouse events in the viewport
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
-	// The header
-	s := "What should we buy at the market?\n\n"
-
-	// Iterate over our choices
-	for i, choice := range m.choices {
-
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
-		}
-
-		// Is this choice selected?
-		checked := " " // not selected
-		if _, ok := m.selected[i]; ok {
-			checked = "x" // selected!
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+	if !m.ready {
+		return "\n  Initializing..."
 	}
+	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+}
 
-	// The footer
-	s += "\nPress q to quit.\n"
+func (m model) headerView() string {
+	title := titleStyle.Render("Mr. Pager")
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
+}
 
-	// Send the UI for rendering
-	return s
+func (m model) footerView() string {
+	info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func main() {
-	p := tea.NewProgram(initialModel())
+	// Load some text for our viewport
+	//content, err := ioutil.ReadFile("artichoke.md")
+	content := ""
+	//if err != nil {
+	//	fmt.Println("could not load file:", err)
+	//	os.Exit(1)
+	//}
+
+	p := tea.NewProgram(
+		model{content: string(content)},
+		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
+		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
+	)
+
 	if err := p.Start(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
+		fmt.Println("could not run program:", err)
 		os.Exit(1)
 	}
 }
