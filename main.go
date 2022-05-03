@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
+	"wander/components/viewport"
 )
 
 var (
@@ -18,6 +20,8 @@ type model struct {
 	nomadToken   string
 	nomadUrl     string
 	nomadJobList []string
+	viewport     viewport.Model
+	ready        bool
 	err          error
 }
 
@@ -67,10 +71,16 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
+
 	switch msg := msg.(type) {
 
 	case nomadJobListMsg:
 		m.nomadJobList = msg
+		m.viewport.SetContent(strings.Join(m.nomadJobList, "\n"))
 		return m, nil
 
 	case errMsg:
@@ -81,30 +91,42 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
 			return m, tea.Quit
 		}
+
+	case tea.WindowSizeMsg:
+		headerHeight := 0
+		footerHeight := 0
+		verticalMarginHeight := headerHeight + footerHeight
+
+		if !m.ready {
+			// Since this program is using the full size of the viewport we
+			// need to wait until we've received the window dimensions before
+			// we can initialize the viewport. The initial dimensions come in
+			// quickly, though asynchronously, which is why we wait for them
+			// here.
+			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.viewport.YPosition = headerHeight
+			m.ready = true
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - verticalMarginHeight
+		}
 	}
 
-	return m, nil
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
-	// If there's an error, print it out and don't do anything else.
 	if m.err != nil {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
 
-	// Tell the user we're doing something.
-	s := "Loading..."
-
-	// When the server responds with a status, add it to the current line.
-	if len(m.nomadJobList) > 0 {
-		s = ""
-		for _, job := range m.nomadJobList {
-			s += fmt.Sprintf("\n%s", job)
-		}
+	if len(m.nomadJobList) == 0 {
+		return "Loading..."
 	}
-
-	// Send off whatever we came up with above for rendering.
-	return "\n" + s + "\n\n"
+	return "\n" + m.viewport.View() + "\n\n"
 }
 
 func initialModel() model {
@@ -128,7 +150,9 @@ func initialModel() model {
 }
 
 func main() {
-	if err := tea.NewProgram(initialModel()).Start(); err != nil {
+	program := tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
+
+	if err := program.Start(); err != nil {
 		fmt.Printf("Error on wander startup: %v\n", err)
 		os.Exit(1)
 	}
