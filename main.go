@@ -126,7 +126,7 @@ func (m model) View() string {
 	if len(m.nomadJobList) == 0 {
 		return "Loading..."
 	}
-	return "\n" + m.viewport.View() + "\n\n"
+	return m.viewport.View()
 }
 
 func initialModel() model {

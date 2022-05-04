@@ -3,6 +3,7 @@ package viewport
 import (
 	"math"
 	"strings"
+	"wander/dev"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -60,6 +61,7 @@ func (m *Model) setInitialValues() {
 	m.KeyMap = DefaultKeyMap()
 	m.MouseWheelEnabled = true
 	m.MouseWheelDelta = 3
+	m.Style = lipgloss.NewStyle()
 	m.initialized = true
 }
 
@@ -342,15 +344,8 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 
 // View renders the viewport into a string.
 func (m Model) View() string {
-	if m.HighPerformanceRendering {
-		// Just send newlines since we're going to be rendering the actual
-		// content seprately. We still need to send something that equals the
-		// height of this view so that the Bubble Tea standard renderer can
-		// position anything below this view properly.
-		return strings.Repeat("\n", m.Height-1)
-	}
-
 	lines := m.visibleLines()
+	dev.Debug(lines[0])
 
 	// Fill empty space with newlines
 	extraLines := ""
