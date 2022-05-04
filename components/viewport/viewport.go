@@ -35,23 +35,9 @@ type Model struct {
 	// YOffset is the vertical scroll position.
 	YOffset int
 
-	// YPosition is the position of the viewport in relation to the terminal
-	// window. It's used in high performance rendering only.
-	YPosition int
-
 	// Style applies a lipgloss style to the viewport. Realistically, it's most
 	// useful for setting borders, margins and padding.
 	Style lipgloss.Style
-
-	// HighPerformanceRendering bypasses the normal Bubble Tea renderer to
-	// provide higher performance rendering. Most of the time the normal Bubble
-	// Tea rendering methods will suffice, but if you're passing content with
-	// a lot of ANSI escape codes you may see improved rendering in certain
-	// terminals with this enabled.
-	//
-	// This should only be used in program occupying the entire terminal,
-	// which is usually via the alternate screen buffer.
-	HighPerformanceRendering bool
 
 	initialized bool
 	lines       []string
@@ -70,18 +56,18 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-// AtTop returns whether or not the viewport is in the very top position.
+// AtTop returns whether the viewport is in the very top position.
 func (m Model) AtTop() bool {
 	return m.YOffset <= 0
 }
 
-// AtBottom returns whether or not the viewport is at or past the very bottom
+// AtBottom returns whether the viewport is at or past the very bottom
 // position.
 func (m Model) AtBottom() bool {
 	return m.YOffset >= m.maxYOffset()
 }
 
-// PastBottom returns whether or not the viewport is scrolled beyond the last
+// PastBottom returns whether the viewport is scrolled beyond the last
 // line. This can happen when adjusting the viewport height.
 func (m Model) PastBottom() bool {
 	return m.YOffset > m.maxYOffset()
@@ -99,8 +85,7 @@ func (m Model) ScrollPercent() float64 {
 	return math.Max(0.0, math.Min(1.0, v))
 }
 
-// SetContent set the pager's text content. For high performance rendering the
-// Sync command should also be called.
+// SetContent set the pager's text content.
 func (m *Model) SetContent(s string) {
 	s = strings.ReplaceAll(s, "\r\n", "\n") // normalize line endings
 	m.lines = strings.Split(s, "\n")
@@ -125,16 +110,6 @@ func (m Model) visibleLines() (lines []string) {
 		lines = m.lines[top:bottom]
 	}
 	return lines
-}
-
-// scrollArea returns the scrollable boundaries for high performance rendering.
-func (m Model) scrollArea() (top, bottom int) {
-	top = max(0, m.YPosition)
-	bottom = max(top, top+m.Height)
-	if top > 0 && bottom > top {
-		bottom--
-	}
-	return top, bottom
 }
 
 // SetYOffset sets the Y offset.
@@ -225,50 +200,9 @@ func (m *Model) GotoBottom() (lines []string) {
 	return m.visibleLines()
 }
 
-// Sync tells the renderer where the viewport will be located and requests
-// a render of the current state of the viewport. It should be called for the
-// first render and after a window resize.
-//
-// For high performance rendering only.
-func Sync(m Model) tea.Cmd {
-	if len(m.lines) == 0 {
-		return nil
-	}
-	top, bottom := m.scrollArea()
-	return tea.SyncScrollArea(m.visibleLines(), top, bottom)
-}
-
-// ViewDown is a high performance command that moves the viewport up by a given
-// numer of lines. Use Model.ViewDown to get the lines that should be rendered.
-// For example:
-//
-//     lines := model.ViewDown(1)
-//     cmd := ViewDown(m, lines)
-//
-func ViewDown(m Model, lines []string) tea.Cmd {
-	if len(lines) == 0 {
-		return nil
-	}
-	top, bottom := m.scrollArea()
-	return tea.ScrollDown(lines, top, bottom)
-}
-
-// ViewUp is a high performance command the moves the viewport down by a given
-// number of lines height. Use Model.ViewUp to get the lines that should be
-// rendered.
-func ViewUp(m Model, lines []string) tea.Cmd {
-	if len(lines) == 0 {
-		return nil
-	}
-	top, bottom := m.scrollArea()
-	return tea.ScrollUp(lines, top, bottom)
-}
-
 // Update handles standard message-based viewport updates.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
-	m, cmd = m.updateAsModel(msg)
-	return m, cmd
+	return m.updateAsModel(msg)
 }
 
 // Author's note: this method has been broken out to make it easier to
@@ -284,40 +218,22 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.PageDown):
-			lines := m.ViewDown()
-			if m.HighPerformanceRendering {
-				cmd = ViewDown(m, lines)
-			}
+			m.ViewDown()
 
 		case key.Matches(msg, m.KeyMap.PageUp):
-			lines := m.ViewUp()
-			if m.HighPerformanceRendering {
-				cmd = ViewUp(m, lines)
-			}
+			m.ViewUp()
 
 		case key.Matches(msg, m.KeyMap.HalfPageDown):
-			lines := m.HalfViewDown()
-			if m.HighPerformanceRendering {
-				cmd = ViewDown(m, lines)
-			}
+			m.HalfViewDown()
 
 		case key.Matches(msg, m.KeyMap.HalfPageUp):
-			lines := m.HalfViewUp()
-			if m.HighPerformanceRendering {
-				cmd = ViewUp(m, lines)
-			}
+			m.HalfViewUp()
 
 		case key.Matches(msg, m.KeyMap.Down):
-			lines := m.LineDown(1)
-			if m.HighPerformanceRendering {
-				cmd = ViewDown(m, lines)
-			}
+			m.LineDown(1)
 
 		case key.Matches(msg, m.KeyMap.Up):
-			lines := m.LineUp(1)
-			if m.HighPerformanceRendering {
-				cmd = ViewUp(m, lines)
-			}
+			m.LineUp(1)
 		}
 
 	case tea.MouseMsg:
@@ -326,16 +242,10 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		switch msg.Type {
 		case tea.MouseWheelUp:
-			lines := m.LineUp(m.MouseWheelDelta)
-			if m.HighPerformanceRendering {
-				cmd = ViewUp(m, lines)
-			}
+			m.LineUp(m.MouseWheelDelta)
 
 		case tea.MouseWheelDown:
-			lines := m.LineDown(m.MouseWheelDelta)
-			if m.HighPerformanceRendering {
-				cmd = ViewDown(m, lines)
-			}
+			m.LineDown(m.MouseWheelDelta)
 		}
 	}
 
