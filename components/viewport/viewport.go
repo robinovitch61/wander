@@ -69,6 +69,10 @@ func (m *Model) maxLinesIdx() int {
 	return len(m.lines) - 1
 }
 
+func (m *Model) lastVisibleLineIdx() int {
+	return min(m.maxLinesIdx(), m.YOffset + m.Height - 1)
+}
+
 // maxYOffset returns the maximum YOffset (the YOffset that shows the final screen)
 func (m *Model) maxYOffset() int {
 	if m.maxLinesIdx() < m.Height {
@@ -99,17 +103,17 @@ func (m *Model) SetCursorRow(n int) {
 		m.CursorRow = max(0, n)
 	}
 
-	if m.CursorRow >= m.YOffset+m.Height {
-		m.viewDown(1)
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
+		m.viewDown(m.CursorRow - lastVisibleLineIdx)
 	} else if m.CursorRow < m.YOffset {
-		m.viewUp(1)
+		m.viewUp(m.YOffset - m.CursorRow)
 	}
 }
 
 // visibleLines retrieves the visible lines based on the YOffset
 func (m *Model) visibleLines() []string {
 	start := m.YOffset
-	end := min(m.maxLinesIdx()+1, m.YOffset + m.Height)
+	end := min(m.maxLinesIdx()+1, m.YOffset+m.Height)
 	return m.lines[start:end]
 }
 
@@ -157,7 +161,7 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, m.KeyMap.Up):
 			m.selectionUp(1)
 		}
-		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[len(m.lines)-1]))
+		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
 
 	case tea.MouseMsg:
 		if !m.MouseWheelEnabled {
