@@ -69,8 +69,9 @@ func (m *Model) maxLinesIdx() int {
 	return len(m.lines) - 1
 }
 
+// lastVisibleLineIdx returns the maximum visible line index
 func (m *Model) lastVisibleLineIdx() int {
-	return min(m.maxLinesIdx(), m.YOffset + m.Height - 1)
+	return min(m.maxLinesIdx(), m.YOffset+m.Height-1)
 }
 
 // maxYOffset returns the maximum YOffset (the YOffset that shows the final screen)
@@ -86,8 +87,8 @@ func (m *Model) maxSelection() int {
 	return len(m.lines) - 1
 }
 
-// SetYOffset sets the YOffset with bounds
-func (m *Model) SetYOffset(n int) {
+// setYOffset sets the YOffset with bounds. Adjusts CursorRow as necessary.
+func (m *Model) setYOffset(n int) {
 	if maxYOffset := m.maxYOffset(); n > maxYOffset {
 		m.YOffset = maxYOffset
 	} else {
@@ -95,8 +96,8 @@ func (m *Model) SetYOffset(n int) {
 	}
 }
 
-// SetCursorRow sets the CursorRow with bounds. Adjusts YOffset as necessary.
-func (m *Model) SetCursorRow(n int) {
+// setCursorRow sets the CursorRow with bounds. Adjusts YOffset as necessary.
+func (m *Model) setCursorRow(n int) {
 	if maxSelection := m.maxSelection(); n > maxSelection {
 		m.CursorRow = maxSelection
 	} else {
@@ -117,25 +118,25 @@ func (m *Model) visibleLines() []string {
 	return m.lines[start:end]
 }
 
-// selectionDown moves the CursorRow down by the given number of lines.
-func (m *Model) selectionDown(n int) {
-	m.SetCursorRow(m.CursorRow + n)
+// cursorRowDown moves the CursorRow down by the given number of lines.
+func (m *Model) cursorRowDown(n int) {
+	m.setCursorRow(m.CursorRow + n)
 }
 
-// selectionUp moves the CursorRow up by the given number of lines.
-func (m *Model) selectionUp(n int) {
-	m.SetCursorRow(m.CursorRow - n)
+// cursorRowUp moves the CursorRow up by the given number of lines.
+func (m *Model) cursorRowUp(n int) {
+	m.setCursorRow(m.CursorRow - n)
 }
 
 // viewDown moves the view down by the given number of lines.
 func (m *Model) viewDown(n int) {
-	m.SetYOffset(m.YOffset + n)
+	m.setYOffset(m.YOffset + n)
 }
 
 // viewUp moves the view up by the given number of lines. Returns the new
 // lines to show.
 func (m *Model) viewUp(n int) {
-	m.SetYOffset(m.YOffset - n)
+	m.setYOffset(m.YOffset - n)
 }
 
 // Update handles standard message-based viewport updates.
@@ -156,10 +157,26 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.Down):
-			m.selectionDown(1)
+			m.cursorRowDown(1)
 
 		case key.Matches(msg, m.KeyMap.Up):
-			m.selectionUp(1)
+			m.cursorRowUp(1)
+
+		case key.Matches(msg, m.KeyMap.HalfPageDown):
+			m.viewDown(m.Height / 2)
+			m.cursorRowDown(m.Height / 2)
+
+		case key.Matches(msg, m.KeyMap.HalfPageUp):
+			m.viewUp(m.Height / 2)
+			m.cursorRowUp(m.Height / 2)
+
+		case key.Matches(msg, m.KeyMap.PageDown):
+			m.viewDown(m.Height)
+			m.cursorRowDown(m.Height)
+
+		case key.Matches(msg, m.KeyMap.PageUp):
+			m.viewUp(m.Height)
+			m.cursorRowUp(m.Height)
 		}
 		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
 
