@@ -203,10 +203,12 @@ func (m Model) View() string {
 	viewLines := ""
 	for idx, line := range visibleLines {
 		if m.YOffset+idx == m.CursorRow {
-			viewLines += ">"
+			viewLines += lipgloss.NewStyle().
+				Foreground(lipgloss.Color("5")).
+				Render(line)
+		} else {
+			viewLines += line
 		}
-
-		viewLines += line
 
 		if idx != len(visibleLines)-1 {
 			viewLines += "\n"
@@ -216,6 +218,9 @@ func (m Model) View() string {
 	return m.Style.Copy().
 		UnsetWidth().
 		UnsetHeight().
+		Width(m.Width).
+		Height(m.Height).
+		Background(lipgloss.Color("#000000")).
 		Render(viewLines)
 }
 
