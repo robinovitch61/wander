@@ -24,12 +24,9 @@ type Model struct {
 	Height int
 	KeyMap KeyMap
 
-	// Whether or not to respond to the mouse. The mouse must be enabled in
+	// Whether to respond to the mouse. The mouse must be enabled in
 	// Bubble Tea for this to work. For details, see the Bubble Tea docs.
 	MouseWheelEnabled bool
-
-	// The number of lines the mouse wheel will scroll. By default, this is 3.
-	MouseWheelDelta int
 
 	// YOffset is the vertical scroll position of the text.
 	YOffset int
@@ -37,9 +34,10 @@ type Model struct {
 	// CursorRow is the row index of the cursor.
 	CursorRow int
 
-	// Style applies a lipgloss style to the viewport. Realistically, it's most
+	// StyleViewport applies a lipgloss style to the viewport. Realistically, it's most
 	// useful for setting borders, margins and padding.
-	Style lipgloss.Style
+	StyleViewport  lipgloss.Style
+	StyleCursorRow lipgloss.Style
 
 	initialized bool
 	lines       []string
@@ -48,8 +46,8 @@ type Model struct {
 func (m *Model) setInitialValues() {
 	m.KeyMap = DefaultKeyMap()
 	m.MouseWheelEnabled = true
-	m.MouseWheelDelta = 3
-	m.Style = lipgloss.NewStyle()
+	m.StyleViewport = lipgloss.NewStyle().Width(m.Width).Height(m.Height).Background(lipgloss.Color("#00000"))
+	m.StyleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	m.initialized = true
 }
 
@@ -87,7 +85,7 @@ func (m *Model) maxSelection() int {
 	return len(m.lines) - 1
 }
 
-// setYOffset sets the YOffset with bounds. Adjusts CursorRow as necessary.
+// setYOffset sets the YOffset with bounds.
 func (m *Model) setYOffset(n int) {
 	if maxYOffset := m.maxYOffset(); n > maxYOffset {
 		m.YOffset = maxYOffset
@@ -133,20 +131,13 @@ func (m *Model) viewDown(n int) {
 	m.setYOffset(m.YOffset + n)
 }
 
-// viewUp moves the view up by the given number of lines. Returns the new
-// lines to show.
+// viewUp moves the view up by the given number of lines.
 func (m *Model) viewUp(n int) {
 	m.setYOffset(m.YOffset - n)
 }
 
 // Update handles standard message-based viewport updates.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	return m.updateAsModel(msg)
-}
-
-// Author's note: this method has been broken out to make it easier to
-// potentially transition Update to satisfy tea.Model.
-func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 	if !m.initialized {
 		m.setInitialValues()
 	}
@@ -186,26 +177,24 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		switch msg.Type {
 		case tea.MouseWheelUp:
-			m.viewUp(m.MouseWheelDelta)
+			m.cursorRowUp(1)
 
 		case tea.MouseWheelDown:
-			m.viewDown(m.MouseWheelDelta)
+			m.cursorRowDown(1)
 		}
 	}
 
 	return m, cmd
 }
 
-// View renders the viewport into a string.
+// View returns the string representing the viewport.
 func (m Model) View() string {
 	visibleLines := m.visibleLines()
 
 	viewLines := ""
 	for idx, line := range visibleLines {
 		if m.YOffset+idx == m.CursorRow {
-			viewLines += lipgloss.NewStyle().
-				Foreground(lipgloss.Color("5")).
-				Render(line)
+			viewLines += m.StyleCursorRow.Render(line)
 		} else {
 			viewLines += line
 		}
@@ -215,13 +204,7 @@ func (m Model) View() string {
 		}
 	}
 
-	return m.Style.Copy().
-		UnsetWidth().
-		UnsetHeight().
-		Width(m.Width).
-		Height(m.Height).
-		Background(lipgloss.Color("#000000")).
-		Render(viewLines)
+	return m.StyleViewport.Render(viewLines)
 }
 
 func min(a, b int) int {
