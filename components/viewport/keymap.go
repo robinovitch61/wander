@@ -4,10 +4,6 @@ import "github.com/charmbracelet/bubbles/key"
 
 const spacebar = " "
 
-// KeyMap defines the keybindings for the viewport. Note that you don't
-// necessary need to use keybindings at all; the viewport can be controlled
-// programmatically with methods like Model.LineDown(1). See the GoDocs for
-// details.
 type KeyMap struct {
 	PageDown     key.Binding
 	PageUp       key.Binding

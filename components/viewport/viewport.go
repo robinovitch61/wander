@@ -31,8 +31,11 @@ type Model struct {
 	// The number of lines the mouse wheel will scroll. By default, this is 3.
 	MouseWheelDelta int
 
-	// YOffset is the vertical scroll position.
+	// YOffset is the vertical scroll position of the text.
 	YOffset int
+
+	// CursorRow is the row index of the cursor.
+	CursorRow int
 
 	// Style applies a lipgloss style to the viewport. Realistically, it's most
 	// useful for setting borders, margins and padding.
@@ -71,7 +74,12 @@ func (m *Model) maxYOffset() int {
 	if m.maxLinesIdx() < m.Height {
 		return 0
 	}
-	return m.maxLinesIdx() - m.Height
+	return m.maxLinesIdx() - m.Height + 1
+}
+
+// maxSelection returns the maximum CursorRow
+func (m *Model) maxSelection() int {
+	return len(m.lines) - 1
 }
 
 // SetYOffset sets the YOffset with bounds
@@ -81,27 +89,49 @@ func (m *Model) SetYOffset(n int) {
 	} else {
 		m.YOffset = max(0, n)
 	}
-	dev.Debug(fmt.Sprintf("YOffset %d, m.Height %d, maxYOffset %d, len(m.lines) %d", m.YOffset, m.Height, m.maxYOffset(), len(m.lines)))
+}
+
+// SetCursorRow sets the CursorRow with bounds. Adjusts YOffset as necessary.
+func (m *Model) SetCursorRow(n int) {
+	if maxSelection := m.maxSelection(); n > maxSelection {
+		m.CursorRow = maxSelection
+	} else {
+		m.CursorRow = max(0, n)
+	}
+
+	if m.CursorRow >= m.YOffset+m.Height {
+		m.viewDown(1)
+	} else if m.CursorRow < m.YOffset {
+		m.viewUp(1)
+	}
 }
 
 // visibleLines retrieves the visible lines based on the YOffset
 func (m *Model) visibleLines() []string {
 	start := m.YOffset
-	end := m.YOffset + min(m.maxLinesIdx(), m.Height)
+	end := min(m.maxLinesIdx()+1, m.YOffset + m.Height)
 	return m.lines[start:end]
 }
 
-// LineDown moves the view down by the given number of lines.
-func (m *Model) LineDown(n int) (lines []string) {
-	m.SetYOffset(m.YOffset + n)
-	return m.visibleLines()
+// selectionDown moves the CursorRow down by the given number of lines.
+func (m *Model) selectionDown(n int) {
+	m.SetCursorRow(m.CursorRow + n)
 }
 
-// LineUp moves the view down by the given number of lines. Returns the new
+// selectionUp moves the CursorRow up by the given number of lines.
+func (m *Model) selectionUp(n int) {
+	m.SetCursorRow(m.CursorRow - n)
+}
+
+// viewDown moves the view down by the given number of lines.
+func (m *Model) viewDown(n int) {
+	m.SetYOffset(m.YOffset + n)
+}
+
+// viewUp moves the view up by the given number of lines. Returns the new
 // lines to show.
-func (m *Model) LineUp(n int) (lines []string) {
+func (m *Model) viewUp(n int) {
 	m.SetYOffset(m.YOffset - n)
-	return m.visibleLines()
 }
 
 // Update handles standard message-based viewport updates.
@@ -122,11 +152,12 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.Down):
-			m.LineDown(1)
+			m.selectionDown(1)
 
 		case key.Matches(msg, m.KeyMap.Up):
-			m.LineUp(1)
+			m.selectionUp(1)
 		}
+		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[len(m.lines)-1]))
 
 	case tea.MouseMsg:
 		if !m.MouseWheelEnabled {
@@ -134,10 +165,10 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		switch msg.Type {
 		case tea.MouseWheelUp:
-			m.LineUp(m.MouseWheelDelta)
+			m.viewUp(m.MouseWheelDelta)
 
 		case tea.MouseWheelDown:
-			m.LineDown(m.MouseWheelDelta)
+			m.viewDown(m.MouseWheelDelta)
 		}
 	}
 
@@ -147,18 +178,24 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 // View renders the viewport into a string.
 func (m Model) View() string {
 	visibleLines := m.visibleLines()
-	dev.Debug(visibleLines[0])
 
-	// Fill empty space with newlines
-	extraLines := ""
-	if len(visibleLines) < m.Height {
-		extraLines = strings.Repeat("\n", m.Height-len(visibleLines))
+	viewLines := ""
+	for idx, line := range visibleLines {
+		if m.YOffset+idx == m.CursorRow {
+			viewLines += ">"
+		}
+
+		viewLines += line
+
+		if idx != len(visibleLines)-1 {
+			viewLines += "\n"
+		}
 	}
 
 	return m.Style.Copy().
 		UnsetWidth().
 		UnsetHeight().
-		Render(strings.Join(visibleLines, "\n") + extraLines)
+		Render(viewLines)
 }
 
 func min(a, b int) int {
