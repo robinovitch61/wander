@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"wander/components/viewport"
@@ -35,23 +33,12 @@ func (e errMsg) Error() string { return e.err.Error() }
 // commands
 func fetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
-		client := &http.Client{}
-		req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/jobs", url), nil)
-		if err != nil {
-			return nomadJobsMsg([]string{err.Error()})
-		}
-		req.Header.Set("X-Nomad-Token", token)
-		resp, err := client.Do(req)
-		if err != nil {
-			return nomadJobsMsg([]string{err.Error()})
-		}
-
+		// TODO LEO: error handling
+		//body, _ := nomad.Get(fmt.Sprintf("%s/v1/jobs", url), token)
+		body := MockJobsResponse
+		
 		type JobResponseEntry struct {
 			Name string
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nomadJobsMsg([]string{err.Error()})
 		}
 		var jobResponse []JobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
