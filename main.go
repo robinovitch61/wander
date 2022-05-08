@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"wander/components/viewport"
+	"wander/dev"
 	"wander/formatter"
 	"wander/nomad"
 )
@@ -63,24 +64,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case nomadJobsMsg:
+		dev.Debug("nomadJobsMsg")
 		m.nomadJobTable = msg.table
 		m.viewport.SetHeader(strings.Join(msg.table.HeaderRows, "\n"))
 		m.viewport.SetContent(strings.Join(msg.table.ContentRows, "\n"))
 		return m, nil
 
 	case errMsg:
+		dev.Debug("errMsg")
 		m.err = msg
 		return m, nil
 
 	case tea.KeyMsg:
+		dev.Debug("KeyMsg")
 		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
 			return m, tea.Quit
 		}
 
 	case tea.WindowSizeMsg:
+		dev.Debug("WindowSizeMsg")
 		headerHeight := 0
 		footerHeight := 0
 		verticalMarginHeight := headerHeight + footerHeight
+		viewportHeight := msg.Height - verticalMarginHeight
 
 		if !m.initialized {
 			// Since this program is using the full size of the viewport we
@@ -88,11 +94,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			dev.Debug("first")
+			m.viewport = viewport.New(msg.Width, viewportHeight)
+			dev.Debug(fmt.Sprintf("new, Window height %d", viewportHeight))
 			m.initialized = true
 		} else {
 			m.viewport.SetWidth(msg.Width)
-			m.viewport.SetHeight(msg.Height - verticalMarginHeight)
+			dev.Debug(fmt.Sprintf("old, Window height %d", viewportHeight))
+			m.viewport.SetHeight(viewportHeight)
 		}
 	}
 
@@ -103,6 +112,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+	dev.Debug("running main View")
 	if m.err != nil {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
@@ -110,7 +120,9 @@ func (m model) View() string {
 	if m.nomadJobTable.IsEmpty() {
 		return "Retrieving jobs..."
 	}
-	return m.viewport.View()
+	view := m.viewport.View()
+	dev.Debug(fmt.Sprintf("len(view) %d", len(strings.Split(view, "\n"))))
+	return view
 }
 
 func initialModel() model {
@@ -134,6 +146,7 @@ func initialModel() model {
 func main() {
 	program := tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
 
+	dev.Debug("!!STARTING UP!!")
 	if err := program.Start(); err != nil {
 		fmt.Printf("Error on wander startup: %v\n", err)
 		os.Exit(1)

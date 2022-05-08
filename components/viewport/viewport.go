@@ -1,10 +1,12 @@
 package viewport
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
+	"wander/dev"
 )
 
 // New returns a new model with the given width and height as well as default
@@ -18,9 +20,10 @@ func New(width, height int) (m Model) {
 
 // Model is the Bubble Tea model for this viewport element.
 type Model struct {
-	width  int
-	height int
-	keyMap viewportKeyMap
+	width         int
+	height        int
+	contentHeight int
+	keyMap        viewportKeyMap
 
 	// Whether to respond to the mouse. The mouse must be enabled in
 	// Bubble Tea for this to work. For details, see the Bubble Tea docs.
@@ -44,9 +47,10 @@ type Model struct {
 }
 
 func (m *Model) setInitialValues() {
+	m.contentHeight = m.height - len(m.header)
 	m.keyMap = getKeyMap()
 	m.mouseWheelEnabled = false
-	m.styleViewport = lipgloss.NewStyle().Width(m.width).Height(m.height).Background(lipgloss.Color("#00000"))
+	m.styleViewport = lipgloss.NewStyle().Width(m.width).Background(lipgloss.Color("#00000"))
 	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	m.initialized = true
 }
@@ -61,19 +65,22 @@ func normalizeLineEndings(s string) string {
 }
 
 // SetHeight sets the pager's height, including header.
-func (m * Model) SetHeight(h int) {
+func (m *Model) SetHeight(h int) {
 	m.height = h
+	m.contentHeight = h - len(m.header)
+	dev.Debug(fmt.Sprintf("SetHeight, contentHeight %d", m.contentHeight))
 }
 
 // SetWidth sets the pager's width.
-func (m * Model) SetWidth(w int) {
+func (m *Model) SetWidth(w int) {
 	m.width = w
 }
 
 // SetHeader sets the pager's header content.
 func (m *Model) SetHeader(header string) {
 	m.header = strings.Split(normalizeLineEndings(header), "\n")
-	m.height = m.height - len(m.header)
+	m.contentHeight = m.height - len(m.header)
+	dev.Debug(fmt.Sprintf("SetHeader, contentHeight %d", m.contentHeight))
 }
 
 // SetContent sets the pager's text content.
@@ -88,15 +95,15 @@ func (m *Model) maxLinesIdx() int {
 
 // lastVisibleLineIdx returns the maximum visible line index
 func (m *Model) lastVisibleLineIdx() int {
-	return min(m.maxLinesIdx(), m.yOffset+m.height-1)
+	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
 }
 
 // maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
 func (m *Model) maxYOffset() int {
-	if m.maxLinesIdx() < m.height {
+	if m.maxLinesIdx() < m.contentHeight {
 		return 0
 	}
-	return m.maxLinesIdx() - m.height + 1
+	return m.maxLinesIdx() - m.contentHeight + 1
 }
 
 // maxCursorRow returns the maximum cursorRow
@@ -131,7 +138,10 @@ func (m *Model) setCursorRow(n int) {
 // visibleLines retrieves the visible lines based on the yOffset
 func (m *Model) visibleLines() []string {
 	start := m.yOffset
-	end := min(m.maxLinesIdx()+1, m.yOffset+m.height)
+	end := start + m.contentHeight
+	if end > m.maxLinesIdx() {
+		return m.lines[start:]
+	}
 	return m.lines[start:end]
 }
 
@@ -171,22 +181,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.cursorRowUp(1)
 
 		case key.Matches(msg, m.keyMap.HalfPageDown):
-			m.viewDown(m.height / 2)
-			m.cursorRowDown(m.height / 2)
+			m.viewDown(m.contentHeight / 2)
+			m.cursorRowDown(m.contentHeight / 2)
 
 		case key.Matches(msg, m.keyMap.HalfPageUp):
-			m.viewUp(m.height / 2)
-			m.cursorRowUp(m.height / 2)
+			m.viewUp(m.contentHeight / 2)
+			m.cursorRowUp(m.contentHeight / 2)
 
 		case key.Matches(msg, m.keyMap.PageDown):
-			m.viewDown(m.height)
-			m.cursorRowDown(m.height)
+			m.viewDown(m.contentHeight)
+			m.cursorRowDown(m.contentHeight)
 
 		case key.Matches(msg, m.keyMap.PageUp):
-			m.viewUp(m.height)
-			m.cursorRowUp(m.height)
+			m.viewUp(m.contentHeight)
+			m.cursorRowUp(m.contentHeight)
 		}
-		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.cursorRow, m.yOffset, m.height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
+		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.cursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
 
 	case tea.MouseMsg:
 		if !m.mouseWheelEnabled {
@@ -208,6 +218,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 // View returns the string representing the viewport.
 func (m Model) View() string {
 	visibleLines := m.visibleLines()
+	dev.Debug(fmt.Sprintf("len(visibleLines) %d", len(visibleLines)))
 
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
@@ -222,7 +233,11 @@ func (m Model) View() string {
 		}
 	}
 
-	return m.styleViewport.Render(viewLines)
+	dev.Debug(fmt.Sprintf("len(viewLines) %d", len(strings.Split(viewLines, "\n"))))
+	renderedViewLines := m.styleViewport.Render(viewLines)
+	dev.Debug(fmt.Sprintf("len(renderedViewLines) %d", len(strings.Split(renderedViewLines, "\n"))))
+
+	return renderedViewLines
 }
 
 func min(a, b int) int {
