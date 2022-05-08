@@ -94,13 +94,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			dev.Debug("first")
 			m.viewport = viewport.New(msg.Width, viewportHeight)
-			dev.Debug(fmt.Sprintf("new, Window height %d", viewportHeight))
 			m.initialized = true
 		} else {
 			m.viewport.SetWidth(msg.Width)
-			dev.Debug(fmt.Sprintf("old, Window height %d", viewportHeight))
 			m.viewport.SetHeight(viewportHeight)
 		}
 	}
@@ -112,7 +109,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	dev.Debug("running main View")
 	if m.err != nil {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
@@ -121,7 +117,6 @@ func (m model) View() string {
 		return "Retrieving jobs..."
 	}
 	view := m.viewport.View()
-	dev.Debug(fmt.Sprintf("len(view) %d", len(strings.Split(view, "\n"))))
 	return view
 }
 
@@ -146,7 +141,7 @@ func initialModel() model {
 func main() {
 	program := tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
 
-	dev.Debug("!!STARTING UP!!")
+	dev.Debug("~STARTING UP~")
 	if err := program.Start(); err != nil {
 		fmt.Printf("Error on wander startup: %v\n", err)
 		os.Exit(1)

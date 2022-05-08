@@ -1,12 +1,10 @@
 package viewport
 
 import (
-	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
-	"wander/dev"
 )
 
 // New returns a new model with the given width and height as well as default
@@ -50,7 +48,7 @@ func (m *Model) setInitialValues() {
 	m.contentHeight = m.height - len(m.header)
 	m.keyMap = getKeyMap()
 	m.mouseWheelEnabled = false
-	m.styleViewport = lipgloss.NewStyle().Width(m.width).Background(lipgloss.Color("#00000"))
+	m.styleViewport = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
 	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	m.initialized = true
 }
@@ -68,7 +66,9 @@ func normalizeLineEndings(s string) string {
 func (m *Model) SetHeight(h int) {
 	m.height = h
 	m.contentHeight = h - len(m.header)
-	dev.Debug(fmt.Sprintf("SetHeight, contentHeight %d", m.contentHeight))
+	if m.cursorRow > m.lastVisibleLineIdx() {
+		m.cursorRow = m.lastVisibleLineIdx()
+	}
 }
 
 // SetWidth sets the pager's width.
@@ -80,7 +80,6 @@ func (m *Model) SetWidth(w int) {
 func (m *Model) SetHeader(header string) {
 	m.header = strings.Split(normalizeLineEndings(header), "\n")
 	m.contentHeight = m.height - len(m.header)
-	dev.Debug(fmt.Sprintf("SetHeader, contentHeight %d", m.contentHeight))
 }
 
 // SetContent sets the pager's text content.
@@ -196,7 +195,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.viewUp(m.contentHeight)
 			m.cursorRowUp(m.contentHeight)
 		}
-		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.cursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
+		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.cursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
 
 	case tea.MouseMsg:
 		if !m.mouseWheelEnabled {
@@ -218,7 +217,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 // View returns the string representing the viewport.
 func (m Model) View() string {
 	visibleLines := m.visibleLines()
-	dev.Debug(fmt.Sprintf("len(visibleLines) %d", len(visibleLines)))
 
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
@@ -232,12 +230,7 @@ func (m Model) View() string {
 			viewLines += "\n"
 		}
 	}
-
-	dev.Debug(fmt.Sprintf("len(viewLines) %d", len(strings.Split(viewLines, "\n"))))
-	renderedViewLines := m.styleViewport.Render(viewLines)
-	dev.Debug(fmt.Sprintf("len(renderedViewLines) %d", len(strings.Split(renderedViewLines, "\n"))))
-
-	return renderedViewLines
+	return m.styleViewport.Width(m.width).Height(m.height).Render(viewLines) // width and height are variable
 }
 
 func min(a, b int) int {
