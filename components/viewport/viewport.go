@@ -1,12 +1,10 @@
 package viewport
 
 import (
-	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
-	"wander/dev"
 )
 
 // New returns a new model with the given width and height as well as default
@@ -26,7 +24,8 @@ type Model struct {
 
 	// Whether to respond to the mouse. The mouse must be enabled in
 	// Bubble Tea for this to work. For details, see the Bubble Tea docs.
-	MouseWheelEnabled bool
+	// Currently, causes flickering if enabled.
+	mouseWheelEnabled bool
 
 	// YOffset is the vertical scroll position of the text.
 	YOffset int
@@ -40,15 +39,20 @@ type Model struct {
 	StyleCursorRow lipgloss.Style
 
 	initialized bool
+	header      []string
 	lines       []string
 }
 
 func (m *Model) setInitialValues() {
 	m.KeyMap = DefaultKeyMap()
-	m.MouseWheelEnabled = true
+	m.mouseWheelEnabled = false
 	m.StyleViewport = lipgloss.NewStyle().Width(m.Width).Height(m.Height).Background(lipgloss.Color("#00000"))
 	m.StyleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	m.initialized = true
+}
+
+func (m *Model) contentHeight() int {
+	return m.Height - len(m.header)
 }
 
 // Init exists to satisfy the tea.Model interface for composability purposes.
@@ -56,10 +60,19 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-// SetContent set the pager's text content.
+func normalizeLineEndings(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
+}
+
+// SetHeader sets the pager's header content.
+func (m *Model) SetHeader(header string) {
+	m.header = strings.Split(normalizeLineEndings(header), "\n")
+	m.Height = m.Height - len(m.header)
+}
+
+// SetContent sets the pager's text content.
 func (m *Model) SetContent(s string) {
-	s = strings.ReplaceAll(s, "\r\n", "\n") // normalize line endings
-	m.lines = strings.Split(s, "\n")
+	m.lines = strings.Split(normalizeLineEndings(s), "\n")
 }
 
 // maxLinesIdx returns the maximum index of the model's lines
@@ -80,8 +93,8 @@ func (m *Model) maxYOffset() int {
 	return m.maxLinesIdx() - m.Height + 1
 }
 
-// maxSelection returns the maximum CursorRow
-func (m *Model) maxSelection() int {
+// maxCursorRow returns the maximum CursorRow
+func (m *Model) maxCursorRow() int {
 	return len(m.lines) - 1
 }
 
@@ -96,7 +109,7 @@ func (m *Model) setYOffset(n int) {
 
 // setCursorRow sets the CursorRow with bounds. Adjusts YOffset as necessary.
 func (m *Model) setCursorRow(n int) {
-	if maxSelection := m.maxSelection(); n > maxSelection {
+	if maxSelection := m.maxCursorRow(); n > maxSelection {
 		m.CursorRow = maxSelection
 	} else {
 		m.CursorRow = max(0, n)
@@ -142,8 +155,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.setInitialValues()
 	}
 
-	var cmd tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -169,10 +180,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.viewUp(m.Height)
 			m.cursorRowUp(m.Height)
 		}
-		dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
+		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
 
 	case tea.MouseMsg:
-		if !m.MouseWheelEnabled {
+		if !m.mouseWheelEnabled {
 			break
 		}
 		switch msg.Type {
@@ -184,14 +195,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	return m, cmd
+	// could return non-nil cmd in the future
+	return m, nil
 }
 
 // View returns the string representing the viewport.
 func (m Model) View() string {
 	visibleLines := m.visibleLines()
 
-	viewLines := ""
+	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
 		if m.YOffset+idx == m.CursorRow {
 			viewLines += m.StyleCursorRow.Render(line)

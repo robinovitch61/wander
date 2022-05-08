@@ -17,16 +17,18 @@ var (
 )
 
 type model struct {
-	nomadToken string
-	nomadUrl   string
-	nomadJobs  []string
-	viewport   viewport.Model
-	ready      bool
-	err        error
+	nomadToken            string
+	nomadUrl              string
+	nomadJobTable         formatter.Table
+	viewport              viewport.Model
+	resizeAfterStartup bool
+	err                   error
 }
 
 // messages
-type nomadJobsMsg []string
+type nomadJobsMsg struct {
+	table formatter.Table
+}
 
 type errMsg struct{ err error }
 
@@ -43,7 +45,8 @@ func fetchJobs(url, token string) tea.Cmd {
 			fmt.Println("Failed to decode response")
 		}
 
-		return nomadJobsMsg(formatter.JobResponsesAsTable(jobResponse))
+		table := formatter.JobResponseAsTable(jobResponse)
+		return nomadJobsMsg{table}
 	}
 }
 
@@ -60,8 +63,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case nomadJobsMsg:
-		m.nomadJobs = msg
-		m.viewport.SetContent(strings.Join(m.nomadJobs, "\n"))
+		m.nomadJobTable = msg.table
+		m.viewport.SetHeader(strings.Join(msg.table.HeaderRows, "\n"))
+		m.viewport.SetContent(strings.Join(msg.table.ContentRows, "\n"))
 		return m, nil
 
 	case errMsg:
@@ -78,14 +82,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		footerHeight := 0
 		verticalMarginHeight := headerHeight + footerHeight
 
-		if !m.ready {
+		if m.resizeAfterStartup {
 			// Since this program is using the full size of the viewport we
 			// need to wait until we've received the window dimensions before
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-			m.ready = true
+			m.resizeAfterStartup = false
 		} else {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMarginHeight
@@ -103,7 +107,7 @@ func (m model) View() string {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
 
-	if len(m.nomadJobs) == 0 {
+	if m.nomadJobTable.IsEmpty() {
 		return "Retrieving jobs..."
 	}
 	return m.viewport.View()
@@ -122,10 +126,9 @@ func initialModel() model {
 		os.Exit(1)
 	}
 	return model{
-		nomadToken: nomadToken,
-		nomadUrl:   nomadUrl,
-		nomadJobs:  nil,
-		err:        nil,
+		nomadToken:            nomadToken,
+		nomadUrl:              nomadUrl,
+		resizeAfterStartup: true,
 	}
 }
 
