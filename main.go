@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"wander/components/viewport"
+	"wander/formatter"
+	"wander/nomad"
 )
 
 var (
@@ -36,20 +38,12 @@ func fetchJobs(url, token string) tea.Cmd {
 		// TODO LEO: error handling
 		//body, _ := nomad.GetJobs(url, token)
 		body := MockJobsResponse
-
-		type JobResponseEntry struct {
-			Name string
-		}
-		var jobResponse []JobResponseEntry
+		var jobResponse []nomad.JobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
 			fmt.Println("Failed to decode response")
 		}
 
-		var jobs []string
-		for _, entry := range jobResponse {
-			jobs = append(jobs, entry.Name)
-		}
-		return nomadJobsMsg(jobs)
+		return nomadJobsMsg(formatter.JobResponsesAsTable(jobResponse))
 	}
 }
 
