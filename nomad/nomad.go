@@ -1,26 +1,13 @@
 package nomad
 
-import (
-	"io/ioutil"
-	"net/http"
-)
+var ApiPaths = map[string]string{
+	"jobs": "/v1/jobs",
+}
 
-func Get(url string, token string) ([]byte, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
+func GetJobs(url, token string) ([]byte, error) {
+	path, err := urlWithPathFor(url, "jobs")
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-Nomad-Token", token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
+	return get(path, token)
 }

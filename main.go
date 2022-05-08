@@ -34,9 +34,9 @@ func (e errMsg) Error() string { return e.err.Error() }
 func fetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		//body, _ := nomad.Get(fmt.Sprintf("%s/v1/jobs", url), token)
+		//body, _ := nomad.GetJobs(url, token)
 		body := MockJobsResponse
-		
+
 		type JobResponseEntry struct {
 			Name string
 		}
