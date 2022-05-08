@@ -10,33 +10,33 @@ import (
 // New returns a new model with the given width and height as well as default
 // keymappings.
 func New(width, height int) (m Model) {
-	m.Width = width
-	m.Height = height
+	m.width = width
+	m.height = height
 	m.setInitialValues()
 	return m
 }
 
 // Model is the Bubble Tea model for this viewport element.
 type Model struct {
-	Width  int
-	Height int
-	KeyMap KeyMap
+	width  int
+	height int
+	keyMap viewportKeyMap
 
 	// Whether to respond to the mouse. The mouse must be enabled in
 	// Bubble Tea for this to work. For details, see the Bubble Tea docs.
 	// Currently, causes flickering if enabled.
 	mouseWheelEnabled bool
 
-	// YOffset is the vertical scroll position of the text.
-	YOffset int
+	// yOffset is the vertical scroll position of the text.
+	yOffset int
 
-	// CursorRow is the row index of the cursor.
-	CursorRow int
+	// cursorRow is the row index of the cursor.
+	cursorRow int
 
-	// StyleViewport applies a lipgloss style to the viewport. Realistically, it's most
+	// styleViewport applies a lipgloss style to the viewport. Realistically, it's most
 	// useful for setting borders, margins and padding.
-	StyleViewport  lipgloss.Style
-	StyleCursorRow lipgloss.Style
+	styleViewport  lipgloss.Style
+	styleCursorRow lipgloss.Style
 
 	initialized bool
 	header      []string
@@ -44,15 +44,11 @@ type Model struct {
 }
 
 func (m *Model) setInitialValues() {
-	m.KeyMap = DefaultKeyMap()
+	m.keyMap = getKeyMap()
 	m.mouseWheelEnabled = false
-	m.StyleViewport = lipgloss.NewStyle().Width(m.Width).Height(m.Height).Background(lipgloss.Color("#00000"))
-	m.StyleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	m.styleViewport = lipgloss.NewStyle().Width(m.width).Height(m.height).Background(lipgloss.Color("#00000"))
+	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	m.initialized = true
-}
-
-func (m *Model) contentHeight() int {
-	return m.Height - len(m.header)
 }
 
 // Init exists to satisfy the tea.Model interface for composability purposes.
@@ -64,10 +60,20 @@ func normalizeLineEndings(s string) string {
 	return strings.ReplaceAll(s, "\r\n", "\n")
 }
 
+// SetHeight sets the pager's height, including header.
+func (m * Model) SetHeight(h int) {
+	m.height = h
+}
+
+// SetWidth sets the pager's width.
+func (m * Model) SetWidth(w int) {
+	m.width = w
+}
+
 // SetHeader sets the pager's header content.
 func (m *Model) SetHeader(header string) {
 	m.header = strings.Split(normalizeLineEndings(header), "\n")
-	m.Height = m.Height - len(m.header)
+	m.height = m.height - len(m.header)
 }
 
 // SetContent sets the pager's text content.
@@ -82,71 +88,71 @@ func (m *Model) maxLinesIdx() int {
 
 // lastVisibleLineIdx returns the maximum visible line index
 func (m *Model) lastVisibleLineIdx() int {
-	return min(m.maxLinesIdx(), m.YOffset+m.Height-1)
+	return min(m.maxLinesIdx(), m.yOffset+m.height-1)
 }
 
-// maxYOffset returns the maximum YOffset (the YOffset that shows the final screen)
+// maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
 func (m *Model) maxYOffset() int {
-	if m.maxLinesIdx() < m.Height {
+	if m.maxLinesIdx() < m.height {
 		return 0
 	}
-	return m.maxLinesIdx() - m.Height + 1
+	return m.maxLinesIdx() - m.height + 1
 }
 
-// maxCursorRow returns the maximum CursorRow
+// maxCursorRow returns the maximum cursorRow
 func (m *Model) maxCursorRow() int {
 	return len(m.lines) - 1
 }
 
-// setYOffset sets the YOffset with bounds.
+// setYOffset sets the yOffset with bounds.
 func (m *Model) setYOffset(n int) {
 	if maxYOffset := m.maxYOffset(); n > maxYOffset {
-		m.YOffset = maxYOffset
+		m.yOffset = maxYOffset
 	} else {
-		m.YOffset = max(0, n)
+		m.yOffset = max(0, n)
 	}
 }
 
-// setCursorRow sets the CursorRow with bounds. Adjusts YOffset as necessary.
+// setCursorRow sets the cursorRow with bounds. Adjusts yOffset as necessary.
 func (m *Model) setCursorRow(n int) {
 	if maxSelection := m.maxCursorRow(); n > maxSelection {
-		m.CursorRow = maxSelection
+		m.cursorRow = maxSelection
 	} else {
-		m.CursorRow = max(0, n)
+		m.cursorRow = max(0, n)
 	}
 
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
-		m.viewDown(m.CursorRow - lastVisibleLineIdx)
-	} else if m.CursorRow < m.YOffset {
-		m.viewUp(m.YOffset - m.CursorRow)
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.cursorRow > lastVisibleLineIdx {
+		m.viewDown(m.cursorRow - lastVisibleLineIdx)
+	} else if m.cursorRow < m.yOffset {
+		m.viewUp(m.yOffset - m.cursorRow)
 	}
 }
 
-// visibleLines retrieves the visible lines based on the YOffset
+// visibleLines retrieves the visible lines based on the yOffset
 func (m *Model) visibleLines() []string {
-	start := m.YOffset
-	end := min(m.maxLinesIdx()+1, m.YOffset+m.Height)
+	start := m.yOffset
+	end := min(m.maxLinesIdx()+1, m.yOffset+m.height)
 	return m.lines[start:end]
 }
 
-// cursorRowDown moves the CursorRow down by the given number of lines.
+// cursorRowDown moves the cursorRow down by the given number of lines.
 func (m *Model) cursorRowDown(n int) {
-	m.setCursorRow(m.CursorRow + n)
+	m.setCursorRow(m.cursorRow + n)
 }
 
-// cursorRowUp moves the CursorRow up by the given number of lines.
+// cursorRowUp moves the cursorRow up by the given number of lines.
 func (m *Model) cursorRowUp(n int) {
-	m.setCursorRow(m.CursorRow - n)
+	m.setCursorRow(m.cursorRow - n)
 }
 
 // viewDown moves the view down by the given number of lines.
 func (m *Model) viewDown(n int) {
-	m.setYOffset(m.YOffset + n)
+	m.setYOffset(m.yOffset + n)
 }
 
 // viewUp moves the view up by the given number of lines.
 func (m *Model) viewUp(n int) {
-	m.setYOffset(m.YOffset - n)
+	m.setYOffset(m.yOffset - n)
 }
 
 // Update handles standard message-based viewport updates.
@@ -158,29 +164,29 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.KeyMap.Down):
+		case key.Matches(msg, m.keyMap.Down):
 			m.cursorRowDown(1)
 
-		case key.Matches(msg, m.KeyMap.Up):
+		case key.Matches(msg, m.keyMap.Up):
 			m.cursorRowUp(1)
 
-		case key.Matches(msg, m.KeyMap.HalfPageDown):
-			m.viewDown(m.Height / 2)
-			m.cursorRowDown(m.Height / 2)
+		case key.Matches(msg, m.keyMap.HalfPageDown):
+			m.viewDown(m.height / 2)
+			m.cursorRowDown(m.height / 2)
 
-		case key.Matches(msg, m.KeyMap.HalfPageUp):
-			m.viewUp(m.Height / 2)
-			m.cursorRowUp(m.Height / 2)
+		case key.Matches(msg, m.keyMap.HalfPageUp):
+			m.viewUp(m.height / 2)
+			m.cursorRowUp(m.height / 2)
 
-		case key.Matches(msg, m.KeyMap.PageDown):
-			m.viewDown(m.Height)
-			m.cursorRowDown(m.Height)
+		case key.Matches(msg, m.keyMap.PageDown):
+			m.viewDown(m.height)
+			m.cursorRowDown(m.height)
 
-		case key.Matches(msg, m.KeyMap.PageUp):
-			m.viewUp(m.Height)
-			m.cursorRowUp(m.Height)
+		case key.Matches(msg, m.keyMap.PageUp):
+			m.viewUp(m.height)
+			m.cursorRowUp(m.height)
 		}
-		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.CursorRow, m.YOffset, m.Height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
+		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, len(m.lines) %d, firstline %s, lastline %s", m.cursorRow, m.yOffset, m.height, len(m.lines), m.lines[0], m.lines[len(m.lines)-1]))
 
 	case tea.MouseMsg:
 		if !m.mouseWheelEnabled {
@@ -205,8 +211,8 @@ func (m Model) View() string {
 
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
-		if m.YOffset+idx == m.CursorRow {
-			viewLines += m.StyleCursorRow.Render(line)
+		if m.yOffset+idx == m.cursorRow {
+			viewLines += m.styleCursorRow.Render(line)
 		} else {
 			viewLines += line
 		}
@@ -216,7 +222,7 @@ func (m Model) View() string {
 		}
 	}
 
-	return m.StyleViewport.Render(viewLines)
+	return m.styleViewport.Render(viewLines)
 }
 
 func min(a, b int) int {

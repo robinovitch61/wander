@@ -4,7 +4,7 @@ import "github.com/charmbracelet/bubbles/key"
 
 const spacebar = " "
 
-type KeyMap struct {
+type viewportKeyMap struct {
 	PageDown     key.Binding
 	PageUp       key.Binding
 	HalfPageUp   key.Binding
@@ -13,9 +13,9 @@ type KeyMap struct {
 	Up           key.Binding
 }
 
-// DefaultKeyMap returns a set of pager-like default keybindings.
-func DefaultKeyMap() KeyMap {
-	return KeyMap{
+// getKeyMap returns a set of pager-like default keybindings.
+func getKeyMap() viewportKeyMap {
+	return viewportKeyMap{
 		PageDown: key.NewBinding(
 			key.WithKeys("pgdown", spacebar, "f"),
 			key.WithHelp("f/pgdn", "page down"),

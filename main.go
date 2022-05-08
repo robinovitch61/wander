@@ -17,12 +17,12 @@ var (
 )
 
 type model struct {
-	nomadToken            string
-	nomadUrl              string
-	nomadJobTable         formatter.Table
-	viewport              viewport.Model
-	resizeAfterStartup bool
-	err                   error
+	nomadToken    string
+	nomadUrl      string
+	nomadJobTable formatter.Table
+	viewport      viewport.Model
+	initialized   bool
+	err           error
 }
 
 // messages
@@ -82,17 +82,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		footerHeight := 0
 		verticalMarginHeight := headerHeight + footerHeight
 
-		if m.resizeAfterStartup {
+		if !m.initialized {
 			// Since this program is using the full size of the viewport we
 			// need to wait until we've received the window dimensions before
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-			m.resizeAfterStartup = false
+			m.initialized = true
 		} else {
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - verticalMarginHeight
+			m.viewport.SetWidth(msg.Width)
+			m.viewport.SetHeight(msg.Height - verticalMarginHeight)
 		}
 	}
 
@@ -126,9 +126,8 @@ func initialModel() model {
 		os.Exit(1)
 	}
 	return model{
-		nomadToken:            nomadToken,
-		nomadUrl:              nomadUrl,
-		resizeAfterStartup: true,
+		nomadToken:  nomadToken,
+		nomadUrl:    nomadUrl,
 	}
 }
 
