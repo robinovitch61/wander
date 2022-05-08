@@ -17,33 +17,33 @@ var (
 )
 
 type model struct {
-	nomadToken   string
-	nomadUrl     string
-	nomadJobList []string
-	viewport     viewport.Model
-	ready        bool
-	err          error
+	nomadToken string
+	nomadUrl   string
+	nomadJobs  []string
+	viewport   viewport.Model
+	ready      bool
+	err        error
 }
 
 // messages
-type nomadJobListMsg []string
+type nomadJobsMsg []string
 
 type errMsg struct{ err error }
 
 func (e errMsg) Error() string { return e.err.Error() }
 
 // commands
-func fetchJobNames(url, token string) tea.Cmd {
+func fetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
 		client := &http.Client{}
 		req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/jobs", url), nil)
 		if err != nil {
-			return nomadJobListMsg([]string{err.Error()})
+			return nomadJobsMsg([]string{err.Error()})
 		}
 		req.Header.Set("X-Nomad-Token", token)
 		resp, err := client.Do(req)
 		if err != nil {
-			return nomadJobListMsg([]string{err.Error()})
+			return nomadJobsMsg([]string{err.Error()})
 		}
 
 		type JobResponseEntry struct {
@@ -51,7 +51,7 @@ func fetchJobNames(url, token string) tea.Cmd {
 		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return nomadJobListMsg([]string{err.Error()})
+			return nomadJobsMsg([]string{err.Error()})
 		}
 		var jobResponse []JobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
@@ -62,12 +62,12 @@ func fetchJobNames(url, token string) tea.Cmd {
 		for _, entry := range jobResponse {
 			jobs = append(jobs, entry.Name)
 		}
-		return nomadJobListMsg(jobs)
+		return nomadJobsMsg(jobs)
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return fetchJobNames(m.nomadUrl, m.nomadToken)
+	return fetchJobs(m.nomadUrl, m.nomadToken)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -78,9 +78,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case nomadJobListMsg:
-		m.nomadJobList = msg
-		m.viewport.SetContent(strings.Join(m.nomadJobList, "\n"))
+	case nomadJobsMsg:
+		m.nomadJobs = msg
+		m.viewport.SetContent(strings.Join(m.nomadJobs, "\n"))
 		return m, nil
 
 	case errMsg:
@@ -122,8 +122,8 @@ func (m model) View() string {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
 
-	if len(m.nomadJobList) == 0 {
-		return "Loading..."
+	if len(m.nomadJobs) == 0 {
+		return "Retrieving jobs..."
 	}
 	return m.viewport.View()
 }
@@ -141,10 +141,10 @@ func initialModel() model {
 		os.Exit(1)
 	}
 	return model{
-		nomadToken:   nomadToken,
-		nomadUrl:     nomadUrl,
-		nomadJobList: nil,
-		err:          nil,
+		nomadToken: nomadToken,
+		nomadUrl:   nomadUrl,
+		nomadJobs:  nil,
+		err:        nil,
 	}
 }
 
