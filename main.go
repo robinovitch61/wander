@@ -44,7 +44,8 @@ func fetchPageDataCmd(m model) tea.Cmd {
 		return command.FetchJobs(m.nomadUrl, m.nomadToken)
 
 	case page.Allocation:
-		return command.FetchAllocation(m.nomadUrl, m.nomadToken, "blah") // TODO LEO
+		selectedJob := m.nomadJobsList[m.viewport.CursorRow]                     // TODO LEO: this may not remain true with search/filtering
+		return command.FetchAllocation(m.nomadUrl, m.nomadToken, selectedJob.ID) // TODO LEO: correct ID
 	}
 	return nil
 }
@@ -57,14 +58,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case message.NomadAllocationMsg:
-		dev.Debug("NomadAllocationMsg")
+	case message.NomadJobsMsg:
+		dev.Debug("nomadJobsMsg")
+		m.nomadJobsList = msg.Jobs
 		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
 		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
 		return m, nil
 
-	case message.NomadJobsMsg:
-		dev.Debug("nomadJobsMsg")
+	case message.NomadAllocationMsg:
+		dev.Debug("NomadAllocationMsg")
 		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
 		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
 		return m, nil

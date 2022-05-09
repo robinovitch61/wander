@@ -28,8 +28,8 @@ type Model struct {
 	// yOffset is the vertical scroll position of the text.
 	yOffset int
 
-	// cursorRow is the row index of the cursor.
-	cursorRow int
+	// CursorRow is the row index of the cursor.
+	CursorRow int
 
 	// styleViewport applies a lipgloss style to the viewport. Realistically, it's most
 	// useful for setting borders, margins and padding.
@@ -65,7 +65,7 @@ func normalizeLineEndings(s string) string {
 
 // fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
 func (m *Model) fixCursorRow() {
-	if m.cursorRow > m.lastVisibleLineIdx() {
+	if m.CursorRow > m.lastVisibleLineIdx() {
 		m.setCursorRow(m.lastVisibleLineIdx())
 	}
 }
@@ -118,7 +118,7 @@ func (m Model) maxYOffset() int {
 	return m.maxLinesIdx() - m.contentHeight + 1
 }
 
-// maxCursorRow returns the maximum cursorRow
+// maxCursorRow returns the maximum CursorRow
 func (m Model) maxCursorRow() int {
 	return len(m.lines) - 1
 }
@@ -132,22 +132,22 @@ func (m *Model) setYOffset(n int) {
 	}
 }
 
-// setCursorRow sets the cursorRow with bounds. Adjusts yOffset as necessary.
+// setCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
 func (m *Model) setCursorRow(n int) {
 	if m.contentHeight == 0 {
 		return
 	}
 
 	if maxSelection := m.maxCursorRow(); n > maxSelection {
-		m.cursorRow = maxSelection
+		m.CursorRow = maxSelection
 	} else {
-		m.cursorRow = max(0, n)
+		m.CursorRow = max(0, n)
 	}
 
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.cursorRow > lastVisibleLineIdx {
-		m.viewDown(m.cursorRow - lastVisibleLineIdx)
-	} else if m.cursorRow < m.yOffset {
-		m.viewUp(m.yOffset - m.cursorRow)
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
+		m.viewDown(m.CursorRow - lastVisibleLineIdx)
+	} else if m.CursorRow < m.yOffset {
+		m.viewUp(m.yOffset - m.CursorRow)
 	}
 }
 
@@ -161,14 +161,14 @@ func (m Model) visibleLines() []string {
 	return m.lines[start:end]
 }
 
-// cursorRowDown moves the cursorRow down by the given number of lines.
+// cursorRowDown moves the CursorRow down by the given number of lines.
 func (m *Model) cursorRowDown(n int) {
-	m.setCursorRow(m.cursorRow + n)
+	m.setCursorRow(m.CursorRow + n)
 }
 
-// cursorRowUp moves the cursorRow up by the given number of lines.
+// cursorRowUp moves the CursorRow up by the given number of lines.
 func (m *Model) cursorRowUp(n int) {
-	m.setCursorRow(m.cursorRow - n)
+	m.setCursorRow(m.CursorRow - n)
 }
 
 // viewDown moves the view down by the given number of lines.
@@ -212,7 +212,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.viewUp(m.contentHeight)
 			m.cursorRowUp(m.contentHeight)
 		}
-		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.cursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
+		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.CursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
 
 	case tea.MouseMsg:
 		if !m.mouseWheelEnabled {
@@ -237,7 +237,7 @@ func (m Model) View() string {
 
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
-		if m.yOffset+idx == m.cursorRow {
+		if m.yOffset+idx == m.CursorRow {
 			// render selected row
 			viewLines += m.styleCursorRow.
 				Width(m.width).

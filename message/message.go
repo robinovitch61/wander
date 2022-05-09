@@ -1,10 +1,14 @@
 package message
 
-import "wander/formatter"
+import (
+	"wander/formatter"
+	"wander/nomad"
+)
 
 // NomadJobsMsg is a message for nomad jobs
 type NomadJobsMsg struct {
 	Table formatter.Table
+	Jobs  []nomad.JobResponseEntry
 }
 
 // NomadAllocationMsg is a message for nomad allocations

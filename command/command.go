@@ -27,7 +27,7 @@ func FetchJobs(url, token string) tea.Cmd {
 			fmt.Println("Failed to decode job response")
 		}
 
-		return message.NomadJobsMsg{Table: formatter.JobResponseAsTable(jobResponse)}
+		return message.NomadJobsMsg{Table: formatter.JobResponseAsTable(jobResponse), Jobs: jobResponse}
 	}
 }
 
