@@ -86,23 +86,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.Enter):
 			if newPage := m.page.Forward(); newPage != m.page {
 				m.page = newPage
-				msg := fetchPageDataCmd(m)
+				cmd := fetchPageDataCmd(m)
 				m.viewport.SetLoading(newPage.LoadingString())
-				return m, msg
+				return m, cmd
 			}
 
 		case key.Matches(msg, m.keyMap.Back):
 			if newPage := m.page.Backward(); newPage != m.page {
 				m.page = newPage
-				msg := fetchPageDataCmd(m)
+				cmd := fetchPageDataCmd(m)
 				m.viewport.SetLoading(newPage.LoadingString())
-				return m, msg
+				return m, cmd
 			}
 
 		case key.Matches(msg, m.keyMap.Reload):
-			msg := fetchPageDataCmd(m)
+			cmd := fetchPageDataCmd(m)
 			m.viewport.SetLoading(m.page.ReloadingString())
-			return m, msg
+			return m, cmd
 		}
 
 	case tea.WindowSizeMsg:
@@ -124,8 +124,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.page = firstPage
 			m.viewport.SetLoading(firstPage.LoadingString())
 
-			msg := fetchPageDataCmd(m)
-			return m, msg
+			cmd := fetchPageDataCmd(m)
+			return m, cmd
 		} else {
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(viewportHeight)
