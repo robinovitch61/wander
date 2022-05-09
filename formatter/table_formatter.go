@@ -31,7 +31,7 @@ func createTableConfig() tableConfig {
 	table.SetCenterSeparator("")
 	table.SetColumnSeparator("")
 	table.SetBorder(false)
-	table.SetTablePadding("\t")
+	table.SetTablePadding("    ")
 	table.SetNoWhiteSpace(true)
 
 	return tableConfig{table, tableString}

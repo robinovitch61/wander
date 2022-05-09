@@ -22,6 +22,7 @@ type model struct {
 	nomadUrl      string
 	nomadJobTable formatter.Table
 	viewport      viewport.Model
+	width, height int
 	initialized   bool
 	err           error
 }
@@ -83,10 +84,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		dev.Debug("WindowSizeMsg")
+		m.width = msg.Width
+		m.height = msg.Height
+
 		headerHeight := 0
 		footerHeight := 0
-		verticalMarginHeight := headerHeight + footerHeight
-		viewportHeight := msg.Height - verticalMarginHeight
+		viewportHeight := msg.Height - (headerHeight + footerHeight)
 
 		if !m.initialized {
 			// Since this program is using the full size of the viewport we
@@ -116,20 +119,20 @@ func (m model) View() string {
 	if m.nomadJobTable.IsEmpty() {
 		return "Retrieving jobs..."
 	}
-	view := m.viewport.View()
-	return view
+	return m.viewport.View()
+	//return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(m.viewport.View())
 }
 
 func initialModel() model {
 	nomadToken := os.Getenv(NomadTokenEnvVariable)
 	if nomadToken == "" {
-		fmt.Printf("Set environment variable %s", NomadTokenEnvVariable)
+		fmt.Printf("Set environment variable %s\n", NomadTokenEnvVariable)
 		os.Exit(1)
 	}
 
 	nomadUrl := os.Getenv(NomadUrlEnvVariable)
 	if nomadUrl == "" {
-		fmt.Printf("Set environment variable %s", NomadUrlEnvVariable)
+		fmt.Printf("Set environment variable %s\n", NomadUrlEnvVariable)
 		os.Exit(1)
 	}
 	return model{

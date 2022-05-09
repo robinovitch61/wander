@@ -20,11 +20,9 @@ func New(width, height int) (m Model) {
 type Model struct {
 	width         int
 	height        int
-	contentHeight int
+	contentHeight int // excludes header height, should always be internal
 	keyMap        viewportKeyMap
 
-	// Whether to respond to the mouse. The mouse must be enabled in
-	// Bubble Tea for this to work. For details, see the Bubble Tea docs.
 	// Currently, causes flickering if enabled.
 	mouseWheelEnabled bool
 
@@ -49,7 +47,7 @@ func (m *Model) setInitialValues() {
 	m.keyMap = getKeyMap()
 	m.mouseWheelEnabled = false
 	m.styleViewport = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
-	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	m.initialized = true
 }
 
@@ -67,7 +65,7 @@ func (m *Model) SetHeight(h int) {
 	m.height = h
 	m.contentHeight = h - len(m.header)
 	if m.cursorRow > m.lastVisibleLineIdx() {
-		m.cursorRow = m.lastVisibleLineIdx()
+		m.setCursorRow(m.lastVisibleLineIdx())
 	}
 }
 
@@ -121,6 +119,10 @@ func (m *Model) setYOffset(n int) {
 
 // setCursorRow sets the cursorRow with bounds. Adjusts yOffset as necessary.
 func (m *Model) setCursorRow(n int) {
+	if m.contentHeight == 0 {
+		return
+	}
+
 	if maxSelection := m.maxCursorRow(); n > maxSelection {
 		m.cursorRow = maxSelection
 	} else {
@@ -221,16 +223,20 @@ func (m Model) View() string {
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
 		if m.yOffset+idx == m.cursorRow {
-			viewLines += m.styleCursorRow.Render(line)
+			viewLines += m.styleCursorRow.
+				Width(m.width).
+				Render(line)
 		} else {
 			viewLines += line
 		}
-
-		if idx != len(visibleLines)-1 {
-			viewLines += "\n"
-		}
+		viewLines += "\n"
 	}
-	return m.styleViewport.Width(m.width).Height(m.height).Render(viewLines) // width and height are variable
+	trimmedViewLines := strings.TrimSpace(viewLines)
+	renderedViewLines := m.styleViewport.
+		Width(m.width).
+		Height(m.height).
+		Render(trimmedViewLines)
+	return renderedViewLines
 }
 
 func min(a, b int) int {
