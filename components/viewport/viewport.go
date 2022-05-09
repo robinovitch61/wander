@@ -7,8 +7,7 @@ import (
 	"strings"
 )
 
-// New returns a new model with the given width and height as well as default
-// keymappings.
+// New returns a new model with the given width and height as well as default values.
 func New(width, height int) (m Model) {
 	m.width = width
 	m.height = height
@@ -91,12 +90,12 @@ func (m *Model) maxLinesIdx() int {
 }
 
 // lastVisibleLineIdx returns the maximum visible line index
-func (m *Model) lastVisibleLineIdx() int {
+func (m Model) lastVisibleLineIdx() int {
 	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
 }
 
 // maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
-func (m *Model) maxYOffset() int {
+func (m Model) maxYOffset() int {
 	if m.maxLinesIdx() < m.contentHeight {
 		return 0
 	}
@@ -104,7 +103,7 @@ func (m *Model) maxYOffset() int {
 }
 
 // maxCursorRow returns the maximum cursorRow
-func (m *Model) maxCursorRow() int {
+func (m Model) maxCursorRow() int {
 	return len(m.lines) - 1
 }
 
@@ -137,7 +136,7 @@ func (m *Model) setCursorRow(n int) {
 }
 
 // visibleLines retrieves the visible lines based on the yOffset
-func (m *Model) visibleLines() []string {
+func (m Model) visibleLines() []string {
 	start := m.yOffset
 	end := start + m.contentHeight
 	if end > m.maxLinesIdx() {

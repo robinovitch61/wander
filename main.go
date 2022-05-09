@@ -1,15 +1,16 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
 	"strings"
+	"wander/command"
+	"wander/components/header"
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/formatter"
-	"wander/nomad"
+	"wander/message"
 )
 
 var (
@@ -21,39 +22,15 @@ type model struct {
 	nomadToken    string
 	nomadUrl      string
 	nomadJobTable formatter.Table
+	header        header.Model
 	viewport      viewport.Model
 	width, height int
 	initialized   bool
 	err           error
 }
 
-// messages
-type nomadJobsMsg struct {
-	table formatter.Table
-}
-
-type errMsg struct{ err error }
-
-func (e errMsg) Error() string { return e.err.Error() }
-
-// commands
-func fetchJobs(url, token string) tea.Cmd {
-	return func() tea.Msg {
-		// TODO LEO: error handling
-		//body, _ := nomad.GetJobs(url, token)
-		body := MockJobsResponse
-		var jobResponse []nomad.JobResponseEntry
-		if err := json.Unmarshal(body, &jobResponse); err != nil {
-			fmt.Println("Failed to decode response")
-		}
-
-		table := formatter.JobResponseAsTable(jobResponse)
-		return nomadJobsMsg{table}
-	}
-}
-
 func (m model) Init() tea.Cmd {
-	return fetchJobs(m.nomadUrl, m.nomadToken)
+	return command.FetchJobs(m.nomadUrl, m.nomadToken)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -64,14 +41,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case nomadJobsMsg:
+	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
-		m.nomadJobTable = msg.table
-		m.viewport.SetHeader(strings.Join(msg.table.HeaderRows, "\n"))
-		m.viewport.SetContent(strings.Join(msg.table.ContentRows, "\n"))
+		m.nomadJobTable = msg.Table
+		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
+		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
 		return m, nil
 
-	case errMsg:
+	case message.ErrMsg:
 		dev.Debug("errMsg")
 		m.err = msg
 		return m, nil
@@ -87,7 +64,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		headerHeight := 0
+		headerHeight := m.header.ViewHeight()
+		dev.Debug(fmt.Sprintf("LEO HERE %d", headerHeight))
 		footerHeight := 0
 		viewportHeight := msg.Height - (headerHeight + footerHeight)
 
@@ -119,7 +97,7 @@ func (m model) View() string {
 	if m.nomadJobTable.IsEmpty() {
 		return "Retrieving jobs..."
 	}
-	return m.viewport.View()
+	return m.header.View() + "\n" + m.viewport.View()
 	//return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(m.viewport.View())
 }
 
@@ -135,9 +113,11 @@ func initialModel() model {
 		fmt.Printf("Set environment variable %s\n", NomadUrlEnvVariable)
 		os.Exit(1)
 	}
+
 	return model{
-		nomadToken:  nomadToken,
-		nomadUrl:    nomadUrl,
+		nomadToken: nomadToken,
+		nomadUrl:   nomadUrl,
+		header:     header.New(nomadUrl),
 	}
 }
 
