@@ -31,6 +31,7 @@ type model struct {
 	initialized   bool
 	err           error
 	nomadJobsList []nomad.JobResponseEntry
+	selectedJobId string // TODO LEO use this
 }
 
 func (m model) Init() tea.Cmd {
@@ -44,8 +45,8 @@ func fetchPageDataCmd(m model) tea.Cmd {
 		return command.FetchJobs(m.nomadUrl, m.nomadToken)
 
 	case page.Allocation:
-		selectedJob := m.nomadJobsList[m.viewport.CursorRow]                     // TODO LEO: this may not remain true with search/filtering
-		return command.FetchAllocation(m.nomadUrl, m.nomadToken, selectedJob.ID) // TODO LEO: correct ID
+		selectedJob := m.nomadJobsList[m.viewport.CursorRow]                      // TODO LEO: this may not remain true with search/filtering
+		return command.FetchAllocations(m.nomadUrl, m.nomadToken, selectedJob.ID) // TODO LEO: use selectedJobId
 	}
 	return nil
 }
@@ -116,6 +117,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if !m.initialized {
 			// this is the first message received and the initial entrypoint to the app
+			// TODO LEO: separate loading/reloading out of viewport, then can initialize app and viewport separately
+			// tradeoff here is can't have multiple components loading at same time then?
 			m.keyMap = getKeyMap()
 			m.viewport = viewport.New(msg.Width, viewportHeight)
 			m.initialized = true

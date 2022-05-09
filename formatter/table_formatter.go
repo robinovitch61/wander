@@ -4,6 +4,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"strconv"
 	"strings"
+	"time"
 	"wander/nomad"
 )
 
@@ -66,16 +67,31 @@ func JobResponseAsTable(jobResponse []nomad.JobResponseEntry) Table {
 	)
 }
 
-func AllocationResponseAsTable(allocationResponse nomad.AllocationResponse) Table {
+// TODO LEO: move to utils
+func formatTime(t time.Time) string {
+	if t.IsZero() {
+		return "-"
+	}
+	return t.Format("2006-01-02T15:04:05")
+}
+
+func AllocationResponseAsTable(allocationResponse []nomad.AllocationResponseEntry) Table {
 	var allocationResponseRows [][]string
-	for _, row := range allocationResponse.Job.TaskGroups {
-		allocationResponseRows = append(allocationResponseRows, []string{
-			row.Name,
-		})
+	for _, alloc := range allocationResponse {
+		for taskName, taskData := range alloc.TaskStates {
+			allocationResponseRows = append(allocationResponseRows, []string{
+				alloc.ID,
+				alloc.Name,
+				taskName,
+				taskData.State,
+				formatTime(taskData.StartedAt),
+				formatTime(taskData.FinishedAt),
+			})
+		}
 	}
 
 	return getRenderedTableString(
-		[]string{"Task"},
+		[]string{"Alloc ID", "Alloc Name", "Task Name", "State", "Started", "Finished"},
 		allocationResponseRows,
 	)
 }
