@@ -29,6 +29,10 @@ func (p Page) LoadingString() string {
 	return fmt.Sprintf("Loading %s...", p.String())
 }
 
+func (p Page) ReloadingString() string {
+	return fmt.Sprintf("Reloading %s...", p.String())
+}
+
 func (p Page) Forward() Page {
 	switch p {
 	case Jobs:

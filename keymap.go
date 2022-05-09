@@ -5,9 +5,10 @@ import (
 )
 
 type mainKeyMap struct {
-	Exit  key.Binding
-	Enter key.Binding
-	Back  key.Binding
+	Exit   key.Binding
+	Enter  key.Binding
+	Back   key.Binding
+	Reload key.Binding
 }
 
 // getKeyMap returns the main key mappings
@@ -24,6 +25,10 @@ func getKeyMap() mainKeyMap {
 		Back: key.NewBinding(
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "back"),
+		),
+		Reload: key.NewBinding(
+			key.WithKeys("r"),
+			key.WithHelp("r", "reload"),
 		),
 	}
 }

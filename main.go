@@ -11,6 +11,7 @@ import (
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/message"
+	"wander/nomad"
 	"wander/page"
 )
 
@@ -23,28 +24,29 @@ type model struct {
 	nomadToken    string
 	nomadUrl      string
 	keyMap        mainKeyMap
-	header        header.Model
 	page          page.Page
+	header        header.Model
 	viewport      viewport.Model
 	width, height int
 	initialized   bool
 	err           error
+	nomadJobsList []nomad.JobResponseEntry
 }
 
 func (m model) Init() tea.Cmd {
 	return command.FetchJobs(m.nomadUrl, m.nomadToken)
 }
 
-func enterPage(m model) (tea.Model, tea.Cmd) {
+func fetchPageDataCmd(m model) tea.Cmd {
 	switch m.page {
 
 	case page.Jobs:
-		return m, command.FetchJobs(m.nomadUrl, m.nomadToken)
+		return command.FetchJobs(m.nomadUrl, m.nomadToken)
 
 	case page.Allocation:
-		return m, command.FetchAllocation(m.nomadUrl, m.nomadToken, "blah") // TODO LEO
+		return command.FetchAllocation(m.nomadUrl, m.nomadToken, "blah") // TODO LEO
 	}
-	return m, nil
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -82,16 +84,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.Enter):
 			if newPage := m.page.Forward(); newPage != m.page {
 				m.page = newPage
+				msg := fetchPageDataCmd(m)
 				m.viewport.SetLoading(newPage.LoadingString())
-				return enterPage(m)
+				return m, msg
 			}
 
 		case key.Matches(msg, m.keyMap.Back):
 			if newPage := m.page.Backward(); newPage != m.page {
 				m.page = newPage
+				msg := fetchPageDataCmd(m)
 				m.viewport.SetLoading(newPage.LoadingString())
-				return enterPage(m)
+				return m, msg
 			}
+
+		case key.Matches(msg, m.keyMap.Reload):
+			msg := fetchPageDataCmd(m)
+			m.viewport.SetLoading(m.page.ReloadingString())
+			return m, msg
 		}
 
 	case tea.WindowSizeMsg:
@@ -107,10 +116,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// this is the first message received and the initial entrypoint to the app
 			m.keyMap = getKeyMap()
 			m.viewport = viewport.New(msg.Width, viewportHeight)
-			m.page = page.Jobs
-			m.viewport.SetLoading(m.page.LoadingString())
 			m.initialized = true
-			return enterPage(m)
+
+			firstPage := page.Jobs
+			m.page = firstPage
+			m.viewport.SetLoading(firstPage.LoadingString())
+
+			msg := fetchPageDataCmd(m)
+			return m, msg
 		} else {
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(viewportHeight)
