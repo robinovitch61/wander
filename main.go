@@ -11,6 +11,7 @@ import (
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/message"
+	"wander/page"
 )
 
 var (
@@ -18,35 +19,12 @@ var (
 	NomadUrlEnvVariable   = "NOMAD_URL"
 )
 
-type Page int8
-
-func (s Page) String() string {
-	switch s {
-	case Unset:
-		return "undefined"
-	case Jobs:
-		return "jobs"
-	case Allocation:
-		return "allocation"
-	case Logs:
-		return "logs"
-	}
-	return "unknown"
-}
-
-const (
-	Unset Page = iota
-	Jobs
-	Allocation
-	Logs
-)
-
 type model struct {
 	nomadToken    string
 	nomadUrl      string
 	keyMap        mainKeyMap
 	header        header.Model
-	page          Page
+	page          page.Page
 	viewport      viewport.Model
 	width, height int
 	initialized   bool
@@ -57,18 +35,31 @@ func (m model) Init() tea.Cmd {
 	return command.FetchJobs(m.nomadUrl, m.nomadToken)
 }
 
+func enterPage(m model) (tea.Model, tea.Cmd) {
+	switch m.page {
+
+	case page.Jobs:
+		return m, command.FetchJobs(m.nomadUrl, m.nomadToken)
+
+	case page.Allocation:
+		return m, command.FetchAllocation(m.nomadUrl, m.nomadToken, "blah") // TODO LEO
+	}
+	return m, nil
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
 
-	if m.page == Unset {
-		m.page = Jobs
-		m.keyMap = getKeyMap() // TODO LEO: Maybe move this
-	}
-
 	switch msg := msg.(type) {
+
+	case message.NomadAllocationMsg:
+		dev.Debug("NomadAllocationMsg")
+		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
+		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
+		return m, nil
 
 	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
@@ -82,10 +73,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		dev.Debug(fmt.Sprintf("%s", msg))
+		dev.Debug(fmt.Sprintf("KeyMsg '%s'", msg))
 		switch {
+
 		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
+
+		case key.Matches(msg, m.keyMap.Enter):
+			if newPage := m.page.Forward(); newPage != m.page {
+				m.page = newPage
+				m.viewport.SetLoading(newPage.LoadingString())
+				return enterPage(m)
+			}
+
+		case key.Matches(msg, m.keyMap.Back):
+			if newPage := m.page.Backward(); newPage != m.page {
+				m.page = newPage
+				m.viewport.SetLoading(newPage.LoadingString())
+				return enterPage(m)
+			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -98,13 +104,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		viewportHeight := msg.Height - (headerHeight + footerHeight)
 
 		if !m.initialized {
-			// Since this program is using the full size of the viewport we
-			// need to wait until we've received the window dimensions before
-			// we can initialize the viewport. The initial dimensions come in
-			// quickly, though asynchronously, which is why we wait for them
-			// here.
+			// this is the first message received and the initial entrypoint to the app
+			m.keyMap = getKeyMap()
 			m.viewport = viewport.New(msg.Width, viewportHeight)
+			m.page = page.Jobs
+			m.viewport.SetLoading(m.page.LoadingString())
 			m.initialized = true
+			return enterPage(m)
 		} else {
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(viewportHeight)
@@ -122,12 +128,7 @@ func (m model) View() string {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
 
-	finalView := m.header.View() + "\n"
-
-	if m.page == Jobs && m.viewport.ContentEmpty() {
-		finalView += "Retrieving jobs..."
-	}
-	finalView += m.viewport.View()
+	finalView := m.header.View() + "\n" + m.viewport.View()
 	return finalView
 	//return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(finalView)
 }

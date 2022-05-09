@@ -63,13 +63,18 @@ func normalizeLineEndings(s string) string {
 	return strings.ReplaceAll(s, "\r\n", "\n")
 }
 
+// fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
+func (m *Model) fixCursorRow() {
+	if m.cursorRow > m.lastVisibleLineIdx() {
+		m.setCursorRow(m.lastVisibleLineIdx())
+	}
+}
+
 // SetHeight sets the pager's height, including header.
 func (m *Model) SetHeight(h int) {
 	m.height = h
 	m.contentHeight = h - len(m.header)
-	if m.cursorRow > m.lastVisibleLineIdx() {
-		m.setCursorRow(m.lastVisibleLineIdx())
-	}
+	m.fixCursorRow()
 }
 
 // SetWidth sets the pager's width.
@@ -86,6 +91,13 @@ func (m *Model) SetHeader(header string) {
 // SetContent sets the pager's text content.
 func (m *Model) SetContent(s string) {
 	m.lines = strings.Split(normalizeLineEndings(s), "\n")
+	m.fixCursorRow()
+}
+
+// SetLoading clears the header and content and displays the loading message
+func (m *Model) SetLoading(s string) {
+	m.SetContent("")
+	m.SetHeader(s)
 }
 
 // maxLinesIdx returns the maximum index of the model's lines
@@ -226,6 +238,7 @@ func (m Model) View() string {
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
 		if m.yOffset+idx == m.cursorRow {
+			// render selected row
 			viewLines += m.styleCursorRow.
 				Width(m.width).
 				Render(line)
