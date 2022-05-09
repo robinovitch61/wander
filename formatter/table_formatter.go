@@ -65,3 +65,17 @@ func JobResponseAsTable(jobResponse []nomad.JobResponseEntry) Table {
 		jobResponseRows,
 	)
 }
+
+func AllocationResponseAsTable(allocationResponse nomad.AllocationResponse) Table {
+	var allocationResponseRows [][]string
+	for _, row := range allocationResponse.Job.TaskGroups {
+		allocationResponseRows = append(allocationResponseRows, []string{
+			row.Name,
+		})
+	}
+
+	return getRenderedTableString(
+		[]string{"Task"},
+		allocationResponseRows,
+	)
+}

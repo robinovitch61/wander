@@ -18,11 +18,35 @@ var (
 	NomadUrlEnvVariable   = "NOMAD_URL"
 )
 
+type Page int8
+
+func (s Page) String() string {
+	switch s {
+	case Unset:
+		return "undefined"
+	case Jobs:
+		return "jobs"
+	case Allocation:
+		return "allocation"
+	case Logs:
+		return "logs"
+	}
+	return "unknown"
+}
+
+const (
+	Unset Page = iota
+	Jobs
+	Allocation
+	Logs
+)
+
 type model struct {
 	nomadToken    string
 	nomadUrl      string
 	nomadJobTable formatter.Table
 	header        header.Model
+	page          Page
 	viewport      viewport.Model
 	width, height int
 	initialized   bool
@@ -38,6 +62,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
+
+	if m.page == Unset {
+		m.page = Jobs
+	}
 
 	switch msg := msg.(type) {
 
@@ -94,11 +122,14 @@ func (m model) View() string {
 		return fmt.Sprintf("\nError: %v\n\n", m.err)
 	}
 
-	if m.nomadJobTable.IsEmpty() {
-		return "Retrieving jobs..."
+	finalView := m.header.View() + "\n"
+
+	if m.page == Jobs && m.nomadJobTable.IsEmpty() {
+		finalView += "Retrieving jobs..."
 	}
-	return m.header.View() + "\n" + m.viewport.View()
-	//return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(m.viewport.View())
+	finalView += m.viewport.View()
+	return finalView
+	//return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(finalView)
 }
 
 func initialModel() model {
