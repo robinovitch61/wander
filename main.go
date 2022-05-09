@@ -45,8 +45,7 @@ func fetchPageDataCmd(m model) tea.Cmd {
 		return command.FetchJobs(m.nomadUrl, m.nomadToken)
 
 	case page.Allocation:
-		selectedJob := m.nomadJobsList[m.viewport.CursorRow]                      // TODO LEO: this may not remain true with search/filtering
-		return command.FetchAllocations(m.nomadUrl, m.nomadToken, selectedJob.ID) // TODO LEO: use selectedJobId
+		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.selectedJobId)
 	}
 	return nil
 }
@@ -85,6 +84,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case key.Matches(msg, m.keyMap.Enter):
+			if m.page == page.Jobs {
+				m.selectedJobId = m.nomadJobsList[m.viewport.CursorRow].ID // TODO LEO: this may not remain true with search/filtering
+			}
+
 			if newPage := m.page.Forward(); newPage != m.page {
 				m.page = newPage
 				cmd := fetchPageDataCmd(m)
