@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"wander/components/header"
 	"wander/components/viewport"
 	"wander/dev"
-	"wander/formatter"
 	"wander/message"
 )
 
@@ -44,7 +44,7 @@ const (
 type model struct {
 	nomadToken    string
 	nomadUrl      string
-	nomadJobTable formatter.Table
+	keyMap        mainKeyMap
 	header        header.Model
 	page          Page
 	viewport      viewport.Model
@@ -65,13 +65,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.page == Unset {
 		m.page = Jobs
+		m.keyMap = getKeyMap() // TODO LEO: Maybe move this
 	}
 
 	switch msg := msg.(type) {
 
 	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
-		m.nomadJobTable = msg.Table
 		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
 		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
 		return m, nil
@@ -82,8 +82,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		dev.Debug("KeyMsg")
-		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
+		dev.Debug(fmt.Sprintf("%s", msg))
+		switch {
+		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
 		}
 
@@ -93,7 +94,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		headerHeight := m.header.ViewHeight()
-		dev.Debug(fmt.Sprintf("LEO HERE %d", headerHeight))
 		footerHeight := 0
 		viewportHeight := msg.Height - (headerHeight + footerHeight)
 
@@ -124,7 +124,7 @@ func (m model) View() string {
 
 	finalView := m.header.View() + "\n"
 
-	if m.page == Jobs && m.nomadJobTable.IsEmpty() {
+	if m.page == Jobs && m.viewport.ContentEmpty() {
 		finalView += "Retrieving jobs..."
 	}
 	finalView += m.viewport.View()

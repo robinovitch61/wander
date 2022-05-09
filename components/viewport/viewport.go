@@ -41,6 +41,10 @@ type Model struct {
 	lines       []string
 }
 
+func (m Model) ContentEmpty() bool {
+	return len(m.header) == 0 && len(m.lines) == 0
+}
+
 func (m *Model) setInitialValues() {
 	m.contentHeight = m.height - len(m.header)
 	m.keyMap = getKeyMap()
