@@ -9,6 +9,7 @@ type mainKeyMap struct {
 	Enter  key.Binding
 	Back   key.Binding
 	Reload key.Binding
+	Filter key.Binding
 }
 
 // getKeyMap returns the main key mappings
@@ -29,6 +30,10 @@ func getKeyMap() mainKeyMap {
 		Reload: key.NewBinding(
 			key.WithKeys("r"),
 			key.WithHelp("r", "reload"),
+		),
+		Filter: key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "filter"),
 		),
 	}
 }

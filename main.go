@@ -29,9 +29,11 @@ type model struct {
 	viewport      viewport.Model
 	width, height int
 	initialized   bool
-	err           error
+	filtering     bool
+	activeFilter  string
 	nomadJobsList []nomad.JobResponseEntry
 	selectedJobId string // TODO LEO use this
+	err           error
 }
 
 func (m model) Init() tea.Cmd {
@@ -60,7 +62,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
-		m.nomadJobsList = msg.Jobs
+		m.nomadJobsList = msg.TableData
 		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
 		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
 		return m, nil
@@ -78,8 +80,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		dev.Debug(fmt.Sprintf("KeyMsg '%s'", msg))
-		switch {
+		if m.filtering {
+			switch {
+			case key.Matches(msg, m.keyMap.Back):
+				m.filtering = false
+				m.activeFilter = ""
+			case key.Matches(msg, m.keyMap.Enter):
+				m.filtering = false
+			default:
+				m.activeFilter += msg.String()
+				m.header.SetFilterString(m.activeFilter)
 
+				return m, nil
+			}
+		}
+
+		switch {
 		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
 
@@ -107,6 +123,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := fetchPageDataCmd(m)
 			m.viewport.SetLoading(m.page.ReloadingString())
 			return m, cmd
+
+		case key.Matches(msg, m.keyMap.Filter):
+			m.filtering = true
+			return m, nil
 		}
 
 	case tea.WindowSizeMsg:
@@ -170,7 +190,7 @@ func initialModel() model {
 	return model{
 		nomadToken: nomadToken,
 		nomadUrl:   nomadUrl,
-		header:     header.New(nomadUrl),
+		header:     header.New(nomadUrl, ""),
 	}
 }
 

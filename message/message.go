@@ -7,8 +7,8 @@ import (
 
 // NomadJobsMsg is a message for nomad jobs
 type NomadJobsMsg struct {
-	Table formatter.Table
-	Jobs  []nomad.JobResponseEntry
+	Table     formatter.Table
+	TableData []nomad.JobResponseEntry
 }
 
 // NomadAllocationMsg is a message for nomad allocations

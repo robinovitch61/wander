@@ -8,12 +8,16 @@ import (
 )
 
 type Model struct {
-	content []string
+	content      []string
+	filterString string
 }
 
-func New(nomadUrl string) (m Model) {
+func New(nomadUrl, filterString string) (m Model) {
 	content := []string{fmt.Sprintf("Cluster URL: %s", nomadUrl)}
-	return Model{content}
+	if filterString != "" {
+		content = append(content, fmt.Sprintf("Filter: %s", filterString))
+	}
+	return Model{content, filterString}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -22,6 +26,11 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update() (Model, tea.Cmd) {
 	return m, nil
+}
+
+func (m *Model) SetFilterString(s string) {
+	// TODO LEO: should this be in the Update function?
+	m.filterString = s
 }
 
 func (m Model) View() string {
