@@ -1,5 +1,8 @@
 package main
 
+// TODO LEO: known bugs
+// - [ ] Crashes if terminal height smaller than header height
+
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -10,6 +13,7 @@ import (
 	"wander/components/header"
 	"wander/components/viewport"
 	"wander/dev"
+	"wander/formatter"
 	"wander/message"
 	"wander/nomad"
 	"wander/page"
@@ -19,6 +23,11 @@ var (
 	NomadTokenEnvVariable = "NOMAD_TOKEN"
 	NomadUrlEnvVariable   = "NOMAD_URL"
 )
+
+type nomadJobData struct {
+	allJobData      []nomad.JobResponseEntry
+	filteredJobData []nomad.JobResponseEntry
+}
 
 type model struct {
 	nomadToken          string
@@ -31,7 +40,7 @@ type model struct {
 	initialized         bool
 	editingActiveFilter bool
 	activeFilter        string
-	nomadJobsList       []nomad.JobResponseEntry
+	nomadJobData        nomadJobData
 	selectedJobId       string // TODO LEO use this
 	err                 error
 }
@@ -57,9 +66,41 @@ func (m *model) setFiltering(editingActiveFilter, clearActiveFilter bool) {
 	dev.Debug(fmt.Sprintf("Set editingActiveFilter %t", editingActiveFilter))
 	m.header.SetEditingFilter(editingActiveFilter)
 	if clearActiveFilter {
-		m.activeFilter = ""
-		m.header.SetFilterString("")
+		m.setActiveFilter("")
 	}
+}
+
+func (m *model) setActiveFilter(s string) {
+	m.activeFilter = s
+	m.header.SetFilterString(m.activeFilter)
+
+	switch m.page {
+	case page.Jobs:
+		m.updateJobsViewport()
+	case page.Allocation:
+		// TODO LEO: implement
+	}
+}
+
+func (m *model) updateViewport(table formatter.Table) {
+	m.viewport.SetHeader(strings.Join(table.HeaderRows, "\n"))
+	m.viewport.SetContent(strings.Join(table.ContentRows, "\n"))
+}
+
+func (m *model) updateFilteredJobData() {
+	var filteredJobData []nomad.JobResponseEntry
+	for _, entry := range m.nomadJobData.allJobData {
+		if entry.MatchesFilter(m.activeFilter) {
+			filteredJobData = append(filteredJobData, entry)
+		}
+	}
+	m.nomadJobData.filteredJobData = filteredJobData
+}
+
+func (m *model) updateJobsViewport() {
+	m.updateFilteredJobData()
+	table := formatter.JobResponseAsTable(m.nomadJobData.filteredJobData)
+	m.updateViewport(table)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -72,15 +113,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
-		m.nomadJobsList = msg.TableData
-		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
-		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
+		m.nomadJobData.allJobData = msg
+		m.updateJobsViewport()
 		return m, nil
 
 	case message.NomadAllocationMsg:
 		dev.Debug("NomadAllocationMsg")
-		m.viewport.SetHeader(strings.Join(msg.Table.HeaderRows, "\n"))
-		m.viewport.SetContent(strings.Join(msg.Table.ContentRows, "\n"))
+		m.updateViewport(msg.Table)
 		return m, nil
 
 	case message.ErrMsg:
@@ -90,19 +129,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		dev.Debug(fmt.Sprintf("KeyMsg '%s'", msg))
+
 		if m.editingActiveFilter {
 			switch {
 			case key.Matches(msg, m.keyMap.Back):
 				m.setFiltering(false, true)
 			case key.Matches(msg, m.keyMap.Enter):
 				m.setFiltering(false, false)
-				return m, nil
 			default:
-				m.activeFilter += msg.String()
-				m.header.SetFilterString(m.activeFilter)
-
-				return m, nil
+				switch msg.Type {
+				case tea.KeyBackspace:
+					if len(m.activeFilter) > 0 {
+						m.setActiveFilter(m.activeFilter[:len(m.activeFilter)-1])
+					}
+				case tea.KeyRunes:
+					m.setActiveFilter(m.activeFilter + msg.String())
+				}
 			}
+			return m, nil
 		}
 
 		switch {
@@ -111,10 +155,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.Enter):
 			if m.page == page.Jobs {
-				m.selectedJobId = m.nomadJobsList[m.viewport.CursorRow].ID // TODO LEO: this may not remain true with search/editingActiveFilter
+				m.selectedJobId = m.nomadJobData.filteredJobData[m.viewport.CursorRow].ID
 			}
 
 			if newPage := m.page.Forward(); newPage != m.page {
+				m.setActiveFilter("")
 				m.page = newPage
 				cmd := fetchPageDataCmd(m)
 				m.viewport.SetLoading(newPage.LoadingString())
@@ -142,8 +187,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		dev.Debug("WindowSizeMsg")
-		m.width = msg.Width
-		m.height = msg.Height
+		m.width, m.height = msg.Width, msg.Height
 
 		headerHeight := m.header.ViewHeight()
 		footerHeight := 0

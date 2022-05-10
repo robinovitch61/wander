@@ -1,6 +1,9 @@
 package nomad
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type JobResponseEntry struct {
 	ID         string
@@ -8,6 +11,10 @@ type JobResponseEntry struct {
 	Priority   int
 	Status     string
 	SubmitTime int
+}
+
+func (e JobResponseEntry) MatchesFilter(filter string) bool {
+	return strings.Contains(e.ID, filter)
 }
 
 type AllocationResponseEntry struct {

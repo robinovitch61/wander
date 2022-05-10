@@ -37,19 +37,29 @@ func (m *Model) SetEditingFilter(editingFilter bool) {
 	m.editingFilter = editingFilter
 }
 
+func (m Model) formatFilterString(s string) string {
+	if !m.editingFilter {
+		return s
+	}
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#000000")).
+		Background(lipgloss.Color("6")).
+		Render(s)
+}
+
 func (m Model) View() string {
 	viewString := strings.Join(m.content, "\n")
-	viewString += "\nFilter: "
+	viewString += "\n" + m.formatFilterString("Filter: ")
 	if m.editingFilter {
 		if m.filterString == "" {
-			viewString += "<type to filter>"
+			viewString += m.formatFilterString("<type to filter>")
 		}
 	} else {
 		if m.filterString == "" {
-			viewString += "'/' to filter"
+			viewString += m.formatFilterString("'/' to filter")
 		}
 	}
-	viewString += m.filterString
+	viewString += m.formatFilterString(m.filterString)
 	return lipgloss.NewStyle().
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder(), true).
