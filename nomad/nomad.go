@@ -5,6 +5,7 @@ import "fmt"
 var ApiPaths = map[string]string{
 	"jobs":        "/v1/jobs",
 	"allocations": "/v1/job/%s/allocations",
+	"logs":        "/v1/client/fs/logs/%s",
 }
 
 func GetJobs(url, token string) ([]byte, error) {
@@ -12,7 +13,7 @@ func GetJobs(url, token string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return get(path, token)
+	return get(path, token, nil)
 }
 
 func GetAllocations(url, token, jobId string) ([]byte, error) {
@@ -21,5 +22,20 @@ func GetAllocations(url, token, jobId string) ([]byte, error) {
 		return nil, err
 	}
 	pathWithAllocId := fmt.Sprintf(path, jobId)
-	return get(pathWithAllocId, token)
+	return get(pathWithAllocId, token, nil)
+}
+
+func GetLogs(url, token, allocId, taskName string) ([]byte, error) {
+	path, err := urlWithPathFor(url, "logs")
+	if err != nil {
+		return nil, err
+	}
+	params := map[string]string{
+		"task":   taskName,
+		"type":   "stdout",
+		"origin": "end",
+		"offset": "1000",
+	}
+	pathWithAllocId := fmt.Sprintf(path, allocId)
+	return get(pathWithAllocId, token, params)
 }

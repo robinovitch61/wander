@@ -49,7 +49,7 @@ func getRenderedTableString(header []string, data [][]string) Table {
 	return Table{headerRows, contentRows}
 }
 
-func JobResponseAsTable(jobResponse []nomad.JobResponseEntry) Table {
+func JobResponsesAsTable(jobResponse []nomad.JobResponseEntry) Table {
 	var jobResponseRows [][]string
 	for _, row := range jobResponse {
 		jobResponseRows = append(jobResponseRows, []string{
@@ -91,5 +91,17 @@ func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
 	return getRenderedTableString(
 		[]string{"Alloc ID", "Alloc Name", "Task Name", "State", "Started", "Finished"},
 		allocationResponseRows,
+	)
+}
+
+func LogsAsTable(logs string) Table {
+	var logRows [][]string
+	for _, row := range strings.Split(logs, "\n") {
+		logRows = append(logRows, []string{row})
+	}
+
+	return getRenderedTableString(
+		[]string{"Log Row"},
+		logRows,
 	)
 }

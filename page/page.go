@@ -37,6 +37,8 @@ func (p Page) Forward() Page {
 	switch p {
 	case Jobs:
 		return Allocation
+	case Allocation:
+		return Logs
 	}
 	return p
 }
@@ -45,6 +47,8 @@ func (p Page) Backward() Page {
 	switch p {
 	case Allocation:
 		return Jobs
+	case Logs:
+		return Allocation
 	}
 	return p
 }

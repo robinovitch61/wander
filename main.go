@@ -36,6 +36,15 @@ type nomadAllocationData struct {
 	filteredAllocationData []nomad.AllocationRowEntry
 }
 
+type nomadLogData struct {
+	allLogData      string
+	filteredLogData string
+}
+
+type selectedAlloc struct {
+	ID, taskName string
+}
+
 type model struct {
 	nomadToken          string
 	nomadUrl            string
@@ -49,7 +58,9 @@ type model struct {
 	activeFilter        string
 	nomadJobData        nomadJobData
 	nomadAllocationData nomadAllocationData
-	selectedJobId       string // TODO LEO use this
+	nomadLogData        nomadLogData
+	selectedJobId       string
+	selectedAlloc       selectedAlloc
 	err                 error
 }
 
@@ -65,13 +76,15 @@ func fetchPageDataCmd(m model) tea.Cmd {
 
 	case page.Allocation:
 		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.selectedJobId)
+
+	case page.Logs:
+		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName)
 	}
 	return nil
 }
 
 func (m *model) setFiltering(editingActiveFilter, clearActiveFilter bool) {
 	m.editingActiveFilter = editingActiveFilter
-	dev.Debug(fmt.Sprintf("Set editingActiveFilter %t", editingActiveFilter))
 	m.header.SetEditingFilter(editingActiveFilter)
 	if clearActiveFilter {
 		m.setActiveFilter("")
@@ -84,7 +97,7 @@ func (m *model) setActiveFilter(s string) {
 
 	switch m.page {
 	case page.Jobs:
-		m.updateJobsViewport()
+		m.updateJobViewport()
 	case page.Allocation:
 		m.updateAllocationViewport()
 	}
@@ -105,9 +118,9 @@ func (m *model) updateFilteredJobData() {
 	m.nomadJobData.filteredJobData = filteredJobData
 }
 
-func (m *model) updateJobsViewport() {
+func (m *model) updateJobViewport() {
 	m.updateFilteredJobData()
-	table := formatter.JobResponseAsTable(m.nomadJobData.filteredJobData)
+	table := formatter.JobResponsesAsTable(m.nomadJobData.filteredJobData)
 	m.updateViewport(table)
 }
 
@@ -127,6 +140,18 @@ func (m *model) updateAllocationViewport() {
 	m.updateViewport(table)
 }
 
+func (m *model) updateFilteredLogData() {
+	var filteredLogData string
+	filteredLogData = m.nomadLogData.allLogData // TODO LEO: implement
+	m.nomadLogData.filteredLogData = filteredLogData
+}
+
+func (m *model) updateLogViewport() {
+	m.updateFilteredLogData()
+	table := formatter.LogsAsTable(m.nomadLogData.filteredLogData)
+	m.updateViewport(table)
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -138,13 +163,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
 		m.nomadJobData.allJobData = msg
-		m.updateJobsViewport()
+		m.updateJobViewport()
 		return m, nil
 
 	case message.NomadAllocationMsg:
 		dev.Debug("NomadAllocationMsg")
 		m.nomadAllocationData.allAllocationData = msg
 		m.updateAllocationViewport()
+		return m, nil
+
+	case message.NomadLogsMsg:
+		dev.Debug("NomadLogsMsg")
+		m.nomadLogData.allLogData = string(msg)
+		m.updateLogViewport()
 		return m, nil
 
 	case message.ErrMsg:
@@ -179,8 +210,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case key.Matches(msg, m.keyMap.Enter):
-			if m.page == page.Jobs {
+			switch m.page {
+			case page.Jobs:
 				m.selectedJobId = m.nomadJobData.filteredJobData[m.viewport.CursorRow].ID
+			case page.Allocation:
+				alloc := m.nomadAllocationData.filteredAllocationData[m.viewport.CursorRow]
+				m.selectedAlloc = selectedAlloc{alloc.ID, alloc.TaskName}
 			}
 
 			if newPage := m.page.Forward(); newPage != m.page {
