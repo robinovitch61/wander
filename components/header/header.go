@@ -8,8 +8,9 @@ import (
 )
 
 type Model struct {
-	content      []string
-	filterString string
+	content       []string
+	filterString  string
+	editingFilter bool
 }
 
 func New(nomadUrl, filterString string) (m Model) {
@@ -17,24 +18,38 @@ func New(nomadUrl, filterString string) (m Model) {
 	if filterString != "" {
 		content = append(content, fmt.Sprintf("Filter: %s", filterString))
 	}
-	return Model{content, filterString}
+	return Model{content: content, filterString: filterString}
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m Model) Update() (Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
 func (m *Model) SetFilterString(s string) {
-	// TODO LEO: should this be in the Update function?
 	m.filterString = s
+}
+
+func (m *Model) SetEditingFilter(editingFilter bool) {
+	m.editingFilter = editingFilter
 }
 
 func (m Model) View() string {
 	viewString := strings.Join(m.content, "\n")
+	viewString += "\nFilter: "
+	if m.editingFilter {
+		if m.filterString == "" {
+			viewString += "<type to filter>"
+		}
+	} else {
+		if m.filterString == "" {
+			viewString += "'/' to filter"
+		}
+	}
+	viewString += m.filterString
 	return lipgloss.NewStyle().
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder(), true).

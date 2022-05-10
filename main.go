@@ -21,19 +21,19 @@ var (
 )
 
 type model struct {
-	nomadToken    string
-	nomadUrl      string
-	keyMap        mainKeyMap
-	page          page.Page
-	header        header.Model
-	viewport      viewport.Model
-	width, height int
-	initialized   bool
-	filtering     bool
-	activeFilter  string
-	nomadJobsList []nomad.JobResponseEntry
-	selectedJobId string // TODO LEO use this
-	err           error
+	nomadToken          string
+	nomadUrl            string
+	keyMap              mainKeyMap
+	page                page.Page
+	header              header.Model
+	viewport            viewport.Model
+	width, height       int
+	initialized         bool
+	editingActiveFilter bool
+	activeFilter        string
+	nomadJobsList       []nomad.JobResponseEntry
+	selectedJobId       string // TODO LEO use this
+	err                 error
 }
 
 func (m model) Init() tea.Cmd {
@@ -50,6 +50,16 @@ func fetchPageDataCmd(m model) tea.Cmd {
 		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.selectedJobId)
 	}
 	return nil
+}
+
+func (m *model) setFiltering(editingActiveFilter, clearActiveFilter bool) {
+	m.editingActiveFilter = editingActiveFilter
+	dev.Debug(fmt.Sprintf("Set editingActiveFilter %t", editingActiveFilter))
+	m.header.SetEditingFilter(editingActiveFilter)
+	if clearActiveFilter {
+		m.activeFilter = ""
+		m.header.SetFilterString("")
+	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -80,13 +90,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		dev.Debug(fmt.Sprintf("KeyMsg '%s'", msg))
-		if m.filtering {
+		if m.editingActiveFilter {
 			switch {
 			case key.Matches(msg, m.keyMap.Back):
-				m.filtering = false
-				m.activeFilter = ""
+				m.setFiltering(false, true)
 			case key.Matches(msg, m.keyMap.Enter):
-				m.filtering = false
+				m.setFiltering(false, false)
+				return m, nil
 			default:
 				m.activeFilter += msg.String()
 				m.header.SetFilterString(m.activeFilter)
@@ -101,7 +111,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.Enter):
 			if m.page == page.Jobs {
-				m.selectedJobId = m.nomadJobsList[m.viewport.CursorRow].ID // TODO LEO: this may not remain true with search/filtering
+				m.selectedJobId = m.nomadJobsList[m.viewport.CursorRow].ID // TODO LEO: this may not remain true with search/editingActiveFilter
 			}
 
 			if newPage := m.page.Forward(); newPage != m.page {
@@ -112,6 +122,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case key.Matches(msg, m.keyMap.Back):
+			m.setFiltering(false, true)
 			if newPage := m.page.Backward(); newPage != m.page {
 				m.page = newPage
 				cmd := fetchPageDataCmd(m)
@@ -125,7 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 
 		case key.Matches(msg, m.keyMap.Filter):
-			m.filtering = true
+			m.setFiltering(true, true)
 			return m, nil
 		}
 
@@ -159,6 +170,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
+	m.header, cmd = m.header.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
