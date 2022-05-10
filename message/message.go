@@ -1,7 +1,6 @@
 package message
 
 import (
-	"wander/formatter"
 	"wander/nomad"
 )
 
@@ -9,9 +8,7 @@ import (
 type NomadJobsMsg []nomad.JobResponseEntry
 
 // NomadAllocationMsg is a message for nomad allocations
-type NomadAllocationMsg struct {
-	Table formatter.Table
-}
+type NomadAllocationMsg []nomad.AllocationRowEntry
 
 // ErrMsg is an error message
 type ErrMsg struct{ err error }

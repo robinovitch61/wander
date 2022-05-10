@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"wander/formatter"
 	"wander/message"
 	"wander/nomad"
 )
@@ -18,9 +17,9 @@ func simulateLoading() {
 func FetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		body, _ := nomad.GetJobs(url, token)
-		//simulateLoading()
-		//body := MockJobsResponse
+		//body, _ := nomad.GetJobs(url, token)
+		simulateLoading()
+		body := MockJobsResponse
 		var jobResponse []nomad.JobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
 			// TODO LEO: error handling
@@ -34,15 +33,28 @@ func FetchJobs(url, token string) tea.Cmd {
 func FetchAllocations(url, token, jobId string) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		body, _ := nomad.GetAllocations(url, token, jobId)
-		//simulateLoading()
-		//body := MockAllocationResponse
+		//body, _ := nomad.GetAllocations(url, token, jobId)
+		simulateLoading()
+		body := MockAllocationResponse
 		var allocationResponse []nomad.AllocationResponseEntry
 		if err := json.Unmarshal(body, &allocationResponse); err != nil {
 			// TODO LEO: error handling
 			fmt.Println("Failed to decode allocation response")
 		}
+		var allocationRowEntries []nomad.AllocationRowEntry
+		for _, alloc := range allocationResponse {
+			for taskName, task := range alloc.TaskStates {
+				allocationRowEntries = append(allocationRowEntries, nomad.AllocationRowEntry{
+					ID:         alloc.ID,
+					Name:       alloc.Name,
+					TaskName:   taskName,
+					State:      task.State,
+					StartedAt:  task.StartedAt,
+					FinishedAt: task.FinishedAt,
+				})
+			}
+		}
 
-		return message.NomadAllocationMsg{Table: formatter.AllocationResponseAsTable(allocationResponse)}
+		return message.NomadAllocationMsg(allocationRowEntries)
 	}
 }

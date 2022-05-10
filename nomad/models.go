@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// TODO LEO: generate this from pasted
 type JobResponseEntry struct {
 	ID         string
 	Type       string
@@ -17,6 +18,8 @@ func (e JobResponseEntry) MatchesFilter(filter string) bool {
 	return strings.Contains(e.ID, filter)
 }
 
+// AllocationResponseEntry is returned from GET /v1/job/:job_id/allocations
+// https://www.nomadproject.io/api-docs/jobs#list-job-allocations
 type AllocationResponseEntry struct {
 	ID                 string `json:"ID"`
 	EvalID             string `json:"EvalID"`
@@ -71,4 +74,14 @@ type AllocationResponseEntry struct {
 	ModifyIndex int   `json:"ModifyIndex"`
 	CreateTime  int64 `json:"CreateTime"`
 	ModifyTime  int64 `json:"ModifyTime"`
+}
+
+// AllocationRowEntry is an item extraced from AllocationResponseEntry
+type AllocationRowEntry struct {
+	ID, Name, TaskName, State string
+	StartedAt, FinishedAt     time.Time
+}
+
+func (e AllocationRowEntry) MatchesFilter(filter string) bool {
+	return strings.Contains(e.TaskName, filter)
 }

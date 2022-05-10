@@ -2,6 +2,8 @@ package main
 
 // TODO LEO: known bugs
 // - [ ] Crashes if terminal height smaller than header height
+// - [ ] Cursor shows up if no viewport content
+// - [ ] Can crash app by hitting Enter when jobs loading
 
 import (
 	"fmt"
@@ -29,6 +31,11 @@ type nomadJobData struct {
 	filteredJobData []nomad.JobResponseEntry
 }
 
+type nomadAllocationData struct {
+	allAllocationData      []nomad.AllocationRowEntry
+	filteredAllocationData []nomad.AllocationRowEntry
+}
+
 type model struct {
 	nomadToken          string
 	nomadUrl            string
@@ -41,6 +48,7 @@ type model struct {
 	editingActiveFilter bool
 	activeFilter        string
 	nomadJobData        nomadJobData
+	nomadAllocationData nomadAllocationData
 	selectedJobId       string // TODO LEO use this
 	err                 error
 }
@@ -78,7 +86,7 @@ func (m *model) setActiveFilter(s string) {
 	case page.Jobs:
 		m.updateJobsViewport()
 	case page.Allocation:
-		// TODO LEO: implement
+		m.updateAllocationViewport()
 	}
 }
 
@@ -103,6 +111,22 @@ func (m *model) updateJobsViewport() {
 	m.updateViewport(table)
 }
 
+func (m *model) updateFilteredAllocationData() {
+	var filteredAllocationData []nomad.AllocationRowEntry
+	for _, entry := range m.nomadAllocationData.allAllocationData {
+		if entry.MatchesFilter(m.activeFilter) {
+			filteredAllocationData = append(filteredAllocationData, entry)
+		}
+	}
+	m.nomadAllocationData.filteredAllocationData = filteredAllocationData
+}
+
+func (m *model) updateAllocationViewport() {
+	m.updateFilteredAllocationData()
+	table := formatter.AllocationsAsTable(m.nomadAllocationData.filteredAllocationData)
+	m.updateViewport(table)
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -119,7 +143,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.NomadAllocationMsg:
 		dev.Debug("NomadAllocationMsg")
-		m.updateViewport(msg.Table)
+		m.nomadAllocationData.allAllocationData = msg
+		m.updateAllocationViewport()
 		return m, nil
 
 	case message.ErrMsg:
@@ -181,7 +206,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 
 		case key.Matches(msg, m.keyMap.Filter):
-			m.setFiltering(true, true)
+			m.setFiltering(true, false)
 			return m, nil
 		}
 

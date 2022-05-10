@@ -75,19 +75,17 @@ func formatTime(t time.Time) string {
 	return t.Format("2006-01-02T15:04:05")
 }
 
-func AllocationResponseAsTable(allocationResponse []nomad.AllocationResponseEntry) Table {
+func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
 	var allocationResponseRows [][]string
-	for _, alloc := range allocationResponse {
-		for taskName, taskData := range alloc.TaskStates {
-			allocationResponseRows = append(allocationResponseRows, []string{
-				alloc.ID,
-				alloc.Name,
-				taskName,
-				taskData.State,
-				formatTime(taskData.StartedAt),
-				formatTime(taskData.FinishedAt),
-			})
-		}
+	for _, alloc := range allocations {
+		allocationResponseRows = append(allocationResponseRows, []string{
+			alloc.ID,
+			alloc.Name,
+			alloc.TaskName,
+			alloc.State,
+			formatTime(alloc.StartedAt),
+			formatTime(alloc.FinishedAt),
+		})
 	}
 
 	return getRenderedTableString(

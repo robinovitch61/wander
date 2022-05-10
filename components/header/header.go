@@ -56,7 +56,7 @@ func (m Model) View() string {
 		}
 	} else {
 		if m.filterString == "" {
-			viewString += m.formatFilterString("'/' to filter")
+			viewString += m.formatFilterString("none ('/' to filter)")
 		}
 	}
 	viewString += m.formatFilterString(m.filterString)
