@@ -97,13 +97,13 @@ func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
 	)
 }
 
-func LogsAsTable(logs []string) Table {
+func LogsAsTable(logs []nomad.LogRow) Table {
 	var logRows [][]string
 	// ignore the first log line because it may be truncated due to offset
 	// TODO LEO: check if there's actually a truncated line based on the offset size and log char length^
 	//for _, row := range logs[1:] {
 	for _, row := range logs {
-		if stripped := strings.TrimSpace(row); stripped != "" {
+		if stripped := strings.TrimSpace(string(row)); stripped != "" {
 			logRows = append(logRows, []string{stripped})
 		}
 	}

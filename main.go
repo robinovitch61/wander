@@ -41,8 +41,8 @@ type nomadAllocationData struct {
 }
 
 type nomadLogData struct {
-	allLogData      []string
-	filteredLogData []string
+	allLogData      []nomad.LogRow
+	filteredLogData []nomad.LogRow
 }
 
 type selectedAlloc struct {
@@ -100,7 +100,8 @@ func (m *model) setFilter(s string) {
 		m.updateJobViewport()
 	case page.Allocation:
 		m.updateAllocationViewport()
-		// TODO LEO: implement logs filtering
+	case page.Logs:
+		m.updateLogViewport()
 	}
 }
 
@@ -142,8 +143,12 @@ func (m *model) updateAllocationViewport() {
 }
 
 func (m *model) updateFilteredLogData() {
-	var filteredLogData []string
-	filteredLogData = m.nomadLogData.allLogData // TODO LEO: implement
+	var filteredLogData []nomad.LogRow
+	for _, log := range m.nomadLogData.allLogData {
+		if log.MatchesFilter(m.header.Filter) {
+			filteredLogData = append(filteredLogData, log)
+		}
+	}
 	m.nomadLogData.filteredLogData = filteredLogData
 }
 

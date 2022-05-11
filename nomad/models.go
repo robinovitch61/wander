@@ -76,7 +76,7 @@ type AllocationResponseEntry struct {
 	ModifyTime  int64 `json:"ModifyTime"`
 }
 
-// AllocationRowEntry is an item extraced from AllocationResponseEntry
+// AllocationRowEntry is an item extracted from AllocationResponseEntry
 type AllocationRowEntry struct {
 	ID, Name, TaskName, State string
 	StartedAt, FinishedAt     time.Time
@@ -84,4 +84,11 @@ type AllocationRowEntry struct {
 
 func (e AllocationRowEntry) MatchesFilter(filter string) bool {
 	return strings.Contains(e.TaskName, filter)
+}
+
+// LogRow is a log line
+type LogRow string
+
+func (e LogRow) MatchesFilter(filter string) bool {
+	return strings.Contains(string(e), filter)
 }

@@ -66,7 +66,10 @@ func FetchLogs(url, token, allocId, taskName string) tea.Cmd {
 		//body, _ := nomad.GetLogs(url, token, allocId, taskName)
 		simulateLoading()
 		body := MockLogsResponse
-		logs := strings.Split(string(body), "\n")
-		return message.NomadLogsMsg(logs)
+		var logRows []nomad.LogRow
+		for _, log := range strings.Split(string(body), "\n") {
+			logRows = append(logRows, nomad.LogRow(log))
+		}
+		return message.NomadLogsMsg(logRows)
 	}
 }
