@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"wander/dev"
 	"wander/nomad"
 )
 
@@ -22,7 +21,7 @@ type tableConfig struct {
 	string *strings.Builder
 }
 
-func createTableConfig() tableConfig {
+func createTableConfig(numCols int) tableConfig {
 	tableString := &strings.Builder{}
 	table := tablewriter.NewWriter(tableString)
 
@@ -33,22 +32,23 @@ func createTableConfig() tableConfig {
 	table.SetCenterSeparator("")
 	table.SetColumnSeparator("")
 	table.SetBorder(false)
-	table.SetTablePadding("    ")
+	if numCols > 1 {
+		table.SetTablePadding("    ")
+	}
 	table.SetNoWhiteSpace(true)
 	table.SetAutoWrapText(false)
 
 	return tableConfig{table, tableString}
 }
 
-func getRenderedTableString(header []string, data [][]string) Table {
-	table := createTableConfig()
-	table.writer.SetHeader(header)
+func getRenderedTableString(columnTitles []string, data [][]string) Table {
+	table := createTableConfig(len(columnTitles))
+	table.writer.SetHeader(columnTitles)
 	table.writer.AppendBulk(data)
 	table.writer.Render()
-	dev.Debug(table.string.String())
 	allRows := strings.Split(table.string.String(), "\n")
 	headerRows := []string{allRows[0]}
-	contentRows := allRows[1 : len(allRows)-1]
+	contentRows := allRows[1 : len(allRows)-1] // last row is \n
 	return Table{headerRows, contentRows}
 }
 
@@ -101,7 +101,8 @@ func LogsAsTable(logs []string) Table {
 	var logRows [][]string
 	// ignore the first log line because it may be truncated due to offset
 	// TODO LEO: check if there's actually a truncated line based on the offset size and log char length^
-	for _, row := range logs[1:] {
+	//for _, row := range logs[1:] {
+	for _, row := range logs {
 		if stripped := strings.TrimSpace(row); stripped != "" {
 			logRows = append(logRows, []string{stripped})
 		}

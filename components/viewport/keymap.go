@@ -9,8 +9,10 @@ type viewportKeyMap struct {
 	PageUp       key.Binding
 	HalfPageUp   key.Binding
 	HalfPageDown key.Binding
-	Down         key.Binding
 	Up           key.Binding
+	Down         key.Binding
+	Left         key.Binding
+	Right        key.Binding
 }
 
 // getKeyMap returns a set of pager-like default keybindings.
@@ -39,6 +41,14 @@ func getKeyMap() viewportKeyMap {
 		Down: key.NewBinding(
 			key.WithKeys("down", "j"),
 			key.WithHelp("↓/j", "down"),
+		),
+		Left: key.NewBinding(
+			key.WithKeys("left", "h"),
+			key.WithHelp("←/h", "left"),
+		),
+		Right: key.NewBinding(
+			key.WithKeys("right", "l"),
+			key.WithHelp("→/l", "right"),
 		),
 	}
 }

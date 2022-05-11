@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const lineContinuationIndicator = "..."
+
 // New returns a new model with the given width and height as well as default values.
 func New(width, height int) (m Model) {
 	m.width = width
@@ -28,6 +30,9 @@ type Model struct {
 	// yOffset is the vertical scroll position of the text.
 	yOffset int
 
+	// xOffset is the horizontal scroll position of the text.
+	xOffset int
+
 	// CursorRow is the row index of the cursor.
 	CursorRow int
 
@@ -36,9 +41,10 @@ type Model struct {
 	styleViewport  lipgloss.Style
 	styleCursorRow lipgloss.Style
 
-	initialized bool
-	header      []string
-	lines       []string
+	initialized   bool
+	header        []string
+	lines         []string
+	maxLineLength int
 }
 
 func (m Model) ContentEmpty() bool {
@@ -90,7 +96,15 @@ func (m *Model) SetHeader(header string) {
 
 // SetContent sets the pager's text content.
 func (m *Model) SetContent(s string) {
-	m.lines = strings.Split(normalizeLineEndings(s), "\n")
+	lines := strings.Split(normalizeLineEndings(s), "\n")
+	maxLineLength := 0
+	for _, line := range lines {
+		if lineLength := len(line); lineLength > maxLineLength {
+			maxLineLength = lineLength
+		}
+	}
+	m.lines = lines
+	m.maxLineLength = maxLineLength
 	m.fixCursorRow()
 }
 
@@ -181,6 +195,16 @@ func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
 
+// viewLeft moves the view left the given number of columns.
+func (m *Model) viewLeft(n int) {
+	m.xOffset = max(0, m.xOffset-n)
+}
+
+// viewRight moves the view right the given number of columns.
+func (m *Model) viewRight(n int) {
+	m.xOffset = min(m.maxLineLength-m.width, m.xOffset+n)
+}
+
 // Update handles standard message-based viewport updates.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	if !m.initialized {
@@ -190,28 +214,35 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.keyMap.Down):
-			m.cursorRowDown(1)
-
 		case key.Matches(msg, m.keyMap.Up):
 			m.cursorRowUp(1)
 
-		case key.Matches(msg, m.keyMap.HalfPageDown):
-			m.viewDown(m.contentHeight / 2)
-			m.cursorRowDown(m.contentHeight / 2)
+		case key.Matches(msg, m.keyMap.Down):
+			m.cursorRowDown(1)
+
+		case key.Matches(msg, m.keyMap.Left):
+			m.viewLeft(m.width / 4)
+
+		case key.Matches(msg, m.keyMap.Right):
+			m.viewRight(m.width / 4)
 
 		case key.Matches(msg, m.keyMap.HalfPageUp):
 			m.viewUp(m.contentHeight / 2)
 			m.cursorRowUp(m.contentHeight / 2)
 
-		case key.Matches(msg, m.keyMap.PageDown):
-			m.viewDown(m.contentHeight)
-			m.cursorRowDown(m.contentHeight)
+		case key.Matches(msg, m.keyMap.HalfPageDown):
+			m.viewDown(m.contentHeight / 2)
+			m.cursorRowDown(m.contentHeight / 2)
 
 		case key.Matches(msg, m.keyMap.PageUp):
 			m.viewUp(m.contentHeight)
 			m.cursorRowUp(m.contentHeight)
+
+		case key.Matches(msg, m.keyMap.PageDown):
+			m.viewDown(m.contentHeight)
+			m.cursorRowDown(m.contentHeight)
 		}
+
 		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.CursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
 
 	case tea.MouseMsg:
@@ -235,8 +266,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	visibleLines := m.visibleLines()
 
+	// TODO LEO: deal with headers that are wider than viewport width
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
+		if lineLength := len(line); lineLength > m.width {
+			line = line[m.xOffset : m.xOffset+m.width]
+			if m.xOffset < lineLength-m.width {
+				line = line[:len(line)-len(lineContinuationIndicator)] + lineContinuationIndicator
+			}
+			if m.xOffset > 0 {
+				line = lineContinuationIndicator + line[len(lineContinuationIndicator):]
+			}
+		}
 		if m.yOffset+idx == m.CursorRow {
 			// render selected row
 			viewLines += m.styleCursorRow.
