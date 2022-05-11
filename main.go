@@ -58,8 +58,6 @@ type model struct {
 	viewport            viewport.Model
 	width, height       int
 	initialized         bool
-	editingActiveFilter bool
-	activeFilter        string
 	nomadJobData        nomadJobData
 	nomadAllocationData nomadAllocationData
 	nomadLogData        nomadLogData
@@ -87,23 +85,22 @@ func fetchPageDataCmd(m model) tea.Cmd {
 	return nil
 }
 
-func (m *model) setFiltering(editingActiveFilter, clearActiveFilter bool) {
-	m.editingActiveFilter = editingActiveFilter
-	m.header.SetEditingFilter(editingActiveFilter)
-	if clearActiveFilter {
-		m.setActiveFilter("")
+func (m *model) setFiltering(isEditingFilter, clearFilter bool) {
+	m.header.EditingFilter = isEditingFilter
+	if clearFilter {
+		m.setFilter("")
 	}
 }
 
-func (m *model) setActiveFilter(s string) {
-	m.activeFilter = s
-	m.header.SetFilterString(m.activeFilter)
+func (m *model) setFilter(s string) {
+	m.header.Filter = s
 
 	switch m.page {
 	case page.Jobs:
 		m.updateJobViewport()
 	case page.Allocation:
 		m.updateAllocationViewport()
+		// TODO LEO: implement logs filtering
 	}
 }
 
@@ -115,7 +112,7 @@ func (m *model) updateViewport(table formatter.Table) {
 func (m *model) updateFilteredJobData() {
 	var filteredJobData []nomad.JobResponseEntry
 	for _, entry := range m.nomadJobData.allJobData {
-		if entry.MatchesFilter(m.activeFilter) {
+		if entry.MatchesFilter(m.header.Filter) {
 			filteredJobData = append(filteredJobData, entry)
 		}
 	}
@@ -131,7 +128,7 @@ func (m *model) updateJobViewport() {
 func (m *model) updateFilteredAllocationData() {
 	var filteredAllocationData []nomad.AllocationRowEntry
 	for _, entry := range m.nomadAllocationData.allAllocationData {
-		if entry.MatchesFilter(m.activeFilter) {
+		if entry.MatchesFilter(m.header.Filter) {
 			filteredAllocationData = append(filteredAllocationData, entry)
 		}
 	}
@@ -190,7 +187,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		dev.Debug(fmt.Sprintf("KeyMsg '%s'", msg))
 
-		if m.editingActiveFilter {
+		if m.header.EditingFilter {
 			switch {
 			case key.Matches(msg, m.keyMap.Back):
 				m.setFiltering(false, true)
@@ -199,11 +196,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			default:
 				switch msg.Type {
 				case tea.KeyBackspace:
-					if len(m.activeFilter) > 0 {
-						m.setActiveFilter(m.activeFilter[:len(m.activeFilter)-1])
+					if len(m.header.Filter) > 0 {
+						if msg.Alt {
+							m.setFilter("")
+						} else {
+							m.setFilter(m.header.Filter[:len(m.header.Filter)-1])
+						}
 					}
 				case tea.KeyRunes:
-					m.setActiveFilter(m.activeFilter + msg.String())
+					m.setFilter(m.header.Filter + msg.String())
 				}
 			}
 			return m, nil
@@ -223,7 +224,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if newPage := m.page.Forward(); newPage != m.page {
-				m.setActiveFilter("")
+				m.setFilter("")
 				m.page = newPage
 				cmd := fetchPageDataCmd(m)
 				m.viewport.SetLoading(newPage.LoadingString())

@@ -9,8 +9,8 @@ import (
 
 type Model struct {
 	content       []string
-	filterString  string
-	editingFilter bool
+	Filter        string
+	EditingFilter bool
 }
 
 func New(nomadUrl, filterString string) (m Model) {
@@ -18,7 +18,7 @@ func New(nomadUrl, filterString string) (m Model) {
 	if filterString != "" {
 		content = append(content, fmt.Sprintf("Filter: %s", filterString))
 	}
-	return Model{content: content, filterString: filterString}
+	return Model{content: content, Filter: filterString}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -29,16 +29,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Model) SetFilterString(s string) {
-	m.filterString = s
-}
-
-func (m *Model) SetEditingFilter(editingFilter bool) {
-	m.editingFilter = editingFilter
-}
-
 func (m Model) formatFilterString(s string) string {
-	if !m.editingFilter {
+	if !m.EditingFilter {
 		return s
 	}
 	return lipgloss.NewStyle().
@@ -50,16 +42,16 @@ func (m Model) formatFilterString(s string) string {
 func (m Model) View() string {
 	viewString := strings.Join(m.content, "\n")
 	viewString += "\n" + m.formatFilterString("Filter: ")
-	if m.editingFilter {
-		if m.filterString == "" {
+	if m.EditingFilter {
+		if m.Filter == "" {
 			viewString += m.formatFilterString("<type to filter>")
 		}
 	} else {
-		if m.filterString == "" {
+		if m.Filter == "" {
 			viewString += m.formatFilterString("none ('/' to filter)")
 		}
 	}
-	viewString += m.formatFilterString(m.filterString)
+	viewString += m.formatFilterString(m.Filter)
 	return lipgloss.NewStyle().
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder(), true).
