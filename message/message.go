@@ -11,7 +11,7 @@ type NomadJobsMsg []nomad.JobResponseEntry
 type NomadAllocationMsg []nomad.AllocationRowEntry
 
 // NomadLogsMsg is a message for nomad allocations
-type NomadLogsMsg []byte
+type NomadLogsMsg []string
 
 // ErrMsg is an error message
 type ErrMsg struct{ err error }

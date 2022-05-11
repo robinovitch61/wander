@@ -37,8 +37,8 @@ type nomadAllocationData struct {
 }
 
 type nomadLogData struct {
-	allLogData      string
-	filteredLogData string
+	allLogData      []string
+	filteredLogData []string
 }
 
 type selectedAlloc struct {
@@ -141,7 +141,7 @@ func (m *model) updateAllocationViewport() {
 }
 
 func (m *model) updateFilteredLogData() {
-	var filteredLogData string
+	var filteredLogData []string
 	filteredLogData = m.nomadLogData.allLogData // TODO LEO: implement
 	m.nomadLogData.filteredLogData = filteredLogData
 }
@@ -174,7 +174,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.NomadLogsMsg:
 		dev.Debug("NomadLogsMsg")
-		m.nomadLogData.allLogData = string(msg)
+		m.nomadLogData.allLogData = msg
 		m.updateLogViewport()
 		return m, nil
 

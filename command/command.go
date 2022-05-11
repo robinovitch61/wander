@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"strings"
 	"wander/message"
 	"wander/nomad"
 )
@@ -63,6 +64,7 @@ func FetchLogs(url, token, allocId, taskName string) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
 		body, _ := nomad.GetLogs(url, token, allocId, taskName)
-		return message.NomadLogsMsg(body)
+		logs := strings.Split(string(body), "\n")
+		return message.NomadLogsMsg(logs)
 	}
 }

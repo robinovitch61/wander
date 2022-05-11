@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"wander/dev"
 	"wander/nomad"
 )
 
@@ -34,6 +35,7 @@ func createTableConfig() tableConfig {
 	table.SetBorder(false)
 	table.SetTablePadding("    ")
 	table.SetNoWhiteSpace(true)
+	table.SetAutoWrapText(false)
 
 	return tableConfig{table, tableString}
 }
@@ -43,6 +45,7 @@ func getRenderedTableString(header []string, data [][]string) Table {
 	table.writer.SetHeader(header)
 	table.writer.AppendBulk(data)
 	table.writer.Render()
+	dev.Debug(table.string.String())
 	allRows := strings.Split(table.string.String(), "\n")
 	headerRows := []string{allRows[0]}
 	contentRows := allRows[1 : len(allRows)-1]
@@ -94,14 +97,18 @@ func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
 	)
 }
 
-func LogsAsTable(logs string) Table {
+func LogsAsTable(logs []string) Table {
 	var logRows [][]string
-	for _, row := range strings.Split(logs, "\n") {
-		logRows = append(logRows, []string{row})
+	// ignore the first log line because it may be truncated due to offset
+	// TODO LEO: check if there's actually a truncated line based on the offset size and log char length^
+	for _, row := range logs[1:] {
+		if stripped := strings.TrimSpace(row); stripped != "" {
+			logRows = append(logRows, []string{stripped})
+		}
 	}
 
 	return getRenderedTableString(
-		[]string{"Log Row"},
+		[]string{"Stdout"},
 		logRows,
 	)
 }
