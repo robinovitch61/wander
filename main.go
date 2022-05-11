@@ -5,6 +5,10 @@ package main
 // - [ ] Cursor shows up if no viewport content
 // - [ ] Can crash app by hitting Enter when jobs loading
 
+// TODO LEO: consider:
+// - can deduplicate state by only having viewport, header, etc. having copies of certain state and having top-level reference it
+// - can pass updater functions that mutate parent state as props into components (e.g. onEnter(m *model) to viewport)
+
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
