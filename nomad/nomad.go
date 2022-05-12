@@ -34,7 +34,7 @@ func GetLogs(url, token, allocId, taskName, logType string) ([]byte, error) {
 		"task":   taskName,
 		"type":   logType,
 		"origin": "end",
-		"offset": "100000",
+		"offset": "1000000",
 		"plain":  "true",
 	}
 	pathWithAllocId := fmt.Sprintf(path, allocId)

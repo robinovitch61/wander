@@ -239,7 +239,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case key.Matches(msg, m.keyMap.Back):
-			m.setFiltering(false, true)
+			if m.header.Filter != "" {
+				m.setFiltering(false, true)
+				return m, nil
+			}
+
 			if newPage := m.page.Backward(); newPage != m.page {
 				m.page = newPage
 				cmd := m.fetchPageDataCmd()
