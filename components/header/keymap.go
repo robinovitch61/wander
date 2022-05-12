@@ -1,22 +1,20 @@
-package main
+package header
 
 import (
 	"github.com/charmbracelet/bubbles/key"
 )
 
-type mainKeyMap struct {
+type headerKeyMap struct {
 	Exit   key.Binding
 	Enter  key.Binding
 	Back   key.Binding
 	Reload key.Binding
 	Filter key.Binding
-	StdOut key.Binding
-	StdErr key.Binding
 }
 
-// getKeyMap returns the main key mappings
-func getKeyMap() mainKeyMap {
-	return mainKeyMap{
+// getKeyMap returns the key mappings
+func getKeyMap() headerKeyMap {
+	return headerKeyMap{
 		Exit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),
 			key.WithHelp("q/ctrl+c", "exit"),
@@ -36,14 +34,6 @@ func getKeyMap() mainKeyMap {
 		Filter: key.NewBinding(
 			key.WithKeys("/"),
 			key.WithHelp("/", "filter"),
-		),
-		StdOut: key.NewBinding(
-			key.WithKeys("o"),
-			key.WithHelp("o", "stdout"),
-		),
-		StdErr: key.NewBinding(
-			key.WithKeys("e"),
-			key.WithHelp("e", "stderr"),
 		),
 	}
 }

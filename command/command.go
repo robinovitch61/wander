@@ -18,9 +18,9 @@ func simulateLoading() {
 func FetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		//body, _ := nomad.GetJobs(url, token)
-		simulateLoading()
-		body := MockJobsResponse
+		body, _ := nomad.GetJobs(url, token)
+		//simulateLoading()
+		//body := MockJobsResponse
 		var jobResponse []nomad.JobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
 			// TODO LEO: error handling
@@ -34,9 +34,9 @@ func FetchJobs(url, token string) tea.Cmd {
 func FetchAllocations(url, token, jobId string) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		//body, _ := nomad.GetAllocations(url, token, jobId)
-		simulateLoading()
-		body := MockAllocationResponse
+		body, _ := nomad.GetAllocations(url, token, jobId)
+		//simulateLoading()
+		//body := MockAllocationResponse
 		var allocationResponse []nomad.AllocationResponseEntry
 		if err := json.Unmarshal(body, &allocationResponse); err != nil {
 			// TODO LEO: error handling
@@ -60,16 +60,16 @@ func FetchAllocations(url, token, jobId string) tea.Cmd {
 	}
 }
 
-func FetchLogs(url, token, allocId, taskName string) tea.Cmd {
+func FetchLogs(url, token, allocId, taskName string, logType nomad.LogType) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		//body, _ := nomad.GetLogs(url, token, allocId, taskName)
-		simulateLoading()
-		body := MockLogsResponse
+		body, _ := nomad.GetLogs(url, token, allocId, taskName, logType.String())
+		//simulateLoading()
+		//body := MockLogsResponse
 		var logRows []nomad.LogRow
 		for _, log := range strings.Split(string(body), "\n") {
 			logRows = append(logRows, nomad.LogRow(log))
 		}
-		return message.NomadLogsMsg(logRows)
+		return message.NomadLogsMsg{LogType: logType, Data: logRows}
 	}
 }

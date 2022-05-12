@@ -92,3 +92,21 @@ type LogRow string
 func (e LogRow) MatchesFilter(filter string) bool {
 	return strings.Contains(string(e), filter)
 }
+
+// LogType is an enum for the log type
+type LogType int8
+
+const (
+	StdOut LogType = iota
+	StdErr
+)
+
+func (p LogType) String() string {
+	switch p {
+	case StdOut:
+		return "stdout"
+	case StdErr:
+		return "stderr"
+	}
+	return "stdout"
+}

@@ -72,7 +72,7 @@ func normalizeLineEndings(s string) string {
 // fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
 func (m *Model) fixCursorRow() {
 	if m.CursorRow > m.lastVisibleLineIdx() {
-		m.setCursorRow(m.lastVisibleLineIdx())
+		m.SetCursorRow(m.lastVisibleLineIdx())
 	}
 }
 
@@ -146,8 +146,8 @@ func (m *Model) setYOffset(n int) {
 	}
 }
 
-// setCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
-func (m *Model) setCursorRow(n int) {
+// SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
+func (m *Model) SetCursorRow(n int) {
 	if m.contentHeight == 0 {
 		return
 	}
@@ -177,12 +177,12 @@ func (m Model) visibleLines() []string {
 
 // cursorRowDown moves the CursorRow down by the given number of lines.
 func (m *Model) cursorRowDown(n int) {
-	m.setCursorRow(m.CursorRow + n)
+	m.SetCursorRow(m.CursorRow + n)
 }
 
 // cursorRowUp moves the CursorRow up by the given number of lines.
 func (m *Model) cursorRowUp(n int) {
-	m.setCursorRow(m.CursorRow - n)
+	m.SetCursorRow(m.CursorRow - n)
 }
 
 // viewDown moves the view down by the given number of lines.

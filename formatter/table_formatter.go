@@ -97,7 +97,7 @@ func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
 	)
 }
 
-func LogsAsTable(logs []nomad.LogRow) Table {
+func LogsAsTable(logs []nomad.LogRow, logType nomad.LogType) Table {
 	var logRows [][]string
 	// ignore the first log line because it may be truncated due to offset
 	// TODO LEO: check if there's actually a truncated line based on the offset size and log char length^
@@ -109,7 +109,7 @@ func LogsAsTable(logs []nomad.LogRow) Table {
 	}
 
 	return getRenderedTableString(
-		[]string{"Stdout"},
+		[]string{logType.String()},
 		logRows,
 	)
 }

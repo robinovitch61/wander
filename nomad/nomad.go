@@ -25,16 +25,16 @@ func GetAllocations(url, token, jobId string) ([]byte, error) {
 	return get(pathWithAllocId, token, nil)
 }
 
-func GetLogs(url, token, allocId, taskName string) ([]byte, error) {
+func GetLogs(url, token, allocId, taskName, logType string) ([]byte, error) {
 	path, err := urlWithPathFor(url, "logs")
 	if err != nil {
 		return nil, err
 	}
 	params := map[string]string{
 		"task":   taskName,
-		"type":   "stderr",
+		"type":   logType,
 		"origin": "end",
-		"offset": "1000",
+		"offset": "100000",
 		"plain":  "true",
 	}
 	pathWithAllocId := fmt.Sprintf(path, allocId)

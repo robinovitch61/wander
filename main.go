@@ -63,6 +63,7 @@ type model struct {
 	nomadLogData        nomadLogData
 	selectedJobId       string
 	selectedAlloc       selectedAlloc
+	logType             nomad.LogType
 	err                 error
 }
 
@@ -70,7 +71,7 @@ func (m model) Init() tea.Cmd {
 	return command.FetchJobs(m.nomadUrl, m.nomadToken)
 }
 
-func fetchPageDataCmd(m model) tea.Cmd {
+func (m model) fetchPageDataCmd() tea.Cmd {
 	switch m.page {
 
 	case page.Jobs:
@@ -80,7 +81,7 @@ func fetchPageDataCmd(m model) tea.Cmd {
 		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.selectedJobId)
 
 	case page.Logs:
-		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName)
+		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName, m.logType)
 	}
 	return nil
 }
@@ -101,13 +102,14 @@ func (m *model) setFilter(s string) {
 	case page.Allocation:
 		m.updateAllocationViewport()
 	case page.Logs:
-		m.updateLogViewport()
+		m.updateLogViewport(m.logType)
 	}
 }
 
-func (m *model) updateViewport(table formatter.Table) {
+func (m *model) updateViewport(table formatter.Table, cursorRow int) {
 	m.viewport.SetHeader(strings.Join(table.HeaderRows, "\n"))
 	m.viewport.SetContent(strings.Join(table.ContentRows, "\n"))
+	m.viewport.SetCursorRow(cursorRow)
 }
 
 func (m *model) updateFilteredJobData() {
@@ -123,7 +125,7 @@ func (m *model) updateFilteredJobData() {
 func (m *model) updateJobViewport() {
 	m.updateFilteredJobData()
 	table := formatter.JobResponsesAsTable(m.nomadJobData.filteredJobData)
-	m.updateViewport(table)
+	m.updateViewport(table, 0)
 }
 
 func (m *model) updateFilteredAllocationData() {
@@ -139,7 +141,7 @@ func (m *model) updateFilteredAllocationData() {
 func (m *model) updateAllocationViewport() {
 	m.updateFilteredAllocationData()
 	table := formatter.AllocationsAsTable(m.nomadAllocationData.filteredAllocationData)
-	m.updateViewport(table)
+	m.updateViewport(table, 0)
 }
 
 func (m *model) updateFilteredLogData() {
@@ -152,10 +154,10 @@ func (m *model) updateFilteredLogData() {
 	m.nomadLogData.filteredLogData = filteredLogData
 }
 
-func (m *model) updateLogViewport() {
+func (m *model) updateLogViewport(logType nomad.LogType) {
 	m.updateFilteredLogData()
-	table := formatter.LogsAsTable(m.nomadLogData.filteredLogData)
-	m.updateViewport(table)
+	table := formatter.LogsAsTable(m.nomadLogData.filteredLogData, logType)
+	m.updateViewport(table, len(table.ContentRows)-1)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -180,8 +182,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.NomadLogsMsg:
 		dev.Debug("NomadLogsMsg")
-		m.nomadLogData.allLogData = msg
-		m.updateLogViewport()
+		m.nomadLogData.allLogData = msg.Data
+		m.updateLogViewport(msg.LogType)
 		return m, nil
 
 	case message.ErrMsg:
@@ -231,7 +233,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if newPage := m.page.Forward(); newPage != m.page {
 				m.setFilter("")
 				m.page = newPage
-				cmd := fetchPageDataCmd(m)
+				cmd := m.fetchPageDataCmd()
 				m.viewport.SetLoading(newPage.LoadingString())
 				return m, cmd
 			}
@@ -240,19 +242,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setFiltering(false, true)
 			if newPage := m.page.Backward(); newPage != m.page {
 				m.page = newPage
-				cmd := fetchPageDataCmd(m)
+				cmd := m.fetchPageDataCmd()
 				m.viewport.SetLoading(newPage.LoadingString())
 				return m, cmd
 			}
 
 		case key.Matches(msg, m.keyMap.Reload):
-			cmd := fetchPageDataCmd(m)
+			cmd := m.fetchPageDataCmd()
 			m.viewport.SetLoading(m.page.ReloadingString())
 			return m, cmd
 
 		case key.Matches(msg, m.keyMap.Filter):
 			m.setFiltering(true, false)
 			return m, nil
+
+		case key.Matches(msg, m.keyMap.StdOut) && m.page == page.Logs:
+			m.logType = nomad.StdOut
+			m.viewport.SetLoading(m.page.LoadingString())
+			return m, m.fetchPageDataCmd()
+
+		case key.Matches(msg, m.keyMap.StdErr) && m.page == page.Logs:
+			m.logType = nomad.StdErr
+			m.viewport.SetLoading(m.page.LoadingString())
+			return m, m.fetchPageDataCmd()
 		}
 
 	case tea.WindowSizeMsg:
@@ -269,13 +281,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// tradeoff here is can't have multiple components loading at same time then?
 			m.keyMap = getKeyMap()
 			m.viewport = viewport.New(msg.Width, viewportHeight)
+			m.logType = nomad.StdOut
 			m.initialized = true
 
 			firstPage := page.Jobs
 			m.page = firstPage
 			m.viewport.SetLoading(firstPage.LoadingString())
 
-			cmd := fetchPageDataCmd(m)
+			cmd := m.fetchPageDataCmd()
 			return m, cmd
 		} else {
 			m.viewport.SetWidth(msg.Width)
