@@ -13,6 +13,8 @@ type viewportKeyMap struct {
 	Down         key.Binding
 	Left         key.Binding
 	Right        key.Binding
+	Top          key.Binding
+	Bottom       key.Binding
 }
 
 // getKeyMap returns a set of pager-like default keybindings.
@@ -49,6 +51,14 @@ func getKeyMap() viewportKeyMap {
 		Right: key.NewBinding(
 			key.WithKeys("right", "l"),
 			key.WithHelp("→/l", "right"),
+		),
+		Top: key.NewBinding(
+			key.WithKeys("g", "ctrl+g"),
+			key.WithHelp("g/ctrl+g", "go to top"),
+		),
+		Bottom: key.NewBinding(
+			key.WithKeys("G"),
+			key.WithHelp("G", "go to bottom"),
 		),
 	}
 }

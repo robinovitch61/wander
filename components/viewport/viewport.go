@@ -246,6 +246,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.PageDown):
 			m.viewDown(m.contentHeight)
 			m.cursorRowDown(m.contentHeight)
+
+		case key.Matches(msg, m.keyMap.Top):
+			m.cursorRowUp(m.yOffset + m.CursorRow)
+
+		case key.Matches(msg, m.keyMap.Bottom):
+			yOffset := m.maxLinesIdx()
+			m.cursorRowDown(yOffset)
 		}
 
 		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.CursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
