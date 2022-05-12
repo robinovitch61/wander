@@ -4,7 +4,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"strconv"
 	"strings"
-	"time"
 	"wander/nomad"
 )
 
@@ -60,7 +59,7 @@ func JobResponsesAsTable(jobResponse []nomad.JobResponseEntry) Table {
 			row.Type,
 			strconv.Itoa(row.Priority),
 			row.Status,
-			strconv.Itoa(row.SubmitTime),
+			formatTimeNs(row.SubmitTime),
 		})
 	}
 
@@ -68,14 +67,6 @@ func JobResponsesAsTable(jobResponse []nomad.JobResponseEntry) Table {
 		[]string{"ID", "Type", "Priority", "Status", "Submit Time"},
 		jobResponseRows,
 	)
-}
-
-// TODO LEO: move to utils
-func formatTime(t time.Time) string {
-	if t.IsZero() {
-		return "-"
-	}
-	return t.Format("2006-01-02T15:04:05")
 }
 
 func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
