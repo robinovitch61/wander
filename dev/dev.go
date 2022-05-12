@@ -14,6 +14,6 @@ func Debug(msg string) {
 		fmt.Println("fatal:", err)
 		os.Exit(1)
 	}
-	log.Println(msg)
+	log.Printf("%q", msg)
 	defer f.Close()
 }

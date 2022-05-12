@@ -101,6 +101,7 @@ func (m *model) setFiltering(isEditingFilter, clearFilter bool) {
 
 func (m *model) setFilter(s string) {
 	m.header.Filter = s
+	m.viewport.Highlight = s
 
 	switch m.page {
 	case page.Jobs:
