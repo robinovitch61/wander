@@ -81,11 +81,24 @@ func (m *Model) fixCursorRow() {
 	}
 }
 
+// fixYOffset adjusts the yOffset such that it's not above the maximum value
+func (m *Model) fixYOffset() {
+	if maxYOffset := m.maxYOffset(); m.yOffset > maxYOffset {
+		m.setYOffset(maxYOffset)
+	}
+}
+
+// fixState fixes CursorRow and yOffset
+func (m *Model) fixState() {
+	m.fixYOffset()
+	m.fixCursorRow()
+}
+
 // SetHeight sets the pager's height, including header.
 func (m *Model) SetHeight(h int) {
 	m.height = h
 	m.contentHeight = h - len(m.header)
-	m.fixCursorRow()
+	m.fixState()
 }
 
 // SetWidth sets the pager's width.
@@ -110,7 +123,7 @@ func (m *Model) SetContent(s string) {
 	}
 	m.lines = lines
 	m.maxLineLength = maxLineLength
-	m.fixCursorRow()
+	m.fixState()
 }
 
 // SetLoading clears the header and content and displays the loading message
@@ -134,7 +147,7 @@ func (m Model) maxYOffset() int {
 	if m.maxLinesIdx() < m.contentHeight {
 		return 0
 	}
-	return m.maxLinesIdx() - m.contentHeight + 1
+	return len(m.lines) - m.contentHeight
 }
 
 // maxCursorRow returns the maximum CursorRow

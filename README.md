@@ -15,7 +15,7 @@ Currently, the best way to install `wander` is to clone this repo, build from so
 ## Usage
 
 `wander` requires two environment variables set:
-- `NOMAD_URL`: path to nomad cluster
+- `NOMAD_ADDR`: path to nomad cluster
 - `NOMAD_TOKEN`: token for auth against the HTTP API
 
 You can try `wander` out by running a local nomad cluster in dev mode following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):
@@ -28,7 +28,7 @@ nomad job init
 nomad job run example.nomad
 
 # run wander
-NOMAD_URL=http://localhost:4646 NOMAD_TOKEN="blank" wander
+NOMAD_ADDR=http://localhost:4646 NOMAD_TOKEN="blank" wander
 ```
 
 ## Development

@@ -27,7 +27,7 @@ import (
 
 var (
 	NomadTokenEnvVariable = "NOMAD_TOKEN"
-	NomadUrlEnvVariable   = "NOMAD_URL"
+	NomadUrlEnvVariable   = "NOMAD_ADDR"
 )
 
 type nomadJobData struct {
