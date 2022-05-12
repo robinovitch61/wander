@@ -71,6 +71,15 @@ func (m model) Init() tea.Cmd {
 	return command.FetchJobs(m.nomadUrl, m.nomadToken)
 }
 
+func (m *model) setInitialValues(width, height int) {
+	m.keyMap = getKeyMap()
+	m.logType = nomad.StdOut
+	m.page = page.Jobs
+	m.viewport = viewport.New(width, height)
+	m.viewport.SetLoading(m.page.LoadingString())
+	m.initialized = true
+}
+
 func (m model) fetchPageDataCmd() tea.Cmd {
 	switch m.page {
 
@@ -281,19 +290,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if !m.initialized {
 			// this is the first message received and the initial entrypoint to the app
-			// TODO LEO: separate loading/reloading out of viewport, then can initialize app and viewport separately
-			// tradeoff here is can't have multiple components loading at same time then?
-			m.keyMap = getKeyMap()
-			m.viewport = viewport.New(msg.Width, viewportHeight)
-			m.logType = nomad.StdOut
-			m.initialized = true
-
-			firstPage := page.Jobs
-			m.page = firstPage
-			m.viewport.SetLoading(firstPage.LoadingString())
-
-			cmd := m.fetchPageDataCmd()
-			return m, cmd
+			m.setInitialValues(msg.Width, viewportHeight)
+			return m, m.fetchPageDataCmd()
 		} else {
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(viewportHeight)
@@ -301,7 +299,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
-	m.header, cmd = m.header.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
