@@ -31,18 +31,15 @@ var (
 )
 
 type nomadJobData struct {
-	allJobData      []nomad.JobResponseEntry
-	filteredJobData []nomad.JobResponseEntry
+	allData, filteredData []nomad.JobResponseEntry
 }
 
 type nomadAllocationData struct {
-	allAllocationData      []nomad.AllocationRowEntry
-	filteredAllocationData []nomad.AllocationRowEntry
+	allData, filteredData []nomad.AllocationRowEntry
 }
 
 type nomadLogData struct {
-	allLogData      []nomad.LogRow
-	filteredLogData []nomad.LogRow
+	allData, filteredData []nomad.LogRow
 }
 
 type selectedAlloc struct {
@@ -111,7 +108,7 @@ func (m *model) setFilter(s string) {
 	case page.Allocation:
 		m.updateAllocationViewport()
 	case page.Logs:
-		m.updateLogViewport(m.logType)
+		m.updateLogViewport()
 	}
 }
 
@@ -123,49 +120,49 @@ func (m *model) updateViewport(table formatter.Table, cursorRow int) {
 
 func (m *model) updateFilteredJobData() {
 	var filteredJobData []nomad.JobResponseEntry
-	for _, entry := range m.nomadJobData.allJobData {
+	for _, entry := range m.nomadJobData.allData {
 		if entry.MatchesFilter(m.header.Filter) {
 			filteredJobData = append(filteredJobData, entry)
 		}
 	}
-	m.nomadJobData.filteredJobData = filteredJobData
+	m.nomadJobData.filteredData = filteredJobData
 }
 
 func (m *model) updateJobViewport() {
 	m.updateFilteredJobData()
-	table := formatter.JobResponsesAsTable(m.nomadJobData.filteredJobData)
+	table := formatter.JobResponsesAsTable(m.nomadJobData.filteredData)
 	m.updateViewport(table, 0)
 }
 
 func (m *model) updateFilteredAllocationData() {
 	var filteredAllocationData []nomad.AllocationRowEntry
-	for _, entry := range m.nomadAllocationData.allAllocationData {
+	for _, entry := range m.nomadAllocationData.allData {
 		if entry.MatchesFilter(m.header.Filter) {
 			filteredAllocationData = append(filteredAllocationData, entry)
 		}
 	}
-	m.nomadAllocationData.filteredAllocationData = filteredAllocationData
+	m.nomadAllocationData.filteredData = filteredAllocationData
 }
 
 func (m *model) updateAllocationViewport() {
 	m.updateFilteredAllocationData()
-	table := formatter.AllocationsAsTable(m.nomadAllocationData.filteredAllocationData)
+	table := formatter.AllocationsAsTable(m.nomadAllocationData.filteredData)
 	m.updateViewport(table, 0)
 }
 
 func (m *model) updateFilteredLogData() {
 	var filteredLogData []nomad.LogRow
-	for _, log := range m.nomadLogData.allLogData {
+	for _, log := range m.nomadLogData.allData {
 		if log.MatchesFilter(m.header.Filter) {
 			filteredLogData = append(filteredLogData, log)
 		}
 	}
-	m.nomadLogData.filteredLogData = filteredLogData
+	m.nomadLogData.filteredData = filteredLogData
 }
 
-func (m *model) updateLogViewport(logType nomad.LogType) {
+func (m *model) updateLogViewport() {
 	m.updateFilteredLogData()
-	table := formatter.LogsAsTable(m.nomadLogData.filteredLogData, logType)
+	table := formatter.LogsAsTable(m.nomadLogData.filteredData, m.logType)
 	m.updateViewport(table, len(table.ContentRows)-1)
 }
 
@@ -179,20 +176,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.NomadJobsMsg:
 		dev.Debug("nomadJobsMsg")
-		m.nomadJobData.allJobData = msg
+		m.nomadJobData.allData = msg
 		m.updateJobViewport()
 		return m, nil
 
 	case message.NomadAllocationMsg:
 		dev.Debug("NomadAllocationMsg")
-		m.nomadAllocationData.allAllocationData = msg
+		m.nomadAllocationData.allData = msg
 		m.updateAllocationViewport()
 		return m, nil
 
 	case message.NomadLogsMsg:
 		dev.Debug("NomadLogsMsg")
-		m.nomadLogData.allLogData = msg.Data
-		m.updateLogViewport(msg.LogType)
+		m.nomadLogData.allData = msg.Data
+		m.logType = msg.LogType
+		m.updateLogViewport()
 		return m, nil
 
 	case message.ErrMsg:
@@ -233,9 +231,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.Enter):
 			switch m.page {
 			case page.Jobs:
-				m.selectedJobId = m.nomadJobData.filteredJobData[m.viewport.CursorRow].ID
+				m.selectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
 			case page.Allocation:
-				alloc := m.nomadAllocationData.filteredAllocationData[m.viewport.CursorRow]
+				alloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
 				m.selectedAlloc = selectedAlloc{alloc.ID, alloc.TaskName}
 			}
 

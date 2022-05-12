@@ -269,9 +269,10 @@ func (m Model) View() string {
 	// TODO LEO: deal with headers that are wider than viewport width
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
-		if lineLength := len(line); lineLength > m.width {
+		trimmedLineLength := len(strings.TrimSpace(line))
+		if len(line) > m.width {
 			line = line[m.xOffset : m.xOffset+m.width]
-			if m.xOffset < lineLength-m.width {
+			if m.xOffset+m.width < trimmedLineLength {
 				line = line[:len(line)-len(lineContinuationIndicator)] + lineContinuationIndicator
 			}
 			if m.xOffset > 0 {
