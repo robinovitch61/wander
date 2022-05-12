@@ -3,7 +3,7 @@ package main
 // TODO LEO: known bugs
 // - [ ] Crashes if terminal height smaller than header height
 // - [ ] Cursor shows up if no viewport content
-// - [ ] Can crash app by hitting Enter when jobs loading
+// - [ ] Can crash app by hitting Forward when jobs loading
 
 // TODO LEO: consider:
 // - can deduplicate state by only having viewport, header, etc. having copies of certain state and having top-level reference it
@@ -68,15 +68,6 @@ func (m model) Init() tea.Cmd {
 	return command.FetchJobs(m.nomadUrl, m.nomadToken)
 }
 
-func (m *model) setInitialValues(width, height int) {
-	m.keyMap = getKeyMap()
-	m.logType = nomad.StdOut
-	m.page = page.Jobs
-	m.viewport = viewport.New(width, height)
-	m.viewport.SetLoading(m.page.LoadingString())
-	m.initialized = true
-}
-
 func (m model) fetchPageDataCmd() tea.Cmd {
 	switch m.page {
 
@@ -97,6 +88,12 @@ func (m *model) setFiltering(isEditingFilter, clearFilter bool) {
 	if clearFilter {
 		m.setFilter("")
 	}
+	m.header.KeyHelp = KeyMapView(m.page, isEditingFilter, m.header.HasFilter())
+}
+
+func (m *model) setPage(p page.Page) {
+	m.page = p
+	m.header.KeyHelp = KeyMapView(p, m.header.EditingFilter, m.header.HasFilter())
 }
 
 func (m *model) setFilter(s string) {
@@ -206,7 +203,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, m.keyMap.Back):
 				m.setFiltering(false, true)
-			case key.Matches(msg, m.keyMap.Enter):
+			case key.Matches(msg, m.keyMap.Forward):
 				m.setFiltering(false, false)
 			default:
 				switch msg.Type {
@@ -229,7 +226,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
 
-		case key.Matches(msg, m.keyMap.Enter):
+		case key.Matches(msg, m.keyMap.Forward):
 			switch m.page {
 			case page.Jobs:
 				m.selectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
@@ -240,7 +237,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if newPage := m.page.Forward(); newPage != m.page {
 				m.setFilter("")
-				m.page = newPage
+				m.setPage(newPage)
 				cmd := m.fetchPageDataCmd()
 				m.viewport.SetLoading(newPage.LoadingString())
 				return m, cmd
@@ -253,7 +250,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if newPage := m.page.Backward(); newPage != m.page {
-				m.page = newPage
+				m.setPage(newPage)
 				cmd := m.fetchPageDataCmd()
 				m.viewport.SetLoading(newPage.LoadingString())
 				return m, cmd
@@ -288,8 +285,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		viewportHeight := msg.Height - (headerHeight + footerHeight)
 
 		if !m.initialized {
-			// this is the first message received and the initial entrypoint to the app
-			m.setInitialValues(msg.Width, viewportHeight)
+			// this is the first message received and initializes the viewport size
+			m.viewport = viewport.New(msg.Width, viewportHeight)
+			m.viewport.SetLoading(m.page.LoadingString())
+			m.initialized = true
 			return m, m.fetchPageDataCmd()
 		} else {
 			m.viewport.SetWidth(msg.Width)
@@ -326,10 +325,15 @@ func initialModel() model {
 		os.Exit(1)
 	}
 
+	keyMap := getKeyMap()
+	firstPage := page.Jobs
 	return model{
 		nomadToken: nomadToken,
 		nomadUrl:   nomadUrl,
-		header:     header.New(nomadUrl, ""),
+		keyMap:     keyMap,
+		logType:    nomad.StdOut,
+		page:       firstPage,
+		header:     header.New(nomadUrl, "", KeyMapView(firstPage, false, false)),
 	}
 }
 

@@ -17,8 +17,8 @@ type viewportKeyMap struct {
 	Bottom       key.Binding
 }
 
-// getKeyMap returns a set of pager-like default keybindings.
-func getKeyMap() viewportKeyMap {
+// GetKeyMap returns a set of pager-like default keybindings.
+func GetKeyMap() viewportKeyMap {
 	return viewportKeyMap{
 		PageDown: key.NewBinding(
 			key.WithKeys("pgdown", spacebar, "f"),

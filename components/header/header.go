@@ -9,16 +9,17 @@ import (
 
 type Model struct {
 	content       []string
+	KeyHelp       string
 	Filter        string
 	EditingFilter bool
 }
 
-func New(nomadUrl, filterString string) (m Model) {
+func New(nomadUrl, filterString, keyHelp string) (m Model) {
 	content := []string{fmt.Sprintf("Cluster URL: %s", nomadUrl)}
 	if filterString != "" {
 		content = append(content, fmt.Sprintf("Filter: %s", filterString))
 	}
-	return Model{content: content, Filter: filterString}
+	return Model{content: content, KeyHelp: keyHelp, Filter: filterString}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -52,12 +53,18 @@ func (m Model) View() string {
 		}
 	}
 	viewString += m.formatFilterString(m.Filter)
-	return lipgloss.NewStyle().
+	styledViewString := lipgloss.NewStyle().
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder(), true).
 		Render(viewString)
+	styledKeyHelp := lipgloss.NewStyle().Padding(0, 5).Render(m.KeyHelp)
+	return lipgloss.JoinHorizontal(0.3, styledViewString, styledKeyHelp)
 }
 
 func (m Model) ViewHeight() int {
 	return len(strings.Split(m.View(), "\n"))
+}
+
+func (m Model) HasFilter() bool {
+	return len(m.Filter) > 0
 }

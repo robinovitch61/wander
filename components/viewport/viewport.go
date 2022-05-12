@@ -57,7 +57,7 @@ func (m Model) ContentEmpty() bool {
 
 func (m *Model) setInitialValues() {
 	m.contentHeight = m.height - len(m.header)
-	m.keyMap = getKeyMap()
+	m.keyMap = GetKeyMap()
 	m.mouseWheelEnabled = false
 	m.styleViewport = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
 	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
