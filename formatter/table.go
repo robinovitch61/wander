@@ -57,6 +57,7 @@ func JobResponsesAsTable(jobResponse []nomad.JobResponseEntry) Table {
 		jobResponseRows = append(jobResponseRows, []string{
 			row.ID,
 			row.Type,
+			row.Namespace,
 			strconv.Itoa(row.Priority),
 			row.Status,
 			formatTimeNs(row.SubmitTime),
@@ -64,7 +65,7 @@ func JobResponsesAsTable(jobResponse []nomad.JobResponseEntry) Table {
 	}
 
 	return getRenderedTableString(
-		[]string{"ID", "Type", "Priority", "Status", "Submit Time"},
+		[]string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"},
 		jobResponseRows,
 	)
 }

@@ -13,7 +13,10 @@ func GetJobs(url, token string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return get(path, token, nil)
+	params := map[string]string{
+		"namespace": "*",
+	}
+	return get(path, token, params)
 }
 
 func GetAllocations(url, token, jobId string) ([]byte, error) {
