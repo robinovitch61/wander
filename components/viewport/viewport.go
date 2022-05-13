@@ -113,7 +113,7 @@ func (m *Model) SetContent(s string) {
 	lines := strings.Split(normalizeLineEndings(s), "\n")
 	maxLineLength := 0
 	for _, line := range lines {
-		if lineLength := len(line); lineLength > maxLineLength {
+		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
 			maxLineLength = lineLength
 		}
 	}
