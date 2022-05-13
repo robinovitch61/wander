@@ -309,7 +309,6 @@ func (m model) View() string {
 
 	finalView := m.header.View() + "\n" + m.viewport.View()
 	return finalView
-	//return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(finalView)
 }
 
 func initialModel() model {

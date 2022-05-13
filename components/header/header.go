@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
+	"wander/style"
 )
 
 type Model struct {
@@ -34,10 +35,7 @@ func (m Model) formatFilterString(s string) string {
 	if !m.EditingFilter {
 		return s
 	}
-	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#000000")).
-		Background(lipgloss.Color("6")).
-		Render(s)
+	return style.EditingTextStyle.Render(s)
 }
 
 func (m Model) View() string {
@@ -53,11 +51,8 @@ func (m Model) View() string {
 		}
 	}
 	viewString += m.formatFilterString(m.Filter)
-	styledViewString := lipgloss.NewStyle().
-		Padding(0, 1).
-		Border(lipgloss.RoundedBorder(), true).
-		Render(viewString)
-	styledKeyHelp := lipgloss.NewStyle().Padding(0, 5).Render(m.KeyHelp)
+	styledViewString := style.HeaderStyle.Render(viewString)
+	styledKeyHelp := style.KeyHelpStyle.Render(m.KeyHelp)
 	return lipgloss.JoinHorizontal(0.3, styledViewString, styledKeyHelp)
 }
 

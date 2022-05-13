@@ -3,8 +3,8 @@ package viewport
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"strings"
+	"wander/style"
 )
 
 const lineContinuationIndicator = "..."
@@ -40,12 +40,6 @@ type Model struct {
 	// Highlight is the text to highlight (case sensitive), used for search, filter etc.
 	Highlight string
 
-	// styleViewport applies a lipgloss style to the viewport. Realistically, it's most
-	// useful for setting borders, margins and padding.
-	styleViewport   lipgloss.Style
-	styleCursorRow  lipgloss.Style
-	styleHightlight lipgloss.Style
-
 	initialized   bool
 	header        []string
 	lines         []string
@@ -60,9 +54,6 @@ func (m *Model) setInitialValues() {
 	m.contentHeight = m.height - len(m.header)
 	m.keyMap = GetKeyMap()
 	m.mouseWheelEnabled = false
-	m.styleViewport = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
-	m.styleCursorRow = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
-	m.styleHightlight = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("7"))
 	m.initialized = true
 }
 
@@ -293,7 +284,7 @@ func (m Model) View() string {
 	visibleLines := m.visibleLines()
 
 	// TODO LEO: deal with headers that are wider than viewport width
-	noHighlight := len(m.Highlight) == 0
+	nothingHighlighted := len(m.Highlight) == 0
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
 		isSelected := m.yOffset+idx == m.CursorRow
@@ -309,21 +300,21 @@ func (m Model) View() string {
 			}
 		}
 
-		if noHighlight {
+		if nothingHighlighted {
 			if isSelected {
-				viewLines += m.styleCursorRow.Render(line)
+				viewLines += style.ViewportCursorRowStyle.Render(line)
 			} else {
 				viewLines += line
 			}
 		} else {
 			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
-			styledHighlight := m.styleHightlight.Render(m.Highlight)
+			styledHighlight := style.ViewportHighlightStyle.Render(m.Highlight)
 			if isSelected {
 				lineChunks := strings.Split(line, m.Highlight)
 				var styledChunks []string
 				for _, chunk := range lineChunks {
-					styledChunks = append(styledChunks, m.styleCursorRow.Render(chunk))
+					styledChunks = append(styledChunks, style.ViewportCursorRowStyle.Render(chunk))
 				}
 				viewLines += strings.Join(styledChunks, styledHighlight)
 			} else {
@@ -335,10 +326,7 @@ func (m Model) View() string {
 		viewLines += "\n"
 	}
 	trimmedViewLines := strings.TrimSpace(viewLines)
-	renderedViewLines := m.styleViewport.
-		Width(m.width).
-		Height(m.height).
-		Render(trimmedViewLines)
+	renderedViewLines := style.ViewportStyle.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
 }
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/lipgloss"
 	"wander/components/viewport"
 	"wander/page"
+	"wander/style"
 )
 
 type mainKeyMap struct {
@@ -56,8 +56,8 @@ func getKeyMap() mainKeyMap {
 func KeyMapView(currentPage page.Page, isFiltering, hasFilter bool) string {
 	keyHelper := help.New()
 	keyHelper.ShortSeparator = "    "
-	keyHelper.Styles.ShortKey = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	keyHelper.Styles.ShortDesc = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	keyHelper.Styles.ShortKey = style.KeyHelpKeyStyle
+	keyHelper.Styles.ShortDesc = style.KeyHelpDescriptionStyle
 
 	mainKm := getKeyMap()
 	var alwaysShown []key.Binding
