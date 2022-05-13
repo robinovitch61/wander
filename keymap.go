@@ -56,8 +56,8 @@ func getKeyMap() mainKeyMap {
 func KeyMapView(currentPage page.Page, isFiltering, hasFilter bool) string {
 	keyHelper := help.New()
 	keyHelper.ShortSeparator = "    "
-	keyHelper.Styles.ShortKey = style.KeyHelpKeyStyle
-	keyHelper.Styles.ShortDesc = style.KeyHelpDescriptionStyle
+	keyHelper.Styles.ShortKey = style.KeyHelpKey
+	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
 
 	mainKm := getKeyMap()
 	var alwaysShown []key.Binding

@@ -1,7 +1,6 @@
 package main
 
 // TODO LEO: known bugs
-// - [ ] Crashes if terminal height smaller than header height
 // - [ ] Cursor shows up if no viewport content
 // - [ ] Can crash app by hitting Forward when jobs loading
 

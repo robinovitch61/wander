@@ -1,9 +1,11 @@
 package viewport
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
+	"wander/dev"
 	"wander/style"
 )
 
@@ -86,10 +88,14 @@ func (m *Model) fixState() {
 	m.fixCursorRow()
 }
 
+func (m *Model) setContentHeight() {
+	m.contentHeight = max(0, m.height-len(m.header))
+}
+
 // SetHeight sets the pager's height, including header.
 func (m *Model) SetHeight(h int) {
 	m.height = h
-	m.contentHeight = h - len(m.header)
+	m.setContentHeight()
 	m.fixState()
 }
 
@@ -101,7 +107,7 @@ func (m *Model) SetWidth(w int) {
 // SetHeader sets the pager's header content.
 func (m *Model) SetHeader(header string) {
 	m.header = strings.Split(normalizeLineEndings(header), "\n")
-	m.contentHeight = m.height - len(m.header)
+	m.setContentHeight()
 }
 
 // SetContent sets the pager's text content.
@@ -182,6 +188,7 @@ func (m Model) visibleLines() []string {
 	if end > m.maxLinesIdx() {
 		return m.lines[start:]
 	}
+	dev.Debug(fmt.Sprintf("start %d end %d max %d", start, end, m.maxLinesIdx()))
 	return m.lines[start:end]
 }
 
@@ -302,19 +309,19 @@ func (m Model) View() string {
 
 		if nothingHighlighted {
 			if isSelected {
-				viewLines += style.ViewportCursorRowStyle.Render(line)
+				viewLines += style.ViewportCursorRow.Render(line)
 			} else {
 				viewLines += line
 			}
 		} else {
 			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
-			styledHighlight := style.ViewportHighlightStyle.Render(m.Highlight)
+			styledHighlight := style.ViewportHighlight.Render(m.Highlight)
 			if isSelected {
 				lineChunks := strings.Split(line, m.Highlight)
 				var styledChunks []string
 				for _, chunk := range lineChunks {
-					styledChunks = append(styledChunks, style.ViewportCursorRowStyle.Render(chunk))
+					styledChunks = append(styledChunks, style.ViewportCursorRow.Render(chunk))
 				}
 				viewLines += strings.Join(styledChunks, styledHighlight)
 			} else {
@@ -326,7 +333,7 @@ func (m Model) View() string {
 		viewLines += "\n"
 	}
 	trimmedViewLines := strings.TrimSpace(viewLines)
-	renderedViewLines := style.ViewportStyle.Width(m.width).Height(m.height).Render(trimmedViewLines)
+	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
 }
 

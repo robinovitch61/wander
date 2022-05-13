@@ -15,10 +15,15 @@ type Model struct {
 	EditingFilter bool
 }
 
+var (
+	clusterURLPrefix = style.Bold.Render("Cluster URL:")
+	filterPrefix     = style.Bold.Render("Filter:")
+)
+
 func New(nomadUrl, filterString, keyHelp string) (m Model) {
-	content := []string{fmt.Sprintf("Cluster URL: %s", nomadUrl)}
+	content := []string{fmt.Sprintf("%s %s", clusterURLPrefix, nomadUrl)}
 	if filterString != "" {
-		content = append(content, fmt.Sprintf("Filter: %s", filterString))
+		content = append(content, fmt.Sprintf("%s %s", filterPrefix, filterString))
 	}
 	return Model{content: content, KeyHelp: keyHelp, Filter: filterString}
 }
@@ -35,12 +40,12 @@ func (m Model) formatFilterString(s string) string {
 	if !m.EditingFilter {
 		return s
 	}
-	return style.EditingTextStyle.Render(s)
+	return style.EditingText.Render(s)
 }
 
 func (m Model) View() string {
 	viewString := strings.Join(m.content, "\n")
-	viewString += "\n" + m.formatFilterString("Filter: ")
+	viewString += "\n" + m.formatFilterString(fmt.Sprintf("%s ", filterPrefix))
 	if m.EditingFilter {
 		if m.Filter == "" {
 			viewString += m.formatFilterString("<type to filter>")
@@ -51,8 +56,8 @@ func (m Model) View() string {
 		}
 	}
 	viewString += m.formatFilterString(m.Filter)
-	styledViewString := style.HeaderStyle.Render(viewString)
-	styledKeyHelp := style.KeyHelpStyle.Render(m.KeyHelp)
+	styledViewString := style.Header.Render(viewString)
+	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)
 	return lipgloss.JoinHorizontal(0.3, styledViewString, styledKeyHelp)
 }
 
