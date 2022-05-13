@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"sort"
 	"strings"
 	"wander/message"
 	"wander/nomad"
@@ -26,7 +27,14 @@ func FetchJobs(url, token string) tea.Cmd {
 			// TODO LEO: error handling
 			fmt.Println("Failed to decode job response")
 		}
-
+		sort.Slice(jobResponse, func(x, y int) bool {
+			firstJob := jobResponse[x]
+			secondJob := jobResponse[y]
+			if firstJob.Name == secondJob.Name {
+				return firstJob.Namespace < secondJob.Namespace
+			}
+			return jobResponse[x].Name < jobResponse[y].Name
+		})
 		return message.NomadJobsMsg(jobResponse)
 	}
 }
@@ -55,7 +63,14 @@ func FetchAllocations(url, token, jobId string) tea.Cmd {
 				})
 			}
 		}
-
+		sort.Slice(allocationRowEntries, func(x, y int) bool {
+			firstTask := allocationRowEntries[x]
+			secondTask := allocationRowEntries[y]
+			if firstTask.TaskName == secondTask.TaskName {
+				return firstTask.Name < secondTask.Name
+			}
+			return allocationRowEntries[x].TaskName < allocationRowEntries[y].TaskName
+		})
 		return message.NomadAllocationMsg(allocationRowEntries)
 	}
 }
