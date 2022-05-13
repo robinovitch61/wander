@@ -12,4 +12,5 @@ var (
 	Viewport           = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
 	ViewportCursorRow  = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	ViewportHighlight  = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
+	TableHeaderStyle   = lipgloss.NewStyle().Bold(true)
 )

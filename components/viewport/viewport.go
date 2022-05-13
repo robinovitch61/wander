@@ -309,7 +309,7 @@ func (m Model) View() string {
 	var viewLines string
 
 	for _, headerLine := range m.header {
-		viewLines += m.getVisiblePartOfLine(headerLine) + "\n"
+		viewLines += style.TableHeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
 	}
 
 	for idx, line := range m.visibleLines() {
