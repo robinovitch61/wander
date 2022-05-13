@@ -63,7 +63,15 @@ func FetchAllocations(url, token, jobId string) tea.Cmd {
 func FetchLogs(url, token, allocId, taskName string, logType nomad.LogType) tea.Cmd {
 	return func() tea.Msg {
 		// TODO LEO: error handling
-		body, _ := nomad.GetLogs(url, token, allocId, taskName, logType.String())
+		logTypeString := "stdout"
+		switch logType {
+		case nomad.StdOut:
+			logTypeString = "stdout"
+		case nomad.StdErr:
+			logTypeString = "stderr"
+		}
+
+		body, _ := nomad.GetLogs(url, token, allocId, taskName, logTypeString)
 		//simulateLoading()
 		//body := MockLogsResponse
 		var logRows []nomad.LogRow

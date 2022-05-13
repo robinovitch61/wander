@@ -209,14 +209,18 @@ func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
 
+func (m *Model) setXOffset(n int) {
+	m.xOffset = max(0, n)
+}
+
 // viewLeft moves the view left the given number of columns.
 func (m *Model) viewLeft(n int) {
-	m.xOffset = max(0, m.xOffset-n)
+	m.setXOffset(m.xOffset - n)
 }
 
 // viewRight moves the view right the given number of columns.
 func (m *Model) viewRight(n int) {
-	m.xOffset = min(m.maxLineLength-m.width, m.xOffset+n)
+	m.setXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
 }
 
 // Update handles standard message-based viewport updates.
@@ -286,8 +290,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) getVisiblePartOfLine(line string) string {
 	trimmedLineLength := len(strings.TrimSpace(line))
 	if len(line) > m.width {
-		line = line[m.xOffset:min(len(line)-1, m.xOffset+m.width)]
-		if m.xOffset+m.width < trimmedLineLength {
+		//dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
+		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
+		if m.xOffset+m.width+1 < trimmedLineLength {
 			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
 		}
 		if m.xOffset > 0 {

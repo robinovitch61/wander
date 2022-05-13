@@ -136,9 +136,9 @@ const (
 func (p LogType) String() string {
 	switch p {
 	case StdOut:
-		return "stdout"
+		return "Stdout Logs"
 	case StdErr:
-		return "stderr"
+		return "Stderr Logs"
 	}
-	return "stdout"
+	return "Stdout Logs"
 }
