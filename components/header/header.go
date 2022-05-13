@@ -9,7 +9,7 @@ import (
 )
 
 type Model struct {
-	content       []string
+	nomadUrl      string
 	KeyHelp       string
 	Filter        string
 	EditingFilter bool
@@ -20,12 +20,8 @@ var (
 	filterPrefix     = style.Bold.Render("Filter:")
 )
 
-func New(nomadUrl, filterString, keyHelp string) (m Model) {
-	content := []string{fmt.Sprintf("%s %s", clusterURLPrefix, nomadUrl)}
-	if filterString != "" {
-		content = append(content, fmt.Sprintf("%s %s", filterPrefix, filterString))
-	}
-	return Model{content: content, KeyHelp: keyHelp, Filter: filterString}
+func New(nomadUrl, keyHelp string) (m Model) {
+	return Model{nomadUrl: nomadUrl, KeyHelp: keyHelp, Filter: "", EditingFilter: false}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -44,7 +40,7 @@ func (m Model) formatFilterString(s string) string {
 }
 
 func (m Model) View() string {
-	viewString := strings.Join(m.content, "\n")
+	viewString := fmt.Sprintf("%s %s", clusterURLPrefix, m.nomadUrl)
 	viewString += "\n" + m.formatFilterString(fmt.Sprintf("%s ", filterPrefix))
 	if m.EditingFilter {
 		if m.Filter == "" {

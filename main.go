@@ -1,12 +1,9 @@
 package main
 
-// TODO LEO: known bugs
-// - [ ] Cursor shows up if no viewport content
-// - [ ] Can crash app by hitting Forward when jobs loading
-
 // TODO LEO: consider:
 // - can deduplicate state by only having viewport, header, etc. having copies of certain state and having top-level reference it
 // - can pass updater functions that mutate parent state as props into components (e.g. onEnter(m *model) to viewport)
+// - can pass pointer to main model to child components in order to avoid replicating state
 
 import (
 	"fmt"
@@ -60,6 +57,7 @@ type model struct {
 	selectedJobId       string
 	selectedAlloc       selectedAlloc
 	logType             nomad.LogType
+	loading             bool
 	err                 error
 }
 
@@ -82,17 +80,21 @@ func (m model) fetchPageDataCmd() tea.Cmd {
 	return nil
 }
 
+func (m *model) setHeaderKeyHelp() {
+	m.header.KeyHelp = KeyMapView(m.page, m.header.EditingFilter, m.header.HasFilter())
+}
+
 func (m *model) setFiltering(isEditingFilter, clearFilter bool) {
 	m.header.EditingFilter = isEditingFilter
 	if clearFilter {
 		m.setFilter("")
 	}
-	m.header.KeyHelp = KeyMapView(m.page, isEditingFilter, m.header.HasFilter())
+	m.setHeaderKeyHelp()
 }
 
 func (m *model) setPage(p page.Page) {
 	m.page = p
-	m.header.KeyHelp = KeyMapView(p, m.header.EditingFilter, m.header.HasFilter())
+	m.setHeaderKeyHelp()
 }
 
 func (m *model) setFilter(s string) {
@@ -163,6 +165,11 @@ func (m *model) updateLogViewport() {
 	m.updateViewport(table, len(table.ContentRows)-1)
 }
 
+func (m *model) setLoading(loadingString string) {
+	m.loading = true
+	m.viewport.SetLoading(loadingString)
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -175,12 +182,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		dev.Debug("nomadJobsMsg")
 		m.nomadJobData.allData = msg
 		m.updateJobViewport()
+		m.loading = false
 		return m, nil
 
 	case message.NomadAllocationMsg:
 		dev.Debug("NomadAllocationMsg")
 		m.nomadAllocationData.allData = msg
 		m.updateAllocationViewport()
+		m.loading = false
 		return m, nil
 
 	case message.NomadLogsMsg:
@@ -188,6 +197,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.nomadLogData.allData = msg.Data
 		m.logType = msg.LogType
 		m.updateLogViewport()
+		m.loading = false
 		return m, nil
 
 	case message.ErrMsg:
@@ -225,6 +235,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
 
+		case m.loading:
+			return m, nil
+
 		case key.Matches(msg, m.keyMap.Forward):
 			switch m.page {
 			case page.Jobs:
@@ -238,7 +251,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.setFilter("")
 				m.setPage(newPage)
 				cmd := m.fetchPageDataCmd()
-				m.viewport.SetLoading(newPage.LoadingString())
+				m.setLoading(newPage.LoadingString())
 				return m, cmd
 			}
 
@@ -251,13 +264,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if newPage := m.page.Backward(); newPage != m.page {
 				m.setPage(newPage)
 				cmd := m.fetchPageDataCmd()
-				m.viewport.SetLoading(newPage.LoadingString())
+				m.setLoading(newPage.LoadingString())
 				return m, cmd
 			}
 
 		case key.Matches(msg, m.keyMap.Reload):
 			cmd := m.fetchPageDataCmd()
-			m.viewport.SetLoading(m.page.ReloadingString())
+			m.setLoading(m.page.ReloadingString())
 			return m, cmd
 
 		case key.Matches(msg, m.keyMap.Filter):
@@ -266,12 +279,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.StdOut) && m.page == page.Logs:
 			m.logType = nomad.StdOut
-			m.viewport.SetLoading(m.page.LoadingString())
+			m.setLoading(m.page.LoadingString())
 			return m, m.fetchPageDataCmd()
 
 		case key.Matches(msg, m.keyMap.StdErr) && m.page == page.Logs:
 			m.logType = nomad.StdErr
-			m.viewport.SetLoading(m.page.LoadingString())
+			m.setLoading(m.page.LoadingString())
 			return m, m.fetchPageDataCmd()
 		}
 
@@ -331,7 +344,8 @@ func initialModel() model {
 		keyMap:     keyMap,
 		logType:    nomad.StdOut,
 		page:       firstPage,
-		header:     header.New(nomadUrl, "", KeyMapView(firstPage, false, false)),
+		header:     header.New(nomadUrl, KeyMapView(firstPage, false, false)),
+		loading:    true,
 	}
 }
 
