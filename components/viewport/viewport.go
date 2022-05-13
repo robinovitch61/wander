@@ -1,11 +1,9 @@
 package viewport
 
 import (
-	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
-	"wander/dev"
 	"wander/style"
 )
 
@@ -188,7 +186,6 @@ func (m Model) visibleLines() []string {
 	if end > m.maxLinesIdx() {
 		return m.lines[start:]
 	}
-	dev.Debug(fmt.Sprintf("start %d end %d max %d", start, end, m.maxLinesIdx()))
 	return m.lines[start:end]
 }
 
@@ -286,26 +283,33 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) getVisiblePartOfLine(line string) string {
+	trimmedLineLength := len(strings.TrimSpace(line))
+	if len(line) > m.width {
+		line = line[m.xOffset:min(len(line)-1, m.xOffset+m.width)]
+		if m.xOffset+m.width < trimmedLineLength {
+			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
+		}
+		if m.xOffset > 0 {
+			line = lineContinuationIndicator + line[lenLineContinuationIndicator:]
+		}
+	}
+	return line
+}
+
 // View returns the string representing the viewport.
 func (m Model) View() string {
-	visibleLines := m.visibleLines()
-
-	// TODO LEO: deal with headers that are wider than viewport width
 	nothingHighlighted := len(m.Highlight) == 0
-	viewLines := strings.Join(m.header, "\n") + "\n"
-	for idx, line := range visibleLines {
-		isSelected := m.yOffset+idx == m.CursorRow
-		trimmedLineLength := len(strings.TrimSpace(line))
 
-		if len(line) > m.width {
-			line = line[m.xOffset : m.xOffset+m.width]
-			if m.xOffset+m.width < trimmedLineLength {
-				line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
-			}
-			if m.xOffset > 0 {
-				line = lineContinuationIndicator + line[lenLineContinuationIndicator:]
-			}
-		}
+	var viewLines string
+
+	for _, headerLine := range m.header {
+		viewLines += m.getVisiblePartOfLine(headerLine) + "\n"
+	}
+
+	for idx, line := range m.visibleLines() {
+		isSelected := m.yOffset+idx == m.CursorRow
+		line = m.getVisiblePartOfLine(line)
 
 		if nothingHighlighted {
 			if isSelected {
