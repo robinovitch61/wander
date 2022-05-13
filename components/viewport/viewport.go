@@ -8,6 +8,7 @@ import (
 )
 
 const lineContinuationIndicator = "..."
+const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
 // New returns a new model with the given width and height as well as default values.
 func New(width, height int) (m Model) {
@@ -292,32 +293,45 @@ func (m Model) View() string {
 	visibleLines := m.visibleLines()
 
 	// TODO LEO: deal with headers that are wider than viewport width
+	noHighlight := len(m.Highlight) == 0
 	viewLines := strings.Join(m.header, "\n") + "\n"
 	for idx, line := range visibleLines {
+		isSelected := m.yOffset+idx == m.CursorRow
 		trimmedLineLength := len(strings.TrimSpace(line))
+
 		if len(line) > m.width {
 			line = line[m.xOffset : m.xOffset+m.width]
 			if m.xOffset+m.width < trimmedLineLength {
-				line = line[:len(line)-len(lineContinuationIndicator)] + lineContinuationIndicator
+				line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
 			}
 			if m.xOffset > 0 {
-				line = lineContinuationIndicator + line[len(lineContinuationIndicator):]
+				line = lineContinuationIndicator + line[lenLineContinuationIndicator:]
 			}
 		}
 
-		styledHighlight := m.styleHightlight.Render(m.Highlight)
-		if m.yOffset+idx == m.CursorRow {
-			// render selected row
-			lineChunks := strings.Split(line, m.Highlight)
-			var styledChunks []string
-			for _, chunk := range lineChunks {
-				styledChunks = append(styledChunks, m.styleCursorRow.Render(chunk))
+		if noHighlight {
+			if isSelected {
+				viewLines += m.styleCursorRow.Render(line)
+			} else {
+				viewLines += line
 			}
-			viewLines += strings.Join(styledChunks, styledHighlight)
 		} else {
-			line = strings.ReplaceAll(line, m.Highlight, styledHighlight)
-			viewLines += line
+			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
+			// so only do it if something is actually highlighted
+			styledHighlight := m.styleHightlight.Render(m.Highlight)
+			if isSelected {
+				lineChunks := strings.Split(line, m.Highlight)
+				var styledChunks []string
+				for _, chunk := range lineChunks {
+					styledChunks = append(styledChunks, m.styleCursorRow.Render(chunk))
+				}
+				viewLines += strings.Join(styledChunks, styledHighlight)
+			} else {
+				line = strings.ReplaceAll(line, m.Highlight, styledHighlight)
+				viewLines += line
+			}
 		}
+
 		viewLines += "\n"
 	}
 	trimmedViewLines := strings.TrimSpace(viewLines)
