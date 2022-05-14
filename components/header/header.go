@@ -9,6 +9,7 @@ import (
 )
 
 type Model struct {
+	logo          []string
 	nomadUrl      string
 	KeyHelp       string
 	Filter        string
@@ -20,8 +21,8 @@ var (
 	filterPrefix     = style.Bold.Render("Filter:")
 )
 
-func New(nomadUrl, keyHelp string) (m Model) {
-	return Model{nomadUrl: nomadUrl, KeyHelp: keyHelp, Filter: "", EditingFilter: false}
+func New(logo []string, nomadUrl, keyHelp string) (m Model) {
+	return Model{logo: logo, nomadUrl: nomadUrl, KeyHelp: keyHelp, Filter: "", EditingFilter: false}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -40,6 +41,7 @@ func (m Model) formatFilterString(s string) string {
 }
 
 func (m Model) View() string {
+	logo := style.Logo.Render(strings.Join(m.logo, "\n"))
 	viewString := fmt.Sprintf("%s %s", clusterURLPrefix, m.nomadUrl)
 	viewString += "\n" + m.formatFilterString(fmt.Sprintf("%s ", filterPrefix))
 	if m.EditingFilter {
@@ -54,7 +56,7 @@ func (m Model) View() string {
 	viewString += m.formatFilterString(m.Filter)
 	styledViewString := style.Header.Render(viewString)
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)
-	return lipgloss.JoinHorizontal(0.3, styledViewString, styledKeyHelp)
+	return lipgloss.JoinHorizontal(0.3, logo, styledViewString, styledKeyHelp)
 }
 
 func (m Model) ViewHeight() int {

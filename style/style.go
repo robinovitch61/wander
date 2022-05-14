@@ -4,7 +4,8 @@ import "github.com/charmbracelet/lipgloss"
 
 var (
 	Bold               = lipgloss.NewStyle().Bold(true)
-	KeyHelp            = lipgloss.NewStyle().Padding(0, 5)
+	Logo               = lipgloss.NewStyle().Padding(0, 2, 0, 1).Foreground(lipgloss.Color("#dbbd70"))
+	KeyHelp            = lipgloss.NewStyle().Padding(0, 2)
 	KeyHelpKey         = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true)
 	KeyHelpDescription = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 	EditingText        = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))

@@ -338,13 +338,17 @@ func initialModel() model {
 
 	keyMap := getKeyMap()
 	firstPage := page.Jobs
+	logo := []string{
+		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
+		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
+	}
 	return model{
 		nomadToken: nomadToken,
 		nomadUrl:   nomadUrl,
 		keyMap:     keyMap,
 		logType:    nomad.StdOut,
 		page:       firstPage,
-		header:     header.New(nomadUrl, KeyMapView(firstPage, false, false)),
+		header:     header.New(logo, nomadUrl, KeyMapView(firstPage, false, false)),
 		loading:    true,
 	}
 }
