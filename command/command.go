@@ -67,9 +67,12 @@ func FetchAllocations(url, token, jobId string) tea.Cmd {
 			firstTask := allocationRowEntries[x]
 			secondTask := allocationRowEntries[y]
 			if firstTask.TaskName == secondTask.TaskName {
+				if firstTask.Name == secondTask.Name {
+					return firstTask.State > secondTask.State
+				}
 				return firstTask.Name < secondTask.Name
 			}
-			return allocationRowEntries[x].TaskName < allocationRowEntries[y].TaskName
+			return firstTask.TaskName < secondTask.TaskName
 		})
 		return message.NomadAllocationMsg(allocationRowEntries)
 	}

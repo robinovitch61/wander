@@ -51,7 +51,7 @@ func (m Model) ContentEmpty() bool {
 }
 
 func (m *Model) setInitialValues() {
-	m.contentHeight = m.height - len(m.header)
+	m.setContentHeight()
 	m.keyMap = GetKeyMap()
 	m.mouseWheelEnabled = false
 	m.initialized = true
