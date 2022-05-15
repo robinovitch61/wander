@@ -30,6 +30,7 @@ func New() Model {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("filter %T", msg))
 	var (
 		cmd tea.Cmd
 	)
@@ -83,7 +84,6 @@ func (m *Model) SetFilter(filter string) {
 }
 
 func (m *Model) SetFiltering(isEditingFilter, clearFilter bool) {
-	dev.Debug(fmt.Sprintf("isEditingFilter %t clearFilter %t", isEditingFilter, clearFilter))
 	m.EditingFilter = isEditingFilter
 	if clearFilter {
 		m.SetFilter("")

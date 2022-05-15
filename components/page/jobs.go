@@ -1,6 +1,7 @@
 package page
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -41,6 +42,7 @@ func NewJobsModel(fetchDataCommand tea.Cmd, width, height int) JobsModel {
 }
 
 func (m JobsModel) Update(msg tea.Msg) (JobsModel, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("jobs %T", msg))
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd

@@ -1,9 +1,11 @@
 package viewport
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
+	"wander/dev"
 	"wander/style"
 )
 
@@ -45,6 +47,7 @@ func New(width, height int) (m Model) {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("viewport %T", msg))
 	if !m.initialized {
 		m.setInitialValues()
 	}

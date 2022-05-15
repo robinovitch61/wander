@@ -137,6 +137,7 @@ func (m *model) setWindowSize(width, height int) {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("main %T", msg))
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -148,12 +149,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case message.ErrMsg:
-		dev.Debug("errMsg")
 		m.err = msg
 		return m, nil
 
 	case tea.WindowSizeMsg:
-		dev.Debug("WindowSizeMsg main")
 		m.setWindowSize(msg.Width, msg.Height)
 		pageHeight := msg.Height - m.header.ViewHeight()
 
@@ -167,19 +166,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	//case message.NomadJobsMsg:
-	//	dev.Debug("nomadJobsMsg main")
 	//	m.jobsPage, cmd = m.jobsPage.Update(msg)
 	//	cmds = append(cmds, cmd)
 
 	//case message.NomadAllocationMsg:
-	//	dev.Debug("NomadAllocationMsg")
 	//	m.nomadAllocationData.allData = msg
 	//	m.updateAllocationViewport()
 	//	m.loading = false
 	//	return m, nil
 	//
 	//case message.NomadLogsMsg:
-	//	dev.Debug("NomadLogsMsg")
 	//	m.nomadLogData.allData = msg.Data
 	//	m.logType = msg.LogType
 	//	m.updateLogViewport()
