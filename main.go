@@ -12,11 +12,10 @@ import (
 	"os"
 	"wander/command"
 	"wander/components/header"
-	"wander/components/jobs"
+	"wander/components/page"
 	"wander/dev"
 	"wander/message"
 	"wander/nomad"
-	"wander/page"
 )
 
 var (
@@ -41,7 +40,7 @@ type model struct {
 	nomadUrl            string
 	keyMap              mainKeyMap
 	currentPage         page.Page
-	jobsPage            jobs.Model
+	jobsPage            page.JobsModel
 	header              header.Model
 	width, height       int
 	initialized         bool
@@ -72,36 +71,28 @@ func (m model) fetchPageDataCmd() tea.Cmd {
 	return nil
 }
 
-func (m *model) setHeaderKeyHelp() {
-	m.header.KeyHelp = KeyMapView(m.currentPage, m.header.EditingFilter, m.header.HasFilter())
-}
-
-func (m *model) setFiltering(isEditingFilter, clearFilter bool) {
-	m.header.EditingFilter = isEditingFilter
-	if clearFilter {
-		m.setFilter("")
-	}
-	m.setHeaderKeyHelp()
-}
+//func (m *model) setHeaderKeyHelp() {
+//	m.header.KeyHelp = getPageKeyMapView(m.currentPage, m.header.EditingFilter, m.header.HasFilter())
+//}
 
 func (m *model) setPage(p page.Page) {
 	m.currentPage = p
-	m.setHeaderKeyHelp()
+	//m.setHeaderKeyHelp()
 }
 
-func (m *model) setFilter(s string) {
-	m.header.Filter = s
-	m.jobsPage.SetHighlightText(s)
+//func (m *model) setFilter(s string) {
+//m.header.Filter = s
+//m.jobsPage.SetHighlightText(s)
 
-	//switch m.currentPage {
-	//case page.Jobs:
-	//	m.updateJobViewport()
-	//case page.Allocation:
-	//	m.updateAllocationViewport()
-	//case page.Logs:
-	//	m.updateLogViewport()
-	//}
-}
+//switch m.currentPage {
+//case page.Jobs:
+//	m.updateJobViewport()
+//case page.Allocation:
+//	m.updateAllocationViewport()
+//case page.Logs:
+//	m.updateLogViewport()
+//}
+//}
 
 //func (m *model) updateFilteredAllocationData() {
 //	var filteredAllocationData []nomad.AllocationRowEntry
@@ -140,19 +131,45 @@ func (m *model) setLoading(loadingString string) {
 	//m.viewport.SetLoading(loadingString)
 }
 
+func (m *model) setWindowSize(width, height int) {
+	m.width = width
+	m.height = height
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
 
+	m.jobsPage, cmd = m.jobsPage.Update(msg)
+	cmds = append(cmds, cmd)
+
 	switch msg := msg.(type) {
 
-	case message.NomadJobsMsg:
-		dev.Debug("nomadJobsMsg")
-		m.jobsPage, cmd = m.jobsPage.Update(msg)
-		cmds = append(cmds, cmd)
-		m.loading = false
+	case message.ErrMsg:
+		dev.Debug("errMsg")
+		m.err = msg
+		return m, nil
+
+	case tea.WindowSizeMsg:
+		dev.Debug("WindowSizeMsg main")
+		m.setWindowSize(msg.Width, msg.Height)
+		pageHeight := msg.Height - m.header.ViewHeight()
+
+		if !m.initialized {
+			jobsCommand := command.FetchJobs(m.nomadUrl, m.nomadToken)
+			m.jobsPage = page.NewJobsModel(jobsCommand, msg.Width, pageHeight)
+			// TODO LEO: rest of pages here?
+			m.initialized = true
+		} else {
+			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
+		}
+
+	//case message.NomadJobsMsg:
+	//	dev.Debug("nomadJobsMsg main")
+	//	m.jobsPage, cmd = m.jobsPage.Update(msg)
+	//	cmds = append(cmds, cmd)
 
 	//case message.NomadAllocationMsg:
 	//	dev.Debug("NomadAllocationMsg")
@@ -169,92 +186,54 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	//	m.loading = false
 	//	return m, nil
 
-	case message.ErrMsg:
-		dev.Debug("errMsg")
-		m.err = msg
-		return m, nil
-
 	case tea.KeyMsg:
-		dev.Debug(fmt.Sprintf("KeyMsg '%s'", msg))
-
-		if m.header.EditingFilter {
-			switch {
-			case key.Matches(msg, m.keyMap.Back):
-				m.setFiltering(false, true)
-			case key.Matches(msg, m.keyMap.Forward):
-				m.setFiltering(false, false)
-			default:
-				switch msg.Type {
-				case tea.KeyBackspace:
-					if len(m.header.Filter) > 0 {
-						if msg.Alt {
-							m.setFilter("")
-						} else {
-							m.setFilter(m.header.Filter[:len(m.header.Filter)-1])
-						}
-					}
-				case tea.KeyRunes:
-					m.setFilter(m.header.Filter + msg.String())
-				}
-			}
-			return m, nil
-		}
-
 		switch {
 		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
 
-		case m.loading:
-			return m, nil
+			//case m.loading:
+			//	return m, nil
 
-		case key.Matches(msg, m.keyMap.Forward):
-			//switch m.currentPage {
-			//case page.Jobs:
-			//	m.selectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
-			//case page.Allocation:
-			//	alloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
-			//	m.selectedAlloc = selectedAlloc{alloc.ID, alloc.TaskName}
-			//}
+			//case key.Matches(msg, m.keyMap.Forward):
+			//	//switch m.currentPage {
+			//	//case page.Jobs:
+			//	//	m.selectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
+			//	//case page.Allocation:
+			//	//	alloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
+			//	//	m.selectedAlloc = selectedAlloc{alloc.ID, alloc.TaskName}
+			//	//}
+			//
+			//	if newPage := m.currentPage.Forward(); newPage != m.currentPage {
+			//		m.setFilter("")
+			//		m.setPage(newPage)
+			//		cmd := m.fetchPageDataCmd()
+			//		m.setLoading(newPage.LoadingString())
+			//		return m, cmd
+			//	}
+			//
+			//case key.Matches(msg, m.keyMap.Back):
+			//	if m.header.Filter != "" {
+			//		m.setFiltering(false, true)
+			//		return m, nil
+			//	}
+			//
+			//	if newPage := m.currentPage.Backward(); newPage != m.currentPage {
+			//		m.setPage(newPage)
+			//		cmd := m.fetchPageDataCmd()
+			//		m.setLoading(newPage.LoadingString())
+			//		return m, cmd
+			//	}
 
-			if newPage := m.currentPage.Forward(); newPage != m.currentPage {
-				m.setFilter("")
-				m.setPage(newPage)
-				cmd := m.fetchPageDataCmd()
-				m.setLoading(newPage.LoadingString())
-				return m, cmd
-			}
-
-		case key.Matches(msg, m.keyMap.Back):
-			if m.header.Filter != "" {
-				m.setFiltering(false, true)
-				return m, nil
-			}
-
-			if newPage := m.currentPage.Backward(); newPage != m.currentPage {
-				m.setPage(newPage)
-				cmd := m.fetchPageDataCmd()
-				m.setLoading(newPage.LoadingString())
-				return m, cmd
-			}
-
-		case key.Matches(msg, m.keyMap.Reload):
-			cmd := m.fetchPageDataCmd()
-			m.setLoading(m.currentPage.ReloadingString())
-			return m, cmd
-
-		case key.Matches(msg, m.keyMap.Filter):
-			m.setFiltering(true, false)
-			return m, nil
-
-		case key.Matches(msg, m.keyMap.StdOut) && m.currentPage == page.Logs:
-			m.logType = nomad.StdOut
-			m.setLoading(m.currentPage.LoadingString())
-			return m, m.fetchPageDataCmd()
-
-		case key.Matches(msg, m.keyMap.StdErr) && m.currentPage == page.Logs:
-			m.logType = nomad.StdErr
-			m.setLoading(m.currentPage.LoadingString())
-			return m, m.fetchPageDataCmd()
+			// TODO LEO: put these in logs page
+			//case key.Matches(msg, m.keyMap.StdOut) && m.currentPage == page.Logs:
+			//	m.logType = nomad.StdOut
+			//	m.setLoading(m.currentPage.LoadingString())
+			//	return m, m.fetchPageDataCmd()
+			//
+			//case key.Matches(msg, m.keyMap.StdErr) && m.currentPage == page.Logs:
+			//	m.logType = nomad.StdErr
+			//	m.setLoading(m.currentPage.LoadingString())
+			//	return m, m.fetchPageDataCmd()
 		}
 	}
 
@@ -290,7 +269,7 @@ func initialModel() model {
 		os.Exit(1)
 	}
 
-	keyMap := getKeyMap()
+	keyMap := getMainKeyMap()
 	firstPage := page.Jobs
 	logo := []string{
 		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
@@ -302,7 +281,7 @@ func initialModel() model {
 		keyMap:      keyMap,
 		logType:     nomad.StdOut,
 		currentPage: firstPage,
-		header:      header.New(logo, nomadUrl, KeyMapView(firstPage, false, false)),
+		header:      header.New(logo, nomadUrl, ""),
 		loading:     true,
 	}
 }

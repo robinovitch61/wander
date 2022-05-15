@@ -10,15 +10,6 @@ import (
 const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
-// New returns a new model with the given width and height as well as default values.
-func New(width, height int) (m Model) {
-	m.width = width
-	m.height = height
-	m.setInitialValues()
-	return m
-}
-
-// Model is the Bubble Tea model for this viewport element.
 type Model struct {
 	width         int
 	height        int
@@ -46,184 +37,13 @@ type Model struct {
 	maxLineLength int
 }
 
-func (m Model) ContentEmpty() bool {
-	return len(m.header) == 0 && len(m.lines) == 0
+func New(width, height int) (m Model) {
+	m.width = width
+	m.height = height
+	m.setInitialValues()
+	return m
 }
 
-func (m *Model) setInitialValues() {
-	m.setContentHeight()
-	m.keyMap = GetKeyMap()
-	m.mouseWheelEnabled = false
-	m.initialized = true
-}
-
-// Init exists to satisfy the tea.Model interface for composability purposes.
-func (m Model) Init() tea.Cmd {
-	return nil
-}
-
-func normalizeLineEndings(s string) string {
-	return strings.ReplaceAll(s, "\r\n", "\n")
-}
-
-// fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
-func (m *Model) fixCursorRow() {
-	if m.CursorRow > m.lastVisibleLineIdx() {
-		m.SetCursorRow(m.lastVisibleLineIdx())
-	}
-}
-
-// fixYOffset adjusts the yOffset such that it's not above the maximum value
-func (m *Model) fixYOffset() {
-	if maxYOffset := m.maxYOffset(); m.yOffset > maxYOffset {
-		m.setYOffset(maxYOffset)
-	}
-}
-
-// fixState fixes CursorRow and yOffset
-func (m *Model) fixState() {
-	m.fixYOffset()
-	m.fixCursorRow()
-}
-
-func (m *Model) setContentHeight() {
-	m.contentHeight = max(0, m.height-len(m.header))
-}
-
-// SetHeight sets the pager's height, including header.
-func (m *Model) SetHeight(h int) {
-	m.height = h
-	m.setContentHeight()
-	m.fixState()
-}
-
-// SetWidth sets the pager's width.
-func (m *Model) SetWidth(w int) {
-	m.width = w
-}
-
-// SetHeader sets the pager's header content.
-func (m *Model) SetHeader(header string) {
-	m.header = strings.Split(normalizeLineEndings(header), "\n")
-	m.setContentHeight()
-}
-
-// SetContent sets the pager's text content.
-func (m *Model) SetContent(s string) {
-	lines := strings.Split(normalizeLineEndings(s), "\n")
-	maxLineLength := 0
-	for _, line := range lines {
-		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
-			maxLineLength = lineLength
-		}
-	}
-	m.lines = lines
-	m.maxLineLength = maxLineLength
-	m.fixState()
-}
-
-// SetLoading clears the header and content and displays the loading message
-func (m *Model) SetLoading(s string) {
-	m.SetContent("")
-	m.SetHeader(s)
-}
-
-// maxLinesIdx returns the maximum index of the model's lines
-func (m *Model) maxLinesIdx() int {
-	return len(m.lines) - 1
-}
-
-// lastVisibleLineIdx returns the maximum visible line index
-func (m Model) lastVisibleLineIdx() int {
-	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
-}
-
-// maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
-func (m Model) maxYOffset() int {
-	if m.maxLinesIdx() < m.contentHeight {
-		return 0
-	}
-	return len(m.lines) - m.contentHeight
-}
-
-// maxCursorRow returns the maximum CursorRow
-func (m Model) maxCursorRow() int {
-	return len(m.lines) - 1
-}
-
-// setYOffset sets the yOffset with bounds.
-func (m *Model) setYOffset(n int) {
-	if maxYOffset := m.maxYOffset(); n > maxYOffset {
-		m.yOffset = maxYOffset
-	} else {
-		m.yOffset = max(0, n)
-	}
-}
-
-// SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
-func (m *Model) SetCursorRow(n int) {
-	if m.contentHeight == 0 {
-		return
-	}
-
-	if maxSelection := m.maxCursorRow(); n > maxSelection {
-		m.CursorRow = maxSelection
-	} else {
-		m.CursorRow = max(0, n)
-	}
-
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
-		m.viewDown(m.CursorRow - lastVisibleLineIdx)
-	} else if m.CursorRow < m.yOffset {
-		m.viewUp(m.yOffset - m.CursorRow)
-	}
-}
-
-// visibleLines retrieves the visible lines based on the yOffset
-func (m Model) visibleLines() []string {
-	start := m.yOffset
-	end := start + m.contentHeight
-	if end > m.maxLinesIdx() {
-		return m.lines[start:]
-	}
-	return m.lines[start:end]
-}
-
-// cursorRowDown moves the CursorRow down by the given number of lines.
-func (m *Model) cursorRowDown(n int) {
-	m.SetCursorRow(m.CursorRow + n)
-}
-
-// cursorRowUp moves the CursorRow up by the given number of lines.
-func (m *Model) cursorRowUp(n int) {
-	m.SetCursorRow(m.CursorRow - n)
-}
-
-// viewDown moves the view down by the given number of lines.
-func (m *Model) viewDown(n int) {
-	m.setYOffset(m.yOffset + n)
-}
-
-// viewUp moves the view up by the given number of lines.
-func (m *Model) viewUp(n int) {
-	m.setYOffset(m.yOffset - n)
-}
-
-func (m *Model) setXOffset(n int) {
-	m.xOffset = max(0, n)
-}
-
-// viewLeft moves the view left the given number of columns.
-func (m *Model) viewLeft(n int) {
-	m.setXOffset(m.xOffset - n)
-}
-
-// viewRight moves the view right the given number of columns.
-func (m *Model) viewRight(n int) {
-	m.setXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
-}
-
-// Update handles standard message-based viewport updates.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	if !m.initialized {
 		m.setInitialValues()
@@ -287,25 +107,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) getVisiblePartOfLine(line string) string {
-	trimmedLineLength := len(strings.TrimSpace(line))
-	if len(line) > m.width {
-		//dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
-		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
-		if m.xOffset+m.width+1 < trimmedLineLength {
-			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
-		}
-		if m.xOffset > 0 {
-			line = lineContinuationIndicator + line[lenLineContinuationIndicator:]
-		}
-	}
-	return line
-}
-
-// View returns the string representing the viewport.
 func (m Model) View() string {
 	nothingHighlighted := len(m.Highlight) == 0
-
 	var viewLines string
 
 	for _, headerLine := range m.header {
@@ -344,6 +147,182 @@ func (m Model) View() string {
 	trimmedViewLines := strings.TrimSpace(viewLines)
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
+}
+
+func (m Model) ContentEmpty() bool {
+	return len(m.header) == 0 && len(m.lines) == 0
+}
+
+// SetSize sets the viewport's width and height, including header.
+func (m *Model) SetSize(width, height int) {
+	m.width, m.height = width, height
+	m.setContentHeight()
+	m.fixState()
+}
+
+// SetHeader sets the pager's header content.
+func (m *Model) SetHeader(header string) {
+	m.header = strings.Split(normalizeLineEndings(header), "\n")
+	m.setContentHeight()
+}
+
+// SetContent sets the pager's text content.
+func (m *Model) SetContent(s string) {
+	lines := strings.Split(normalizeLineEndings(s), "\n")
+	maxLineLength := 0
+	for _, line := range lines {
+		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
+			maxLineLength = lineLength
+		}
+	}
+	m.lines = lines
+	m.maxLineLength = maxLineLength
+	m.fixState()
+}
+
+// SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
+func (m *Model) SetCursorRow(n int) {
+	if m.contentHeight == 0 {
+		return
+	}
+
+	if maxSelection := m.maxCursorRow(); n > maxSelection {
+		m.CursorRow = maxSelection
+	} else {
+		m.CursorRow = max(0, n)
+	}
+
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
+		m.viewDown(m.CursorRow - lastVisibleLineIdx)
+	} else if m.CursorRow < m.yOffset {
+		m.viewUp(m.yOffset - m.CursorRow)
+	}
+}
+
+func (m *Model) setInitialValues() {
+	m.setContentHeight()
+	m.keyMap = GetKeyMap()
+	m.mouseWheelEnabled = false
+	m.initialized = true
+}
+
+func normalizeLineEndings(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
+}
+
+// fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
+func (m *Model) fixCursorRow() {
+	if m.CursorRow > m.lastVisibleLineIdx() {
+		m.SetCursorRow(m.lastVisibleLineIdx())
+	}
+}
+
+// fixYOffset adjusts the yOffset such that it's not above the maximum value
+func (m *Model) fixYOffset() {
+	if maxYOffset := m.maxYOffset(); m.yOffset > maxYOffset {
+		m.setYOffset(maxYOffset)
+	}
+}
+
+// fixState fixes CursorRow and yOffset
+func (m *Model) fixState() {
+	m.fixYOffset()
+	m.fixCursorRow()
+}
+
+func (m *Model) setContentHeight() {
+	m.contentHeight = max(0, m.height-len(m.header))
+}
+
+// maxLinesIdx returns the maximum index of the model's lines
+func (m *Model) maxLinesIdx() int {
+	return len(m.lines) - 1
+}
+
+// lastVisibleLineIdx returns the maximum visible line index
+func (m Model) lastVisibleLineIdx() int {
+	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
+}
+
+// maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
+func (m Model) maxYOffset() int {
+	if m.maxLinesIdx() < m.contentHeight {
+		return 0
+	}
+	return len(m.lines) - m.contentHeight
+}
+
+// maxCursorRow returns the maximum CursorRow
+func (m Model) maxCursorRow() int {
+	return len(m.lines) - 1
+}
+
+// setYOffset sets the yOffset with bounds.
+func (m *Model) setYOffset(n int) {
+	if maxYOffset := m.maxYOffset(); n > maxYOffset {
+		m.yOffset = maxYOffset
+	} else {
+		m.yOffset = max(0, n)
+	}
+}
+
+// visibleLines retrieves the visible lines based on the yOffset
+func (m Model) visibleLines() []string {
+	start := m.yOffset
+	end := start + m.contentHeight
+	if end > m.maxLinesIdx() {
+		return m.lines[start:]
+	}
+	return m.lines[start:end]
+}
+
+// cursorRowDown moves the CursorRow down by the given number of lines.
+func (m *Model) cursorRowDown(n int) {
+	m.SetCursorRow(m.CursorRow + n)
+}
+
+// cursorRowUp moves the CursorRow up by the given number of lines.
+func (m *Model) cursorRowUp(n int) {
+	m.SetCursorRow(m.CursorRow - n)
+}
+
+// viewDown moves the view down by the given number of lines.
+func (m *Model) viewDown(n int) {
+	m.setYOffset(m.yOffset + n)
+}
+
+// viewUp moves the view up by the given number of lines.
+func (m *Model) viewUp(n int) {
+	m.setYOffset(m.yOffset - n)
+}
+
+func (m *Model) setXOffset(n int) {
+	m.xOffset = max(0, n)
+}
+
+// viewLeft moves the view left the given number of columns.
+func (m *Model) viewLeft(n int) {
+	m.setXOffset(m.xOffset - n)
+}
+
+// viewRight moves the view right the given number of columns.
+func (m *Model) viewRight(n int) {
+	m.setXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
+}
+
+func (m Model) getVisiblePartOfLine(line string) string {
+	trimmedLineLength := len(strings.TrimSpace(line))
+	if len(line) > m.width {
+		//dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
+		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
+		if m.xOffset+m.width+1 < trimmedLineLength {
+			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
+		}
+		if m.xOffset > 0 {
+			line = lineContinuationIndicator + line[lenLineContinuationIndicator:]
+		}
+	}
+	return line
 }
 
 func min(a, b int) int {
