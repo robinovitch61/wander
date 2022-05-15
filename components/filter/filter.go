@@ -8,6 +8,13 @@ import (
 	"wander/message"
 )
 
+var (
+	updatedFilterCommand = func() tea.Msg {
+		return message.UpdatedFilterMsg{}
+	}
+	keyMap = getKeyMap()
+)
+
 type Model struct {
 	updatedFilterCommand tea.Cmd
 	keyMap               filterKeyMap
@@ -17,8 +24,8 @@ type Model struct {
 
 func New() Model {
 	return Model{
-		updatedFilterCommand: func() tea.Msg { return message.UpdatedFilterMsg{} },
-		keyMap:               getKeyMap(),
+		updatedFilterCommand: updatedFilterCommand,
+		keyMap:               keyMap,
 	}
 }
 
