@@ -5,27 +5,23 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"wander/dev"
-	"wander/message"
 )
 
 var (
-	updatedFilterCommand = func() tea.Msg {
-		return message.UpdatedFilterMsg{}
-	}
 	keyMap = getKeyMap()
 )
 
 type Model struct {
-	updatedFilterCommand tea.Cmd
-	keyMap               filterKeyMap
-	Filter               string
-	EditingFilter        bool
+	onUpdateFilter func()
+	keyMap         filterKeyMap
+	Filter         string
+	EditingFilter  bool
 }
 
-func New() Model {
+func New(onUpdateFilter func()) Model {
 	return Model{
-		updatedFilterCommand: updatedFilterCommand,
-		keyMap:               keyMap,
+		onUpdateFilter: onUpdateFilter,
+		keyMap:         keyMap,
 	}
 }
 
@@ -39,7 +35,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Back) {
 			m.SetFiltering(false, true)
-			cmd = m.updatedFilterCommand
+			m.onUpdateFilter()
 		}
 
 		if m.EditingFilter {
@@ -59,7 +55,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				case tea.KeyRunes:
 					m.SetFilter(m.Filter + msg.String())
 				}
-				cmd = m.updatedFilterCommand
+				m.onUpdateFilter()
 			}
 		} else if key.Matches(msg, m.keyMap.Filter) {
 			m.SetFiltering(true, false)

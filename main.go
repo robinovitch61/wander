@@ -159,6 +159,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.initialized {
 			jobsCommand := command.FetchJobs(m.nomadUrl, m.nomadToken)
 			m.jobsPage = page.NewJobsModel(jobsCommand, msg.Width, pageHeight)
+
 			// TODO LEO: rest of pages here?
 			m.initialized = true
 		} else {

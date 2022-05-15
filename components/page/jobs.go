@@ -30,15 +30,21 @@ type JobsModel struct {
 }
 
 func NewJobsModel(fetchDataCommand tea.Cmd, width, height int) JobsModel {
-	return JobsModel{
+	model := JobsModel{
 		fetchDataCommand: fetchDataCommand,
 		width:            width,
 		height:           height,
 		viewport:         viewport.New(width, height-1), // TODO LEO: m.filter.ViewHeight() once component
-		filter:           filter.New(),
 		keyMap:           getKeyMap(),
 		loading:          true,
 	}
+	model.filter = filter.New(func() {
+		dev.Debug("HI")
+		dev.Debug(fmt.Sprintf("model pointer %p", &model))
+		model.updateFilteredJobData()
+		dev.Debug(fmt.Sprintf("model pointer %p", &model))
+	})
+	return model
 }
 
 func (m JobsModel) Update(msg tea.Msg) (JobsModel, tea.Cmd) {
@@ -55,8 +61,8 @@ func (m JobsModel) Update(msg tea.Msg) (JobsModel, tea.Cmd) {
 		m.updateJobViewport()
 		m.loading = false
 
-	case message.UpdatedFilterMsg:
-		m.updateJobViewport()
+	//case message.UpdatedFilterMsg:
+	//	m.updateJobViewport()
 
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Reload) {
@@ -95,6 +101,9 @@ func (m *JobsModel) updateTable(table formatter.Table, cursorRow int) {
 }
 
 func (m *JobsModel) updateFilteredJobData() {
+	dev.Debug("HERE")
+	dev.Debug(fmt.Sprintf("filter %s", m.filter.Filter))
+	dev.Debug(fmt.Sprintf("model pointer m %p", &m))
 	var filteredJobData []nomad.JobResponseEntry
 	for _, entry := range m.nomadJobData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
