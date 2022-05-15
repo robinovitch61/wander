@@ -34,7 +34,7 @@ func NewJobsModel(fetchDataCommand tea.Cmd, width, height int) JobsModel {
 		fetchDataCommand: fetchDataCommand,
 		width:            width,
 		height:           height,
-		viewport:         viewport.New(width, height),
+		viewport:         viewport.New(width, height-1), // TODO LEO: m.filter.ViewHeight() once component
 		keyMap:           getKeyMap(),
 		loading:          true,
 	}
@@ -68,13 +68,15 @@ func (m JobsModel) View() string {
 	if m.loading {
 		return "Loading jobs..."
 	}
+
 	jobsPageView := "Jobs"
 	// TODO LEO: filter component View here?
-	if len(m.Filter) > 0 {
+	if m.EditingFilter || len(m.Filter) > 0 {
 		jobsPageView += fmt.Sprintf(" (filter: %s)", m.Filter)
 	} else {
 		jobsPageView += " <'/' to filter>"
 	}
+
 	return lipgloss.JoinVertical(lipgloss.Left, jobsPageView, m.viewport.View())
 }
 
@@ -107,10 +109,14 @@ func (m *JobsModel) updateJobViewport() {
 }
 
 func (m *JobsModel) handleKeyPress(msg tea.KeyMsg) tea.Cmd {
+	switch {
+	case key.Matches(msg, m.keyMap.Back):
+		m.setFiltering(false, true)
+		m.updateJobViewport()
+	}
+
 	if m.EditingFilter {
 		switch {
-		case key.Matches(msg, m.keyMap.Back):
-			m.setFiltering(false, true)
 		case key.Matches(msg, m.keyMap.Forward):
 			m.setFiltering(false, false)
 		default:
@@ -127,6 +133,7 @@ func (m *JobsModel) handleKeyPress(msg tea.KeyMsg) tea.Cmd {
 				m.setFilter(m.Filter + msg.String())
 			}
 		}
+		m.updateJobViewport()
 	} else {
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
