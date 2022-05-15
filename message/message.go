@@ -16,6 +16,9 @@ type NomadLogsMsg struct {
 	Data    []nomad.LogRow
 }
 
+// UpdatedFilterMsg indicates the filter has updated
+type UpdatedFilterMsg struct{}
+
 // ErrMsg is an error message
 type ErrMsg struct{ err error }
 

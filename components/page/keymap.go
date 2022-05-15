@@ -9,7 +9,7 @@ import (
 )
 
 type pageKeyMap struct {
-	Exit    key.Binding
+	Exit    key.Binding // TODO LEO: move to main keymap
 	Forward key.Binding
 	Back    key.Binding
 	Reload  key.Binding

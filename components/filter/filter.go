@@ -5,29 +5,33 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"wander/dev"
+	"wander/message"
 )
 
 type Model struct {
-	keyMap        KeyMap
-	Filter        string
-	EditingFilter bool
+	updatedFilterCommand tea.Cmd
+	keyMap               filterKeyMap
+	Filter               string
+	EditingFilter        bool
 }
 
 func New() Model {
-	return Model{}
+	return Model{
+		updatedFilterCommand: func() tea.Msg { return message.UpdatedFilterMsg{} },
+		keyMap:               getKeyMap(),
+	}
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
+		cmd tea.Cmd
 	)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.Back):
+		if key.Matches(msg, m.keyMap.Back) {
 			m.SetFiltering(false, true)
+			cmd = m.updatedFilterCommand
 		}
 
 		if m.EditingFilter {
@@ -47,16 +51,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				case tea.KeyRunes:
 					m.SetFilter(m.Filter + msg.String())
 				}
+				cmd = m.updatedFilterCommand
 			}
-			//m.updateJobViewport()
 		} else if key.Matches(msg, m.keyMap.Filter) {
 			m.SetFiltering(true, false)
 		}
-
-		cmds = append(cmds, cmd)
 	}
 
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }
 
 func (m Model) View() string {

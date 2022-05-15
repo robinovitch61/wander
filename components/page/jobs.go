@@ -57,9 +57,11 @@ func (m JobsModel) Update(msg tea.Msg) (JobsModel, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
 			m.loading = true
-			cmd = m.fetchDataCommand
-			cmds = append(cmds, cmd)
+			cmds = append(cmds, m.fetchDataCommand)
 		}
+
+	case message.UpdatedFilterMsg:
+		m.updateJobViewport()
 	}
 
 	m.filter, cmd = m.filter.Update(msg)
