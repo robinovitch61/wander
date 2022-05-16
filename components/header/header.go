@@ -30,13 +30,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-//func (m Model) formatFilterString(s string) string {
-//	if !m.EditingFilter {
-//		return s
-//	}
-//	return style.EditingText.Render(s)
-//}
-
 func (m Model) View() string {
 	logo := style.Logo.Render(strings.Join(m.logo, "\n"))
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)

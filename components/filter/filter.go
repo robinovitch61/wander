@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"wander/dev"
+	"github.com/charmbracelet/lipgloss"
 )
 
 var (
@@ -12,30 +12,43 @@ var (
 )
 
 type Model struct {
-	onUpdateFilter func()
-	keyMap         filterKeyMap
-	Filter         string
-	EditingFilter  bool
+	prefix             string
+	onUpdateFilter     func()
+	keyMap             filterKeyMap
+	Filter             string
+	EditingFilter      bool
+	PrefixStyle        lipgloss.Style
+	FilterStyle        lipgloss.Style
+	EditingFilterStyle lipgloss.Style
 }
 
-func New(onUpdateFilter func()) Model {
+func New(prefix string) Model {
 	return Model{
-		onUpdateFilter: onUpdateFilter,
-		keyMap:         keyMap,
+		prefix: prefix,
+		keyMap: keyMap,
+		PrefixStyle: lipgloss.NewStyle().
+			Padding(0, 3).
+			Border(lipgloss.NormalBorder(), true).
+			//BorderForeground(lipgloss.Color("#000000")).
+			//BorderBackground(lipgloss.Color("6")).
+			Foreground(lipgloss.Color("#FFFFFF")),
+		//Background(lipgloss.Color("6")),
+		FilterStyle: lipgloss.NewStyle().
+			Margin(0, 1).
+			Foreground(lipgloss.Color("#8E8E8E")),
+		EditingFilterStyle: lipgloss.NewStyle().
+			Margin(0, 1).
+			Padding(0, 1).
+			Foreground(lipgloss.Color("#000000")).
+			Background(lipgloss.Color("6")),
 	}
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	dev.Debug(fmt.Sprintf("filter %T", msg))
-	var (
-		cmd tea.Cmd
-	)
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Back) {
 			m.SetFiltering(false, true)
-			m.onUpdateFilter()
 		}
 
 		if m.EditingFilter {
@@ -55,24 +68,30 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				case tea.KeyRunes:
 					m.SetFilter(m.Filter + msg.String())
 				}
-				m.onUpdateFilter()
 			}
 		} else if key.Matches(msg, m.keyMap.Filter) {
 			m.SetFiltering(true, false)
 		}
 	}
 
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) View() string {
-	filterView := "Jobs" // TODO LEO: input this to New and put in local state
-	if m.EditingFilter || len(m.Filter) > 0 {
-		filterView += fmt.Sprintf(" (filter: %s)", m.Filter)
-	} else {
-		filterView += " <'/' to filter>"
+	var filterString string
+	switch {
+	case len(m.Filter) > 0:
+		filterString = fmt.Sprintf("filter: %s", m.Filter)
+	case m.EditingFilter:
+		filterString = "type to filter"
+	default:
+		filterString = "<'/' to filter>"
 	}
-	return filterView
+	return lipgloss.JoinHorizontal(lipgloss.Center, m.PrefixStyle.Render(m.prefix), m.formatFilterString(filterString))
+}
+
+func (m Model) ViewHeight() int {
+	return lipgloss.Height(m.View())
 }
 
 func (m *Model) SetFilter(filter string) {
@@ -84,5 +103,11 @@ func (m *Model) SetFiltering(isEditingFilter, clearFilter bool) {
 	if clearFilter {
 		m.SetFilter("")
 	}
-	//m.setHeaderKeyHelp()
+}
+
+func (m Model) formatFilterString(s string) string {
+	if !m.EditingFilter && len(m.Filter) == 0 {
+		return m.FilterStyle.Render(s)
+	}
+	return m.EditingFilterStyle.Render(s)
 }

@@ -30,20 +30,16 @@ type JobsModel struct {
 }
 
 func NewJobsModel(fetchDataCommand tea.Cmd, width, height int) JobsModel {
+	jobsFilter := filter.New("Jobs")
 	model := JobsModel{
 		fetchDataCommand: fetchDataCommand,
 		width:            width,
 		height:           height,
-		viewport:         viewport.New(width, height-1), // TODO LEO: m.filter.ViewHeight() once component
+		viewport:         viewport.New(width, height-jobsFilter.ViewHeight()),
+		filter:           jobsFilter,
 		keyMap:           getKeyMap(),
 		loading:          true,
 	}
-	model.filter = filter.New(func() {
-		dev.Debug("HI")
-		dev.Debug(fmt.Sprintf("model pointer %p", &model))
-		model.updateFilteredJobData()
-		dev.Debug(fmt.Sprintf("model pointer %p", &model))
-	})
 	return model
 }
 
@@ -61,18 +57,15 @@ func (m JobsModel) Update(msg tea.Msg) (JobsModel, tea.Cmd) {
 		m.updateJobViewport()
 		m.loading = false
 
-	//case message.UpdatedFilterMsg:
-	//	m.updateJobViewport()
-
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Reload) {
 			m.loading = true
 			cmds = append(cmds, m.fetchDataCommand)
 		}
 
-		currentFilter := m.filter.Filter
+		prevFilter := m.filter.Filter
 		m.filter, cmd = m.filter.Update(msg)
-		if m.filter.Filter != currentFilter {
+		if m.filter.Filter != prevFilter {
 			m.updateJobViewport()
 		}
 		cmds = append(cmds, cmd)
@@ -89,13 +82,16 @@ func (m JobsModel) View() string {
 		return "Loading jobs..."
 	}
 
+	//headerRowRight := m.filter.View()
+	//headerRowLeftText := "Jobs"
+	//headerRowLeft := style.Bold.Copy().Margin(0, m.width-lipgloss.Width(headerRowRight)-len(headerRowLeftText), 0, 0).Render(headerRowLeftText)
+	//headerRow := lipgloss.JoinHorizontal(lipgloss.Left, headerRowLeft, headerRowRight)
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), m.viewport.View())
 }
 
 func (m *JobsModel) SetWindowSize(width, height int) {
-	dev.Debug("HERE")
 	m.width, m.height = width, height
-	m.viewport.SetSize(width, height-1) // TODO LEO: m.filter.ViewHeight() once component
+	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
 func (m *JobsModel) updateTable(table formatter.Table, cursorRow int) {
@@ -105,9 +101,6 @@ func (m *JobsModel) updateTable(table formatter.Table, cursorRow int) {
 }
 
 func (m *JobsModel) updateFilteredJobData() {
-	dev.Debug("HERE")
-	dev.Debug(fmt.Sprintf("filter %s", m.filter.Filter))
-	dev.Debug(fmt.Sprintf("model pointer m %p", &m))
 	var filteredJobData []nomad.JobResponseEntry
 	for _, entry := range m.nomadJobData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
