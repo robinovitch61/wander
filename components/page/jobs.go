@@ -70,7 +70,11 @@ func (m JobsModel) Update(msg tea.Msg) (JobsModel, tea.Cmd) {
 			cmds = append(cmds, m.fetchDataCommand)
 		}
 
+		currentFilter := m.filter.Filter
 		m.filter, cmd = m.filter.Update(msg)
+		if m.filter.Filter != currentFilter {
+			m.updateJobViewport()
+		}
 		cmds = append(cmds, cmd)
 
 		m.viewport, cmd = m.viewport.Update(msg)
