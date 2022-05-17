@@ -28,7 +28,7 @@ type Model struct {
 	LogType             logs.LogType
 }
 
-func New(url, token string, width, height int, jobID string) Model {
+func New(url, token string, width, height int) Model {
 	allocationsFilter := filter.New("Allocations")
 	model := Model{
 		url:      url,
@@ -39,7 +39,6 @@ func New(url, token string, width, height int, jobID string) Model {
 		filter:   allocationsFilter,
 		keyMap:   page.GetKeyMap(),
 		loading:  true,
-		jobID:    jobID,
 	}
 	return model
 }
@@ -63,7 +62,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
 			m.loading = true
-			cmds = append(cmds, FetchAllocations(m.url, m.token, m.jobID))
+			cmds = append(cmds, func() tea.Msg { return message.ViewAllocationsMsg{} })
 
 		case key.Matches(msg, m.keyMap.Forward):
 			if !m.filter.EditingFilter {

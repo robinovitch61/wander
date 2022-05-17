@@ -14,7 +14,6 @@ import (
 )
 
 type Model struct {
-	initialized   bool
 	url, token    string
 	nomadLogsData nomadLogsData
 	width, height int
@@ -27,7 +26,7 @@ type Model struct {
 	logType       LogType
 }
 
-func New(url, token string, width, height int, allocID, taskName string, logType LogType) Model {
+func New(url, token string, width, height int) Model {
 	logsFilter := filter.New("Logs")
 	model := Model{
 		url:      url,
@@ -38,20 +37,12 @@ func New(url, token string, width, height int, allocID, taskName string, logType
 		filter:   logsFilter,
 		keyMap:   page.GetKeyMap(),
 		loading:  true,
-		allocID:  allocID,
-		taskName: taskName,
-		logType:  logType,
 	}
 	return model
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("logs %T", msg))
-
-	if !m.initialized {
-		m.initialized = true
-		return m, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.logType)
-	}
 
 	var (
 		cmd  tea.Cmd
