@@ -69,13 +69,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.StdOut):
 			if !m.filter.EditingFilter {
-				m.SetLogType(StdOut)
+				m.setLogType(StdOut)
+				m.loading = true
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 
 		case key.Matches(msg, m.keyMap.StdErr):
 			if !m.filter.EditingFilter {
-				m.SetLogType(StdErr)
+				m.setLogType(StdErr)
+				m.loading = true
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 		}
@@ -95,7 +97,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := fmt.Sprintf("Loading logs for %s...", m.taskName)
+	content := fmt.Sprintf("Loading %s logs for %s...", m.LogType.ShortString(), m.taskName)
 	if !m.loading {
 		content = m.viewport.View()
 	}
@@ -111,13 +113,13 @@ func (m *Model) SetAllocationData(allocId, taskName string) {
 	m.allocID, m.taskName = allocId, taskName
 }
 
-func (m *Model) SetLogType(logType LogType) {
-	m.LogType = logType
-}
-
 func (m *Model) ClearFilter() {
 	m.filter.SetFilter("")
 	m.updateLogViewport()
+}
+
+func (m *Model) setLogType(logType LogType) {
+	m.LogType = logType
 }
 
 func (m *Model) updateFilteredLogData() {

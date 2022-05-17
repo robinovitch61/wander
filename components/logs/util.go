@@ -41,6 +41,16 @@ func (p LogType) String() string {
 	return "Stdout Logs"
 }
 
+func (p LogType) ShortString() string {
+	switch p {
+	case StdOut:
+		return "stdout"
+	case StdErr:
+		return "stderr"
+	}
+	return "stdout"
+}
+
 func FetchLogs(url, token, allocId, taskName string, logType LogType) tea.Cmd {
 	return func() tea.Msg {
 		logTypeString := "stdout"
