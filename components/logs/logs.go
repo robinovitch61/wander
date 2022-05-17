@@ -14,16 +14,16 @@ import (
 )
 
 type Model struct {
-	url, token    string
-	nomadLogsData nomadLogsData
-	width, height int
-	viewport      viewport.Model
-	filter        filter.Model
-	keyMap        page.KeyMap
-	loading       bool
-	allocID       string
-	taskName      string
-	LogType       LogType
+	url, token          string
+	nomadLogsData       nomadLogsData
+	width, height       int
+	viewport            viewport.Model
+	filter              filter.Model
+	keyMap              page.KeyMap
+	loading             bool
+	allocID             string
+	taskName            string
+	LastSelectedLogType LogType
 }
 
 func New(url, token string, width, height int) Model {
@@ -60,7 +60,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
 			m.loading = true
-			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LogType))
+			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
 
 		case key.Matches(msg, m.keyMap.Back):
 			if !m.filter.EditingFilter {
@@ -97,7 +97,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := fmt.Sprintf("Loading %s logs for %s...", m.LogType.ShortString(), m.taskName)
+	content := fmt.Sprintf("Loading %s logs for %s...", m.LastSelectedLogType.ShortString(), m.taskName)
 	if !m.loading {
 		content = m.viewport.View()
 	}
@@ -119,7 +119,7 @@ func (m *Model) ClearFilter() {
 }
 
 func (m *Model) setLogType(logType LogType) {
-	m.LogType = logType
+	m.LastSelectedLogType = logType
 }
 
 func (m *Model) updateFilteredLogData() {
@@ -134,7 +134,7 @@ func (m *Model) updateFilteredLogData() {
 
 func (m *Model) updateLogViewport() {
 	m.updateFilteredLogData()
-	table := logsAsTable(m.nomadLogsData.filteredData, m.LogType)
+	table := logsAsTable(m.nomadLogsData.filteredData, m.LastSelectedLogType)
 	m.viewport.SetHeaderAndContent(
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),

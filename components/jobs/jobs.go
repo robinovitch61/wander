@@ -20,15 +20,15 @@ type nomadJobData struct {
 type nomadJobsMsg []jobResponseEntry
 
 type Model struct {
-	initialized   bool
-	url, token    string
-	nomadJobData  nomadJobData
-	width, height int
-	viewport      viewport.Model
-	filter        filter.Model
-	keyMap        page.KeyMap
-	loading       bool
-	SelectedJobID string
+	initialized       bool
+	url, token        string
+	nomadJobData      nomadJobData
+	width, height     int
+	viewport          viewport.Model
+	filter            filter.Model
+	keyMap            page.KeyMap
+	loading           bool
+	LastSelectedJobId string
 }
 
 func New(url, token string, width, height int) Model {
@@ -74,7 +74,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.Forward):
 			if !m.filter.EditingFilter {
-				m.SelectedJobID = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
+				m.LastSelectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
 			}
 		}

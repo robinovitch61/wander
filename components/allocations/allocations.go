@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
-	"wander/components/logs"
 	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
@@ -15,17 +14,16 @@ import (
 )
 
 type Model struct {
-	url, token          string
-	nomadAllocationData nomadAllocationData
-	width, height       int
-	viewport            viewport.Model
-	filter              filter.Model
-	keyMap              page.KeyMap
-	loading             bool
-	jobID               string
-	SelectedAllocID     string
-	SelectedTaskName    string
-	LogType             logs.LogType
+	url, token           string
+	nomadAllocationData  nomadAllocationData
+	width, height        int
+	viewport             viewport.Model
+	filter               filter.Model
+	keyMap               page.KeyMap
+	loading              bool
+	jobID                string
+	LastSelectedAllocID  string
+	LastSelectedTaskName string
 }
 
 func New(url, token string, width, height int) Model {
@@ -67,9 +65,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, m.keyMap.Forward):
 			if !m.filter.EditingFilter {
 				selectedAlloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
-				m.SelectedAllocID = selectedAlloc.ID
-				m.SelectedTaskName = selectedAlloc.TaskName
-				m.LogType = logs.StdOut
+				m.LastSelectedAllocID = selectedAlloc.ID
+				m.LastSelectedTaskName = selectedAlloc.TaskName
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 
