@@ -19,6 +19,7 @@ type Model struct {
 	EditingFilter      bool
 	PrefixStyle        lipgloss.Style
 	FilterStyle        lipgloss.Style
+	AppliedFilterStyle lipgloss.Style
 	EditingFilterStyle lipgloss.Style
 }
 
@@ -29,13 +30,15 @@ func New(prefix string) Model {
 		PrefixStyle: lipgloss.NewStyle().
 			Padding(0, 3).
 			Border(lipgloss.NormalBorder(), true).
-			//BorderForeground(lipgloss.Color("#000000")).
-			//BorderBackground(lipgloss.Color("6")).
 			Foreground(lipgloss.Color("#FFFFFF")),
-		//Background(lipgloss.Color("6")),
 		FilterStyle: lipgloss.NewStyle().
 			Margin(0, 1).
 			Foreground(lipgloss.Color("#8E8E8E")),
+		AppliedFilterStyle: lipgloss.NewStyle().
+			Margin(0, 1).
+			Padding(0, 1).
+			Foreground(lipgloss.Color("#000000")).
+			Background(lipgloss.Color("#00A095")),
 		EditingFilterStyle: lipgloss.NewStyle().
 			Margin(0, 1).
 			Padding(0, 1).
@@ -81,7 +84,7 @@ func (m Model) View() string {
 	var filterString string
 	switch {
 	case len(m.Filter) > 0:
-		filterString = fmt.Sprintf("filter: '%s'", m.Filter)
+		filterString = fmt.Sprintf("filter: %s", m.Filter)
 	case m.EditingFilter:
 		filterString = "type to filter"
 	default:
@@ -110,8 +113,12 @@ func (m *Model) SetFiltering(isEditingFilter, clearFilter bool) {
 }
 
 func (m Model) formatFilterString(s string) string {
-	if !m.EditingFilter && len(m.Filter) == 0 {
-		return m.FilterStyle.Render(s)
+	if !m.EditingFilter {
+		if len(m.Filter) == 0 {
+			return m.FilterStyle.Render(s)
+		} else {
+			return m.AppliedFilterStyle.Render(s)
+		}
 	}
 	return m.EditingFilterStyle.Render(s)
 }
