@@ -51,7 +51,7 @@ func (p LogType) ShortString() string {
 	return "stdout"
 }
 
-func FetchLogs(url, token, allocId, taskName string, logType LogType) tea.Cmd {
+func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 	return func() tea.Msg {
 		logTypeString := "stdout"
 		switch logType {
@@ -68,7 +68,7 @@ func FetchLogs(url, token, allocId, taskName string, logType LogType) tea.Cmd {
 			"offset": "1000000",
 			"plain":  "true",
 		}
-		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocId)
+		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocID)
 		body, err := nomad.Get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}

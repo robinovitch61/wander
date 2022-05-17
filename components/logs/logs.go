@@ -11,6 +11,7 @@ import (
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/message"
+	"wander/style"
 )
 
 type Model struct {
@@ -109,8 +110,9 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) SetAllocationData(allocId, taskName string) {
-	m.allocID, m.taskName = allocId, taskName
+func (m *Model) SetAllocationData(allocID, taskName string) {
+	m.allocID, m.taskName = allocID, taskName
+	m.filter.SetPrefix(fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), allocID[:8]))
 }
 
 func (m *Model) ClearFilter() {

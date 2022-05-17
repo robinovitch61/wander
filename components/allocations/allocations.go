@@ -11,6 +11,7 @@ import (
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/message"
+	"wander/style"
 )
 
 type Model struct {
@@ -91,7 +92,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := fmt.Sprintf("Loading allocations for '%s'...", m.jobID)
+	content := fmt.Sprintf("Loading allocations for %s...", m.jobID)
 	if !m.Loading {
 		content = m.viewport.View()
 	}
@@ -105,7 +106,7 @@ func (m *Model) SetWindowSize(width, height int) {
 
 func (m *Model) SetJobID(jobID string) {
 	m.jobID = jobID
-	m.filter.SetPrefix(fmt.Sprintf("Allocations for '%s'", jobID))
+	m.filter.SetPrefix(fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID)))
 }
 
 func (m *Model) updateFilteredAllocationData() {

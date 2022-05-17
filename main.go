@@ -180,18 +180,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.ViewAllocationsMsg:
 		m.setPage(page.Allocations)
-		jobId := m.jobsPage.LastSelectedJobId
-		m.allocationsPage.SetJobID(jobId)
-		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobId)
+		jobID := m.jobsPage.LastSelectedJobID
+		m.allocationsPage.SetJobID(jobID)
+		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
 
 	case message.ViewLogsMsg:
 		m.setPage(page.Logs)
-		m.logsPage.SetAllocationData(m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName)
+		allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
+		m.logsPage.SetAllocationData(allocID, taskName)
 		return m, logs.FetchLogs(
 			m.nomadUrl,
 			m.nomadToken,
-			m.allocationsPage.LastSelectedAllocID,
-			m.allocationsPage.LastSelectedTaskName,
+			allocID,
+			taskName,
 			m.logsPage.LastSelectedLogType,
 		)
 	}

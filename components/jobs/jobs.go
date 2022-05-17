@@ -28,7 +28,7 @@ type Model struct {
 	filter            filter.Model
 	keyMap            page.KeyMap
 	Loading           bool
-	LastSelectedJobId string
+	LastSelectedJobID string
 }
 
 func New(url, token string, width, height int) Model {
@@ -73,7 +73,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.Forward):
 			if !m.filter.EditingFilter {
-				m.LastSelectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
+				m.LastSelectedJobID = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
 			}
 		}
