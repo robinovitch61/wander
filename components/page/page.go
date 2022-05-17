@@ -7,7 +7,7 @@ type Page int8
 const (
 	Unset Page = iota
 	Jobs
-	Allocation
+	Allocations
 	Logs
 )
 
@@ -17,7 +17,7 @@ func (p Page) String() string {
 		return "undefined"
 	case Jobs:
 		return "jobs"
-	case Allocation:
+	case Allocations:
 		return "allocation"
 	case Logs:
 		return "logs"
@@ -36,8 +36,8 @@ func (p Page) ReloadingString() string {
 func (p Page) Forward() Page {
 	switch p {
 	case Jobs:
-		return Allocation
-	case Allocation:
+		return Allocations
+	case Allocations:
 		return Logs
 	}
 	return p
@@ -45,10 +45,10 @@ func (p Page) Forward() Page {
 
 func (p Page) Backward() Page {
 	switch p {
-	case Allocation:
+	case Allocations:
 		return Jobs
 	case Logs:
-		return Allocation
+		return Allocations
 	}
 	return p
 }

@@ -16,7 +16,7 @@ type nomadJobData struct {
 	allData, filteredData []jobResponseEntry
 }
 
-type NomadJobsMsg []jobResponseEntry
+type nomadJobsMsg []jobResponseEntry
 
 type Model struct {
 	initialized   bool
@@ -27,7 +27,6 @@ type Model struct {
 	filter        filter.Model
 	keyMap        page.KeyMap
 	loading       bool
-	SelectedJobId string
 }
 
 func New(url, token string, width, height int) Model {
@@ -50,7 +49,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	if !m.initialized {
 		m.initialized = true
-		return m, fetchJobs(m.url, m.token)
+		return m, FetchJobs(m.url, m.token)
 	}
 
 	var (
@@ -60,7 +59,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case NomadJobsMsg:
+	case nomadJobsMsg:
 		m.nomadJobData.allData = msg
 		m.updateJobViewport()
 		m.loading = false
@@ -69,7 +68,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
 			m.loading = true
-			cmds = append(cmds, fetchJobs(m.url, m.token))
+			cmds = append(cmds, FetchJobs(m.url, m.token))
 
 		case key.Matches(msg, m.keyMap.Forward):
 			if !m.filter.EditingFilter {
@@ -95,15 +94,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.loading {
-		return "Loading jobs..."
+	content := "Loading jobs..."
+	if !m.loading {
+		content = m.viewport.View()
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), m.viewport.View())
+	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
 }
 
 func (m *Model) SetWindowSize(width, height int) {
 	m.width, m.height = width, height
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
+}
+
+func (m *Model) ClearFilter() {
+	m.filter.SetFilter("")
+	m.updateJobViewport()
 }
 
 func (m *Model) updateFilteredJobData() {

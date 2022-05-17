@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"wander/formatter"
+	"wander/message"
 	"wander/nomad"
 )
 
@@ -60,18 +61,20 @@ func (e jobResponseEntry) MatchesFilter(filter string) bool {
 	return strings.Contains(e.ID, filter)
 }
 
-func fetchJobs(url, token string) tea.Cmd {
+func FetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
-		// TODO LEO: error handling
 		params := map[string]string{
 			"namespace": "*",
 		}
 		fullPath := fmt.Sprintf("%s%s", url, "/v1/jobs")
-		body, _ := nomad.Get(fullPath, token, params)
+		body, err := nomad.Get(fullPath, token, params)
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
 
 		var jobResponse []jobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
-			fmt.Println("Failed to decode job response")
+			return message.ErrMsg{Err: err}
 		}
 
 		sort.Slice(jobResponse, func(x, y int) bool {
@@ -83,7 +86,7 @@ func fetchJobs(url, token string) tea.Cmd {
 			return jobResponse[x].Name < jobResponse[y].Name
 		})
 
-		return NomadJobsMsg(jobResponse)
+		return nomadJobsMsg(jobResponse)
 	}
 }
 

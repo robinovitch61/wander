@@ -94,6 +94,10 @@ func (m Model) ViewHeight() int {
 	return lipgloss.Height(m.View())
 }
 
+func (m *Model) SetPrefix(prefix string) {
+	m.prefix = prefix
+}
+
 func (m *Model) SetFilter(filter string) {
 	m.Filter = filter
 }

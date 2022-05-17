@@ -15,6 +15,9 @@ type NomadLogsMsg struct {
 type GoToPageMsg page.Page
 
 // ErrMsg is an error message
-type ErrMsg struct{ err error }
+type ErrMsg struct{ Err error }
 
-func (e ErrMsg) Error() string { return e.err.Error() }
+// ViewJobsPageMsg is a message to view the jobs page
+type ViewJobsPageMsg struct{}
+
+func (e ErrMsg) Error() string { return e.Err.Error() }

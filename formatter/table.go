@@ -50,25 +50,6 @@ func GetRenderedTableAsString(columnTitles []string, data [][]string) Table {
 	return Table{headerRows, contentRows}
 }
 
-func AllocationsAsTable(allocations []nomad.AllocationRowEntry) Table {
-	var allocationResponseRows [][]string
-	for _, alloc := range allocations {
-		allocationResponseRows = append(allocationResponseRows, []string{
-			alloc.ID,
-			alloc.Name,
-			alloc.TaskName,
-			alloc.State,
-			FormatTime(alloc.StartedAt),
-			FormatTime(alloc.FinishedAt),
-		})
-	}
-
-	return GetRenderedTableAsString(
-		[]string{"Alloc ID", "Alloc Name", "Task Name", "State", "Started", "Finished"},
-		allocationResponseRows,
-	)
-}
-
 func LogsAsTable(logs []nomad.LogRow, logType nomad.LogType) Table {
 	var logRows [][]string
 	// ignore the first log line because it may be truncated due to offset

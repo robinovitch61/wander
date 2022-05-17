@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
+	"wander/components/allocations"
 	"wander/components/header"
 	"wander/components/jobs"
 	"wander/components/page"
@@ -24,19 +25,20 @@ var (
 )
 
 type model struct {
-	nomadToken    string
-	nomadUrl      string
-	keyMap        mainKeyMap
-	currentPage   page.Page
-	jobsPage      jobs.Model
-	header        header.Model
-	width, height int
-	initialized   bool
-	nomadLogData  nomadLogData
-	selectedAlloc selectedAlloc
-	logType       nomad.LogType
-	loading       bool
-	err           error
+	nomadToken      string
+	nomadUrl        string
+	keyMap          mainKeyMap
+	currentPage     page.Page
+	jobsPage        jobs.Model
+	allocationsPage allocations.Model
+	header          header.Model
+	width, height   int
+	initialized     bool
+	nomadLogData    nomadLogData
+	selectedAlloc   selectedAlloc
+	logType         nomad.LogType
+	loading         bool
+	err             error
 }
 
 type nomadLogData struct {
@@ -61,7 +63,6 @@ func initialModel() model {
 	}
 
 	keyMap := getMainKeyMap()
-	firstPage := page.Jobs
 	logo := []string{
 		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
 		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
@@ -71,7 +72,7 @@ func initialModel() model {
 		nomadUrl:    nomadUrl,
 		keyMap:      keyMap,
 		logType:     nomad.StdOut,
-		currentPage: firstPage,
+		currentPage: page.Jobs,
 		header:      header.New(logo, nomadUrl, ""),
 		loading:     true,
 	}
@@ -85,10 +86,10 @@ func (m model) Init() tea.Cmd {
 //	switch m.currentPage {
 //
 //	case page.Jobs:
-//		return command.FetchJobs(m.nomadUrl, m.nomadToken)
+//		return command.fetchJobs(m.nomadUrl, m.nomadToken)
 //
-//	case page.Allocation:
-//		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
+//	case page.Allocations:
+//		return command.fetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
 //
 //	case page.Logs:
 //		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName, m.logType)
@@ -112,7 +113,7 @@ func (m *model) setPage(p page.Page) {
 //switch m.currentPage {
 //case page.Jobs:
 //	m.updateJobViewport()
-//case page.Allocation:
+//case page.Allocations:
 //	m.updateAllocationViewport()
 //case page.Logs:
 //	m.updateLogViewport()
@@ -157,8 +158,11 @@ func (m *model) setLoading(loadingString string) {
 }
 
 func (m *model) setWindowSize(width, height int) {
-	m.width = width
-	m.height = height
+	m.width, m.height = width, height
+}
+
+func (m model) getPageHeight() int {
+	return m.height - m.header.ViewHeight()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -168,124 +172,77 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	m.jobsPage, cmd = m.jobsPage.Update(msg)
-	cmds = append(cmds, cmd)
-
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keyMap.Exit):
+			return m, tea.Quit
+		}
 
 	case message.ErrMsg:
 		m.err = msg
 		return m, nil
 
-	case jobs.JobSelectedMsg:
-		m.setPage(page.Allocation)
-		return m, nil
-
 	case tea.WindowSizeMsg:
 		m.setWindowSize(msg.Width, msg.Height)
-		pageHeight := msg.Height - m.header.ViewHeight()
+		pageHeight := m.getPageHeight()
 
 		if !m.initialized {
 			m.jobsPage = jobs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
-
-			// TODO LEO: rest of pages here?
-			//allocationsCommand := command.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
-			//m.jobsPage = page.New(jobsCommand, msg.Width, pageHeight)
-
+			m.allocationsPage = allocations.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight, "")
 			m.initialized = true
 		} else {
+			// TODO LEO: dry
 			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
+			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
 		}
 
-	//case message.NomadJobsMsg:
-	//	m.jobsPage, cmd = m.jobsPage.Update(msg)
-	//	cmds = append(cmds, cmd)
+	case message.ViewJobsPageMsg:
+		m.setPage(page.Jobs)
+		m.jobsPage.ClearFilter()
+		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
-	//case message.NomadAllocationMsg:
-	//	m.nomadAllocationData.allData = msg
-	//	m.updateAllocationViewport()
-	//	m.loading = false
-	//	return m, nil
-	//
-	//case message.NomadLogsMsg:
-	//	m.nomadLogData.allData = msg.Data
-	//	m.logType = msg.LogType
-	//	m.updateLogViewport()
-	//	m.loading = false
-	//	return m, nil
-
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.Exit):
-			return m, tea.Quit
-
-			//case m.loading:
-			//	return m, nil
-
-			//case key.Matches(msg, m.keyMap.Forward):
-			//	//switch m.currentPage {
-			//	//case page.Jobs:
-			//	//	m.selectedJobId = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
-			//	//case page.Allocation:
-			//	//	alloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
-			//	//	m.selectedAlloc = selectedAlloc{alloc.ID, alloc.TaskName}
-			//	//}
-			//
-			//	if newPage := m.currentPage.Forward(); newPage != m.currentPage {
-			//		m.setFilter("")
-			//		m.setPage(newPage)
-			//		cmd := m.fetchPageDataCmd()
-			//		m.setLoading(newPage.LoadingString())
-			//		return m, cmd
-			//	}
-			//
-			//case key.Matches(msg, m.keyMap.Back):
-			//	if m.header.Filter != "" {
-			//		m.setFiltering(false, true)
-			//		return m, nil
-			//	}
-			//
-			//	if newPage := m.currentPage.Backward(); newPage != m.currentPage {
-			//		m.setPage(newPage)
-			//		cmd := m.fetchPageDataCmd()
-			//		m.setLoading(newPage.LoadingString())
-			//		return m, cmd
-			//	}
-
-			// TODO LEO: put these in logs page
-			//case key.Matches(msg, m.keyMap.StdOut) && m.currentPage == page.Logs:
-			//	m.logType = nomad.StdOut
-			//	m.setLoading(m.currentPage.LoadingString())
-			//	return m, m.fetchPageDataCmd()
-			//
-			//case key.Matches(msg, m.keyMap.StdErr) && m.currentPage == page.Logs:
-			//	m.logType = nomad.StdErr
-			//	m.setLoading(m.currentPage.LoadingString())
-			//	return m, m.fetchPageDataCmd()
-		}
+	case jobs.JobSelectedMsg:
+		m.setPage(page.Allocations)
+		m.allocationsPage.SetJobID(msg.JobID)
+		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, msg.JobID)
 	}
 
-	cmds = append(cmds, cmd)
+	switch m.currentPage {
+	case page.Jobs:
+		m.jobsPage, cmd = m.jobsPage.Update(msg)
+		cmds = append(cmds, cmd)
+
+	case page.Allocations:
+		m.allocationsPage, cmd = m.allocationsPage.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("\nError: %v\n\n", m.err)
+		return fmt.Sprintf("Error: %v", m.err)
 	}
 
 	pageView := ""
 	switch m.currentPage {
 	case page.Jobs:
+		dev.Debug("rendering jobs")
 		pageView = m.jobsPage.View()
+
+	case page.Allocations:
+		dev.Debug("rendering allocations")
+		pageView = m.allocationsPage.View()
 	}
+
 	finalView := m.header.View() + "\n" + pageView
 	return finalView
 }
 
 func main() {
-	program := tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	program := tea.NewProgram(initialModel(), tea.WithAltScreen())
 
 	dev.Debug("~STARTING UP~")
 	if err := program.Start(); err != nil {
