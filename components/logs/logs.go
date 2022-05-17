@@ -1,4 +1,4 @@
-package jobs
+package logs
 
 import (
 	"fmt"
@@ -13,45 +13,44 @@ import (
 	"wander/message"
 )
 
-type nomadJobData struct {
-	allData, filteredData []jobResponseEntry
-}
-
-type nomadJobsMsg []jobResponseEntry
-
 type Model struct {
 	initialized   bool
 	url, token    string
-	nomadJobData  nomadJobData
+	nomadLogsData nomadLogsData
 	width, height int
 	viewport      viewport.Model
 	filter        filter.Model
 	keyMap        page.KeyMap
 	loading       bool
-	SelectedJobID string
+	allocID       string
+	taskName      string
+	logType       LogType
 }
 
-func New(url, token string, width, height int) Model {
-	jobsFilter := filter.New("Jobs")
+func New(url, token string, width, height int, allocID, taskName string, logType LogType) Model {
+	logsFilter := filter.New("Logs")
 	model := Model{
 		url:      url,
 		token:    token,
 		width:    width,
 		height:   height,
-		viewport: viewport.New(width, height-jobsFilter.ViewHeight()),
-		filter:   jobsFilter,
+		viewport: viewport.New(width, height-logsFilter.ViewHeight()),
+		filter:   logsFilter,
 		keyMap:   page.GetKeyMap(),
 		loading:  true,
+		allocID:  allocID,
+		taskName: taskName,
+		logType:  logType,
 	}
 	return model
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	dev.Debug(fmt.Sprintf("jobs %T", msg))
+	dev.Debug(fmt.Sprintf("logs %T", msg))
 
 	if !m.initialized {
 		m.initialized = true
-		return m, FetchJobs(m.url, m.token)
+		return m, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.logType)
 	}
 
 	var (
@@ -61,20 +60,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case nomadJobsMsg:
-		m.nomadJobData.allData = msg
-		m.updateJobViewport()
+	case nomadLogsMsg:
+		m.nomadLogsData.allData = msg.Data
+		m.updateLogViewport()
 		m.loading = false
 
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
 			m.loading = true
-			cmds = append(cmds, FetchJobs(m.url, m.token))
+			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.logType))
 
-		case key.Matches(msg, m.keyMap.Forward):
+		case key.Matches(msg, m.keyMap.Back):
 			if !m.filter.EditingFilter {
-				m.SelectedJobID = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
 			}
 		}
@@ -82,7 +80,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		prevFilter := m.filter.Filter
 		m.filter, cmd = m.filter.Update(msg)
 		if m.filter.Filter != prevFilter {
-			m.updateJobViewport()
+			m.updateLogViewport()
 		}
 		cmds = append(cmds, cmd)
 
@@ -94,7 +92,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := "Loading jobs..."
+	content := fmt.Sprintf("Loading logs for %s...", m.taskName)
 	if !m.loading {
 		content = m.viewport.View()
 	}
@@ -106,24 +104,32 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
+func (m *Model) SetAllocationData(allocId, taskName string) {
+	m.allocID, m.taskName = allocId, taskName
+}
+
+func (m *Model) SetLogType(logType LogType) {
+	m.logType = logType
+}
+
 func (m *Model) ClearFilter() {
 	m.filter.SetFilter("")
-	m.updateJobViewport()
+	m.updateLogViewport()
 }
 
-func (m *Model) updateFilteredJobData() {
-	var filteredJobData []jobResponseEntry
-	for _, entry := range m.nomadJobData.allData {
+func (m *Model) updateFilteredLogData() {
+	var filteredLogData []logRow
+	for _, entry := range m.nomadLogsData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
-			filteredJobData = append(filteredJobData, entry)
+			filteredLogData = append(filteredLogData, entry)
 		}
 	}
-	m.nomadJobData.filteredData = filteredJobData
+	m.nomadLogsData.filteredData = filteredLogData
 }
 
-func (m *Model) updateJobViewport() {
-	m.updateFilteredJobData()
-	table := jobResponsesAsTable(m.nomadJobData.filteredData)
+func (m *Model) updateLogViewport() {
+	m.updateFilteredLogData()
+	table := logsAsTable(m.nomadLogsData.filteredData, m.logType)
 	m.viewport.SetHeaderAndContent(
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),

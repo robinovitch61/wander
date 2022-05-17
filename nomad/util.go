@@ -1,7 +1,6 @@
 package nomad
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -30,11 +29,4 @@ func Get(url, token string, params map[string]string) ([]byte, error) {
 		return nil, err
 	}
 	return body, nil
-}
-
-func urlWithPathFor(url, key string) (string, error) {
-	if val, exists := ApiPaths[key]; exists {
-		return fmt.Sprintf("%s/%s", url, val), nil
-	}
-	return "", fmt.Errorf("key '%s' has no associated path", key)
 }

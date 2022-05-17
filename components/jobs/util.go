@@ -12,10 +12,6 @@ import (
 	"wander/nomad"
 )
 
-type JobSelectedMsg struct {
-	JobID string
-}
-
 type jobResponseEntry struct {
 	ID                string      `json:"ID"`
 	ParentID          string      `json:"ParentID"`

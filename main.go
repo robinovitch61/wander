@@ -13,10 +13,10 @@ import (
 	"wander/components/allocations"
 	"wander/components/header"
 	"wander/components/jobs"
+	"wander/components/logs"
 	"wander/components/page"
 	"wander/dev"
 	"wander/message"
-	"wander/nomad"
 )
 
 var (
@@ -31,22 +31,12 @@ type model struct {
 	currentPage     page.Page
 	jobsPage        jobs.Model
 	allocationsPage allocations.Model
+	logsPage        logs.Model
 	header          header.Model
 	width, height   int
 	initialized     bool
-	nomadLogData    nomadLogData
-	selectedAlloc   selectedAlloc
-	logType         nomad.LogType
 	loading         bool
 	err             error
-}
-
-type nomadLogData struct {
-	allData, filteredData []nomad.LogRow
-}
-
-type selectedAlloc struct {
-	ID, taskName string
 }
 
 func initialModel() model {
@@ -71,7 +61,6 @@ func initialModel() model {
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
 		keyMap:      keyMap,
-		logType:     nomad.StdOut,
 		currentPage: page.Jobs,
 		header:      header.New(logo, nomadUrl, ""),
 		loading:     true,
@@ -100,11 +89,6 @@ func (m model) Init() tea.Cmd {
 //func (m *model) setHeaderKeyHelp() {
 //	m.header.KeyHelp = getPageKeyMapView(m.currentPage, m.header.EditingFilter, m.header.HasFilter())
 //}
-
-func (m *model) setPage(p page.Page) {
-	m.currentPage = p
-	//m.setHeaderKeyHelp()
-}
 
 //func (m *model) setFilter(s string) {
 //m.header.Filter = s
@@ -152,18 +136,6 @@ func (m *model) setPage(p page.Page) {
 //	m.updateViewport(table, len(table.ContentRows)-1)
 //}
 //
-func (m *model) setLoading(loadingString string) {
-	m.loading = true
-	//m.viewport.SetLoading(loadingString)
-}
-
-func (m *model) setWindowSize(width, height int) {
-	m.width, m.height = width, height
-}
-
-func (m model) getPageHeight() int {
-	return m.height - m.header.ViewHeight()
-}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("main %T", msg))
@@ -189,22 +161,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.initialized {
 			m.jobsPage = jobs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
 			m.allocationsPage = allocations.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight, "")
+			m.logsPage = logs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight, "", "", logs.StdOut)
 			m.initialized = true
 		} else {
 			// TODO LEO: dry
 			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
 			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
+			m.logsPage.SetWindowSize(msg.Width, pageHeight)
 		}
 
-	case message.ViewJobsPageMsg:
-		m.setPage(page.Jobs)
+	case message.ViewJobsMsg:
 		m.jobsPage.ClearFilter()
+		m.setPage(page.Jobs)
 		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
-	case jobs.JobSelectedMsg:
+	case message.ViewAllocationsMsg:
 		m.setPage(page.Allocations)
-		m.allocationsPage.SetJobID(msg.JobID)
-		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, msg.JobID)
+		m.allocationsPage.SetJobID(m.jobsPage.SelectedJobID)
+		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobID)
+
+	case message.ViewLogsMsg:
+		m.setPage(page.Logs)
+		m.logsPage.SetAllocationData(m.allocationsPage.SelectedAllocID, m.allocationsPage.SelectedTaskName)
+		m.logsPage.SetLogType(m.allocationsPage.LogType)
+		return m, logs.FetchLogs(m.nomadUrl, m.nomadToken, m.allocationsPage.SelectedAllocID, m.allocationsPage.SelectedTaskName, m.allocationsPage.LogType)
 	}
 
 	switch m.currentPage {
@@ -214,6 +194,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case page.Allocations:
 		m.allocationsPage, cmd = m.allocationsPage.Update(msg)
+		cmds = append(cmds, cmd)
+
+	case page.Logs:
+		m.logsPage, cmd = m.logsPage.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -228,16 +212,35 @@ func (m model) View() string {
 	pageView := ""
 	switch m.currentPage {
 	case page.Jobs:
-		dev.Debug("rendering jobs")
 		pageView = m.jobsPage.View()
 
 	case page.Allocations:
-		dev.Debug("rendering allocations")
 		pageView = m.allocationsPage.View()
+
+	case page.Logs:
+		pageView = m.logsPage.View()
 	}
 
 	finalView := m.header.View() + "\n" + pageView
 	return finalView
+}
+
+func (m *model) setPage(p page.Page) {
+	m.currentPage = p
+	//m.setHeaderKeyHelp()
+}
+
+func (m *model) setLoading(loadingString string) {
+	m.loading = true
+	//m.viewport.SetLoading(loadingString)
+}
+
+func (m *model) setWindowSize(width, height int) {
+	m.width, m.height = width, height
+}
+
+func (m model) getPageHeight() int {
+	return m.height - m.header.ViewHeight()
 }
 
 func main() {
@@ -245,7 +248,7 @@ func main() {
 
 	dev.Debug("~STARTING UP~")
 	if err := program.Start(); err != nil {
-		fmt.Printf("Error on wander startup: %v\n", err)
+		fmt.Printf("Error on wander startup: %v", err)
 		os.Exit(1)
 	}
 }

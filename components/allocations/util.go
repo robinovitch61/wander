@@ -13,10 +13,6 @@ import (
 	"wander/nomad"
 )
 
-type AllocationSelectedMsg struct {
-	AllocID string
-}
-
 type nomadAllocationData struct {
 	allData, filteredData []allocationRowEntry
 }
@@ -91,10 +87,10 @@ func (e allocationRowEntry) MatchesFilter(filter string) bool {
 	return strings.Contains(e.TaskName, filter)
 }
 
-func FetchAllocations(url, token, jobId string) tea.Cmd {
+func FetchAllocations(url, token, jobID string) tea.Cmd {
 	return func() tea.Msg {
-		dev.Debug(fmt.Sprintf("jobId %s", jobId))
-		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobId, "/allocations")
+		dev.Debug(fmt.Sprintf("jobID %s", jobID))
+		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
 		body, err := nomad.Get(fullPath, token, nil)
 		if err != nil {
 			return message.ErrMsg{Err: err}

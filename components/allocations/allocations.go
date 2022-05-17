@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
+	"wander/components/logs"
 	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
@@ -14,7 +15,6 @@ import (
 )
 
 type Model struct {
-	initialized         bool
 	url, token          string
 	nomadAllocationData nomadAllocationData
 	width, height       int
@@ -23,6 +23,9 @@ type Model struct {
 	keyMap              page.KeyMap
 	loading             bool
 	jobID               string
+	SelectedAllocID     string
+	SelectedTaskName    string
+	LogType             logs.LogType
 }
 
 func New(url, token string, width, height int, jobID string) Model {
@@ -44,11 +47,6 @@ func New(url, token string, width, height int, jobID string) Model {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("allocations %T", msg))
 
-	if !m.initialized {
-		m.initialized = true
-		return m, FetchAllocations(m.url, m.token, m.jobID)
-	}
-
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -69,15 +67,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.Forward):
 			if !m.filter.EditingFilter {
-				return m, func() tea.Msg {
-					selectedAllocId := m.nomadAllocationData.filteredData[m.viewport.CursorRow].ID
-					return AllocationSelectedMsg{selectedAllocId}
-				}
+				selectedAlloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
+				m.SelectedAllocID = selectedAlloc.ID
+				m.SelectedTaskName = selectedAlloc.TaskName
+				m.LogType = logs.StdOut
+				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 
 		case key.Matches(msg, m.keyMap.Back):
 			if !m.filter.EditingFilter {
-				return m, func() tea.Msg { return message.ViewJobsPageMsg{} }
+				return m, func() tea.Msg { return message.ViewJobsMsg{} }
 			}
 		}
 

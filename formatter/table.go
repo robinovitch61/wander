@@ -3,7 +3,6 @@ package formatter
 import (
 	"github.com/olekukonko/tablewriter"
 	"strings"
-	"wander/nomad"
 )
 
 type Table struct {
@@ -48,21 +47,4 @@ func GetRenderedTableAsString(columnTitles []string, data [][]string) Table {
 	headerRows := []string{allRows[0]}
 	contentRows := allRows[1 : len(allRows)-1] // last row is \n
 	return Table{headerRows, contentRows}
-}
-
-func LogsAsTable(logs []nomad.LogRow, logType nomad.LogType) Table {
-	var logRows [][]string
-	// ignore the first log line because it may be truncated due to offset
-	// TODO LEO: check if there's actually a truncated line based on the offset size and log char length^
-	//for _, row := range logs[1:] {
-	for _, row := range logs {
-		if stripped := strings.TrimSpace(string(row)); stripped != "" {
-			logRows = append(logRows, []string{stripped})
-		}
-	}
-
-	return GetRenderedTableAsString(
-		[]string{logType.String()},
-		logRows,
-	)
 }
