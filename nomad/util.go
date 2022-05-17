@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func get(url, token string, params map[string]string) ([]byte, error) {
+func Get(url, token string, params map[string]string) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

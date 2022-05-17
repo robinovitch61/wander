@@ -8,24 +8,13 @@ var ApiPaths = map[string]string{
 	"logs":        "/v1/client/fs/logs/%s",
 }
 
-func GetJobs(url, token string) ([]byte, error) {
-	path, err := urlWithPathFor(url, "jobs")
-	if err != nil {
-		return nil, err
-	}
-	params := map[string]string{
-		"namespace": "*",
-	}
-	return get(path, token, params)
-}
-
 func GetAllocations(url, token, jobId string) ([]byte, error) {
 	path, err := urlWithPathFor(url, "allocations")
 	if err != nil {
 		return nil, err
 	}
 	pathWithAllocId := fmt.Sprintf(path, jobId)
-	return get(pathWithAllocId, token, nil)
+	return Get(pathWithAllocId, token, nil)
 }
 
 func GetLogs(url, token, allocId, taskName, logType string) ([]byte, error) {
@@ -41,5 +30,5 @@ func GetLogs(url, token, allocId, taskName, logType string) ([]byte, error) {
 		"plain":  "true",
 	}
 	pathWithAllocId := fmt.Sprintf(path, allocId)
-	return get(pathWithAllocId, token, params)
+	return Get(pathWithAllocId, token, params)
 }

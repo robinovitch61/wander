@@ -81,7 +81,7 @@ func (m Model) View() string {
 	var filterString string
 	switch {
 	case len(m.Filter) > 0:
-		filterString = fmt.Sprintf("filter: %s", m.Filter)
+		filterString = fmt.Sprintf("filter: '%s'", m.Filter)
 	case m.EditingFilter:
 		filterString = "type to filter"
 	default:

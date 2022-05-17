@@ -10,8 +10,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
-	"wander/command"
 	"wander/components/header"
+	"wander/components/jobs"
 	"wander/components/page"
 	"wander/dev"
 	"wander/message"
@@ -23,8 +23,20 @@ var (
 	NomadUrlEnvVariable   = "NOMAD_ADDR"
 )
 
-type nomadAllocationData struct {
-	allData, filteredData []nomad.AllocationRowEntry
+type model struct {
+	nomadToken    string
+	nomadUrl      string
+	keyMap        mainKeyMap
+	currentPage   page.Page
+	jobsPage      jobs.Model
+	header        header.Model
+	width, height int
+	initialized   bool
+	nomadLogData  nomadLogData
+	selectedAlloc selectedAlloc
+	logType       nomad.LogType
+	loading       bool
+	err           error
 }
 
 type nomadLogData struct {
@@ -35,41 +47,54 @@ type selectedAlloc struct {
 	ID, taskName string
 }
 
-type model struct {
-	nomadToken          string
-	nomadUrl            string
-	keyMap              mainKeyMap
-	currentPage         page.Page
-	jobsPage            page.JobsModel
-	header              header.Model
-	width, height       int
-	initialized         bool
-	nomadAllocationData nomadAllocationData
-	nomadLogData        nomadLogData
-	selectedAlloc       selectedAlloc
-	logType             nomad.LogType
-	loading             bool
-	err                 error
+func initialModel() model {
+	nomadToken := os.Getenv(NomadTokenEnvVariable)
+	if nomadToken == "" {
+		fmt.Printf("Set environment variable %s\n", NomadTokenEnvVariable)
+		os.Exit(1)
+	}
+
+	nomadUrl := os.Getenv(NomadUrlEnvVariable)
+	if nomadUrl == "" {
+		fmt.Printf("Set environment variable %s\n", NomadUrlEnvVariable)
+		os.Exit(1)
+	}
+
+	keyMap := getMainKeyMap()
+	firstPage := page.Jobs
+	logo := []string{
+		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
+		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
+	}
+	return model{
+		nomadToken:  nomadToken,
+		nomadUrl:    nomadUrl,
+		keyMap:      keyMap,
+		logType:     nomad.StdOut,
+		currentPage: firstPage,
+		header:      header.New(logo, nomadUrl, ""),
+		loading:     true,
+	}
 }
 
 func (m model) Init() tea.Cmd {
-	return command.FetchJobs(m.nomadUrl, m.nomadToken)
-}
-
-func (m model) fetchPageDataCmd() tea.Cmd {
-	switch m.currentPage {
-
-	case page.Jobs:
-		return command.FetchJobs(m.nomadUrl, m.nomadToken)
-
-	case page.Allocation:
-		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
-
-	case page.Logs:
-		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName, m.logType)
-	}
 	return nil
 }
+
+//func (m model) fetchPageDataCmd() tea.Cmd {
+//	switch m.currentPage {
+//
+//	case page.Jobs:
+//		return command.FetchJobs(m.nomadUrl, m.nomadToken)
+//
+//	case page.Allocation:
+//		return command.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
+//
+//	case page.Logs:
+//		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName, m.logType)
+//	}
+//	return nil
+//}
 
 //func (m *model) setHeaderKeyHelp() {
 //	m.header.KeyHelp = getPageKeyMapView(m.currentPage, m.header.EditingFilter, m.header.HasFilter())
@@ -152,15 +177,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 		return m, nil
 
+	case jobs.JobSelectedMsg:
+		m.setPage(page.Allocation)
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.setWindowSize(msg.Width, msg.Height)
 		pageHeight := msg.Height - m.header.ViewHeight()
 
 		if !m.initialized {
-			jobsCommand := command.FetchJobs(m.nomadUrl, m.nomadToken)
-			m.jobsPage = page.NewJobsModel(jobsCommand, msg.Width, pageHeight)
+			m.jobsPage = jobs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
 
 			// TODO LEO: rest of pages here?
+			//allocationsCommand := command.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
+			//m.jobsPage = page.New(jobsCommand, msg.Width, pageHeight)
+
 			m.initialized = true
 		} else {
 			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
@@ -251,36 +282,6 @@ func (m model) View() string {
 	}
 	finalView := m.header.View() + "\n" + pageView
 	return finalView
-}
-
-func initialModel() model {
-	nomadToken := os.Getenv(NomadTokenEnvVariable)
-	if nomadToken == "" {
-		fmt.Printf("Set environment variable %s\n", NomadTokenEnvVariable)
-		os.Exit(1)
-	}
-
-	nomadUrl := os.Getenv(NomadUrlEnvVariable)
-	if nomadUrl == "" {
-		fmt.Printf("Set environment variable %s\n", NomadUrlEnvVariable)
-		os.Exit(1)
-	}
-
-	keyMap := getMainKeyMap()
-	firstPage := page.Jobs
-	logo := []string{
-		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
-		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
-	}
-	return model{
-		nomadToken:  nomadToken,
-		nomadUrl:    nomadUrl,
-		keyMap:      keyMap,
-		logType:     nomad.StdOut,
-		currentPage: firstPage,
-		header:      header.New(logo, nomadUrl, ""),
-		loading:     true,
-	}
 }
 
 func main() {

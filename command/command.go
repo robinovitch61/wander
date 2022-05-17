@@ -6,38 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"sort"
 	"strings"
+	"wander/components/page"
 	"wander/message"
 	"wander/nomad"
 )
-
-func simulateLoading() {
-	//for i := 0; i < 1e9; i++ {
-	//
-	//}
-}
-
-func FetchJobs(url, token string) tea.Cmd {
-	return func() tea.Msg {
-		// TODO LEO: error handling
-		body, _ := nomad.GetJobs(url, token)
-		//simulateLoading()
-		//body := MockJobsResponse
-		var jobResponse []nomad.JobResponseEntry
-		if err := json.Unmarshal(body, &jobResponse); err != nil {
-			// TODO LEO: error handling
-			fmt.Println("Failed to decode job response")
-		}
-		sort.Slice(jobResponse, func(x, y int) bool {
-			firstJob := jobResponse[x]
-			secondJob := jobResponse[y]
-			if firstJob.Name == secondJob.Name {
-				return firstJob.Namespace < secondJob.Namespace
-			}
-			return jobResponse[x].Name < jobResponse[y].Name
-		})
-		return message.NomadJobsMsg(jobResponse)
-	}
-}
 
 func FetchAllocations(url, token, jobId string) tea.Cmd {
 	return func() tea.Msg {
@@ -74,7 +46,7 @@ func FetchAllocations(url, token, jobId string) tea.Cmd {
 			}
 			return firstTask.TaskName < secondTask.TaskName
 		})
-		return message.NomadAllocationMsg(allocationRowEntries)
+		return page.NomadAllocationMsg(allocationRowEntries)
 	}
 }
 

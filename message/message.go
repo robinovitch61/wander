@@ -1,20 +1,18 @@
 package message
 
 import (
+	"wander/components/page"
 	"wander/nomad"
 )
-
-// NomadJobsMsg is a message for nomad jobs
-type NomadJobsMsg []nomad.JobResponseEntry
-
-// NomadAllocationMsg is a message for nomad allocations
-type NomadAllocationMsg []nomad.AllocationRowEntry
 
 // NomadLogsMsg is a message for nomad logs
 type NomadLogsMsg struct {
 	LogType nomad.LogType
 	Data    []nomad.LogRow
 }
+
+// GoToPageMsg is a message to go to a new page
+type GoToPageMsg page.Page
 
 // ErrMsg is an error message
 type ErrMsg struct{ err error }

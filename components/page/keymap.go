@@ -8,7 +8,7 @@ import (
 	"wander/style"
 )
 
-type pageKeyMap struct {
+type KeyMap struct {
 	Exit    key.Binding // TODO LEO: move to main keymap
 	Forward key.Binding
 	Back    key.Binding
@@ -18,8 +18,8 @@ type pageKeyMap struct {
 	StdErr  key.Binding
 }
 
-func getKeyMap() pageKeyMap {
-	return pageKeyMap{
+func GetKeyMap() KeyMap {
+	return KeyMap{
 		Exit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),
 			key.WithHelp("q", "exit"),
@@ -57,7 +57,7 @@ func getPageKeyMapView(currentPage Page, isFiltering, hasFilter bool) string {
 	keyHelper.Styles.ShortKey = style.KeyHelpKey
 	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
 
-	mainKm := getKeyMap()
+	mainKm := GetKeyMap()
 	var alwaysShown []key.Binding
 	if !isFiltering {
 		alwaysShown = append(alwaysShown, []key.Binding{mainKm.Exit, mainKm.Filter, mainKm.Reload}...)
