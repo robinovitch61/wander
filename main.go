@@ -182,7 +182,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.ErrMsg:
 		m.err = msg
 		return m, nil
-
 	case tea.WindowSizeMsg:
 		m.setWindowSize(msg.Width, msg.Height)
 		pageHeight := m.getPageHeight()

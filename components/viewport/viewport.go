@@ -163,23 +163,21 @@ func (m *Model) SetSize(width, height int) {
 	m.fixState()
 }
 
-// SetHeader sets the pager's header content.
-func (m *Model) SetHeader(header string) {
-	m.header = strings.Split(normalizeLineEndings(header), "\n")
-	m.setContentHeight()
-}
+func (m *Model) SetHeaderAndContent(header, content string) {
+	newHeader := strings.Split(normalizeLineEndings(header), "\n")
+	lines := strings.Split(normalizeLineEndings(content), "\n")
 
-// SetContent sets the pager's text content.
-func (m *Model) SetContent(s string) {
-	lines := strings.Split(normalizeLineEndings(s), "\n")
 	maxLineLength := 0
-	for _, line := range lines {
+	for _, line := range append(newHeader, lines...) {
 		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
 			maxLineLength = lineLength
 		}
 	}
+
+	m.header = newHeader
 	m.lines = lines
 	m.maxLineLength = maxLineLength
+	m.setContentHeight()
 	m.fixState()
 }
 

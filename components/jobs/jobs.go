@@ -124,7 +124,9 @@ func (m *Model) updateFilteredJobData() {
 func (m *Model) updateJobViewport() {
 	m.updateFilteredJobData()
 	table := jobResponsesAsTable(m.nomadJobData.filteredData)
-	m.viewport.SetHeader(strings.Join(table.HeaderRows, "\n"))
-	m.viewport.SetContent(strings.Join(table.ContentRows, "\n"))
+	m.viewport.SetHeaderAndContent(
+		strings.Join(table.HeaderRows, "\n"),
+		strings.Join(table.ContentRows, "\n"),
+	)
 	m.viewport.SetCursorRow(0)
 }
