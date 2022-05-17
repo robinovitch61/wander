@@ -30,7 +30,7 @@ type Model struct {
 	// CursorRow is the row index of the cursor.
 	CursorRow int
 
-	// Highlight is the text to highlight (case sensitive), used for search, filter etc.
+	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
 
 	initialized   bool

@@ -35,7 +35,6 @@ type model struct {
 	header          header.Model
 	width, height   int
 	initialized     bool
-	loading         bool
 	err             error
 }
 
@@ -63,7 +62,6 @@ func initialModel() model {
 		keyMap:      keyMap,
 		currentPage: page.Jobs,
 		header:      header.New(logo, nomadUrl, ""),
-		loading:     true,
 	}
 }
 
@@ -149,6 +147,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.Exit):
 			return m, tea.Quit
+
+		default:
+			if m.currentPageLoading() {
+				return m, nil
+			}
 		}
 
 	case message.ErrMsg:
@@ -171,8 +174,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case message.ViewJobsMsg:
-		m.jobsPage.ClearFilter()
 		m.setPage(page.Jobs)
+		m.jobsPage.ClearFilter()
 		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
 	case message.ViewAllocationsMsg:
@@ -236,17 +239,24 @@ func (m *model) setPage(p page.Page) {
 	//m.setHeaderKeyHelp()
 }
 
-func (m *model) setLoading(loadingString string) {
-	m.loading = true
-	//m.viewport.SetLoading(loadingString)
-}
-
 func (m *model) setWindowSize(width, height int) {
 	m.width, m.height = width, height
 }
 
 func (m model) getPageHeight() int {
 	return m.height - m.header.ViewHeight()
+}
+
+func (m model) currentPageLoading() bool {
+	switch m.currentPage {
+	case page.Jobs:
+		return m.jobsPage.Loading
+	case page.Allocations:
+		return m.allocationsPage.Loading
+	case page.Logs:
+		return m.logsPage.Loading
+	}
+	return true
 }
 
 func main() {

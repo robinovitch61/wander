@@ -20,9 +20,9 @@ type Model struct {
 	viewport            viewport.Model
 	filter              filter.Model
 	keyMap              page.KeyMap
-	loading             bool
 	allocID             string
 	taskName            string
+	Loading             bool
 	LastSelectedLogType LogType
 }
 
@@ -36,7 +36,7 @@ func New(url, token string, width, height int) Model {
 		viewport: viewport.New(width, height-logsFilter.ViewHeight()),
 		filter:   logsFilter,
 		keyMap:   page.GetKeyMap(),
-		loading:  true,
+		Loading:  true,
 	}
 	return model
 }
@@ -54,30 +54,30 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case nomadLogsMsg:
 		m.nomadLogsData.allData = msg.Data
 		m.updateLogViewport()
-		m.loading = false
+		m.Loading = false
 
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
-			m.loading = true
+			m.Loading = true
 			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
 
 		case key.Matches(msg, m.keyMap.Back):
-			if !m.filter.EditingFilter {
+			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
 			}
 
 		case key.Matches(msg, m.keyMap.StdOut):
 			if !m.filter.EditingFilter {
 				m.setLogType(StdOut)
-				m.loading = true
+				m.Loading = true
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 
 		case key.Matches(msg, m.keyMap.StdErr):
 			if !m.filter.EditingFilter {
 				m.setLogType(StdErr)
-				m.loading = true
+				m.Loading = true
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 		}
@@ -98,7 +98,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	content := fmt.Sprintf("Loading %s logs for %s...", m.LastSelectedLogType.ShortString(), m.taskName)
-	if !m.loading {
+	if !m.Loading {
 		content = m.viewport.View()
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
@@ -133,6 +133,7 @@ func (m *Model) updateFilteredLogData() {
 }
 
 func (m *Model) updateLogViewport() {
+	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredLogData()
 	table := logsAsTable(m.nomadLogsData.filteredData, m.LastSelectedLogType)
 	m.viewport.SetHeaderAndContent(

@@ -20,8 +20,8 @@ type Model struct {
 	viewport             viewport.Model
 	filter               filter.Model
 	keyMap               page.KeyMap
-	loading              bool
 	jobID                string
+	Loading              bool
 	LastSelectedAllocID  string
 	LastSelectedTaskName string
 }
@@ -36,7 +36,7 @@ func New(url, token string, width, height int) Model {
 		viewport: viewport.New(width, height-allocationsFilter.ViewHeight()),
 		filter:   allocationsFilter,
 		keyMap:   page.GetKeyMap(),
-		loading:  true,
+		Loading:  true,
 	}
 	return model
 }
@@ -54,12 +54,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case nomadAllocationMsg:
 		m.nomadAllocationData.allData = msg
 		m.updateAllocationViewport()
-		m.loading = false
+		m.Loading = false
 
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
-			m.loading = true
+			m.Loading = true
 			cmds = append(cmds, func() tea.Msg { return message.ViewAllocationsMsg{} })
 
 		case key.Matches(msg, m.keyMap.Forward):
@@ -71,7 +71,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 
 		case key.Matches(msg, m.keyMap.Back):
-			if !m.filter.EditingFilter {
+			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
 				return m, func() tea.Msg { return message.ViewJobsMsg{} }
 			}
 		}
@@ -92,7 +92,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	content := fmt.Sprintf("Loading allocations for '%s'...", m.jobID)
-	if !m.loading {
+	if !m.Loading {
 		content = m.viewport.View()
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
@@ -119,6 +119,7 @@ func (m *Model) updateFilteredAllocationData() {
 }
 
 func (m *Model) updateAllocationViewport() {
+	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredAllocationData()
 	table := allocationsAsTable(m.nomadAllocationData.filteredData)
 	m.viewport.SetHeaderAndContent(

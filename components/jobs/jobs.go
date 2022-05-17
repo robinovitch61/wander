@@ -27,7 +27,7 @@ type Model struct {
 	viewport          viewport.Model
 	filter            filter.Model
 	keyMap            page.KeyMap
-	loading           bool
+	Loading           bool
 	LastSelectedJobId string
 }
 
@@ -41,7 +41,7 @@ func New(url, token string, width, height int) Model {
 		viewport: viewport.New(width, height-jobsFilter.ViewHeight()),
 		filter:   jobsFilter,
 		keyMap:   page.GetKeyMap(),
-		loading:  true,
+		Loading:  true,
 	}
 	return model
 }
@@ -60,16 +60,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-
 	case nomadJobsMsg:
 		m.nomadJobData.allData = msg
 		m.updateJobViewport()
-		m.loading = false
+		m.Loading = false
 
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
-			m.loading = true
+			m.Loading = true
 			cmds = append(cmds, FetchJobs(m.url, m.token))
 
 		case key.Matches(msg, m.keyMap.Forward):
@@ -95,7 +94,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	content := "Loading jobs..."
-	if !m.loading {
+	if !m.Loading {
 		content = m.viewport.View()
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
@@ -122,6 +121,7 @@ func (m *Model) updateFilteredJobData() {
 }
 
 func (m *Model) updateJobViewport() {
+	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredJobData()
 	table := jobResponsesAsTable(m.nomadJobData.filteredData)
 	m.viewport.SetHeaderAndContent(
