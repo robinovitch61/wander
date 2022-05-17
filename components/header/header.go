@@ -1,6 +1,7 @@
 package header
 
 import (
+	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
@@ -8,17 +9,12 @@ import (
 )
 
 type Model struct {
-	logo     []string
+	logo     string
 	nomadUrl string
 	KeyHelp  string
 }
 
-var (
-//clusterURLPrefix = style.Bold.Render("Nomad:")
-//filterPrefix     = style.Bold.Render("Filter:")
-)
-
-func New(logo []string, nomadUrl, keyHelp string) (m Model) {
+func New(logo string, nomadUrl, keyHelp string) (m Model) {
 	return Model{logo: logo, nomadUrl: nomadUrl, KeyHelp: keyHelp}
 }
 
@@ -31,10 +27,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	logo := style.Logo.Render(strings.Join(m.logo, "\n"))
+	logo := style.Logo.Render(m.logo)
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)
 	top := lipgloss.JoinHorizontal(lipgloss.Center, logo, styledKeyHelp)
-	clusterUrl := style.Bold.Render(m.nomadUrl)
+	clusterUrl := style.Bold.Copy().Padding(0, 0, 0, 1).Render(fmt.Sprintf("URL: %s", m.nomadUrl))
 	//headerLeft := lipgloss.JoinVertical(lipgloss.Left, logo, clusterUrl)
 	//viewString += "\n" + m.formatFilterString(fmt.Sprintf("%s ", filterPrefix))
 	//if m.EditingFilter {
@@ -48,7 +44,7 @@ func (m Model) View() string {
 	//}
 	//viewString += m.formatFilterString(m.Filter)
 	//styledViewString := style.Header.Render(viewString)
-	return lipgloss.JoinVertical(lipgloss.Left, clusterUrl, top)
+	return lipgloss.JoinVertical(lipgloss.Left, top, clusterUrl)
 }
 
 func (m Model) ViewHeight() int {

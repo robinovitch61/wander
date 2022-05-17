@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
+	"strings"
 	"wander/components/allocations"
 	"wander/components/header"
 	"wander/components/jobs"
@@ -56,12 +57,13 @@ func initialModel() model {
 		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
 		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
 	}
+	logoString := strings.Join(logo, "\n")
 	return model{
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
 		keyMap:      keyMap,
 		currentPage: page.Jobs,
-		header:      header.New(logo, nomadUrl, ""),
+		header:      header.New(logoString, nomadUrl, ""),
 	}
 }
 
