@@ -24,26 +24,19 @@ var (
 	NomadUrlEnvVariable   = "NOMAD_ADDR"
 )
 
-type allocationSummary struct {
-	allocID, taskName string
-}
-
 type model struct {
-	nomadToken             string
-	nomadUrl               string
-	keyMap                 mainKeyMap
-	currentPage            page.Page
-	jobsPage               jobs.Model
-	lastSelectedJobID      string
-	allocationsPage        allocations.Model
-	lastSelectedAllocation allocationSummary
-	lastSelectedLogType    logs.LogType
-	logsPage               logs.Model
-	header                 header.Model
-	width, height          int
-	initialized            bool
-	loading                bool
-	err                    error
+	nomadToken      string
+	nomadUrl        string
+	keyMap          mainKeyMap
+	currentPage     page.Page
+	jobsPage        jobs.Model
+	allocationsPage allocations.Model
+	logsPage        logs.Model
+	header          header.Model
+	width, height   int
+	initialized     bool
+	loading         bool
+	err             error
 }
 
 func initialModel() model {
@@ -185,17 +178,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.ViewAllocationsMsg:
 		m.setPage(page.Allocations)
 		jobId := m.jobsPage.SelectedJobID
-		m.lastSelectedJobID = jobId
 		m.allocationsPage.SetJobID(jobId)
 		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobId)
 
 	case message.ViewLogsMsg:
 		m.setPage(page.Logs)
-		m.lastSelectedAllocation = allocationSummary{m.allocationsPage.SelectedAllocID, m.allocationsPage.SelectedTaskName}
-		m.lastSelectedLogType = m.allocationsPage.LogType
 		m.logsPage.SetAllocationData(m.allocationsPage.SelectedAllocID, m.allocationsPage.SelectedTaskName)
-		m.logsPage.SetLogType(m.allocationsPage.LogType)
-		return m, logs.FetchLogs(m.nomadUrl, m.nomadToken, m.lastSelectedAllocation.allocID, m.lastSelectedAllocation.taskName, m.lastSelectedLogType)
+		return m, logs.FetchLogs(m.nomadUrl, m.nomadToken, m.allocationsPage.SelectedAllocID, m.allocationsPage.SelectedTaskName, m.logsPage.LogType)
 	}
 
 	switch m.currentPage {

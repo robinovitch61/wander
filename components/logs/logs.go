@@ -23,7 +23,7 @@ type Model struct {
 	loading       bool
 	allocID       string
 	taskName      string
-	logType       LogType
+	LogType       LogType
 }
 
 func New(url, token string, width, height int) Model {
@@ -60,11 +60,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.Reload):
 			m.loading = true
-			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.logType))
+			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LogType))
 
 		case key.Matches(msg, m.keyMap.Back):
 			if !m.filter.EditingFilter {
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
+			}
+
+		case key.Matches(msg, m.keyMap.StdOut):
+			if !m.filter.EditingFilter {
+				m.SetLogType(StdOut)
+				return m, func() tea.Msg { return message.ViewLogsMsg{} }
+			}
+
+		case key.Matches(msg, m.keyMap.StdErr):
+			if !m.filter.EditingFilter {
+				m.SetLogType(StdErr)
+				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 		}
 
@@ -100,7 +112,7 @@ func (m *Model) SetAllocationData(allocId, taskName string) {
 }
 
 func (m *Model) SetLogType(logType LogType) {
-	m.logType = logType
+	m.LogType = logType
 }
 
 func (m *Model) ClearFilter() {
@@ -120,7 +132,7 @@ func (m *Model) updateFilteredLogData() {
 
 func (m *Model) updateLogViewport() {
 	m.updateFilteredLogData()
-	table := logsAsTable(m.nomadLogsData.filteredData, m.logType)
+	table := logsAsTable(m.nomadLogsData.filteredData, m.LogType)
 	m.viewport.SetHeaderAndContent(
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),
