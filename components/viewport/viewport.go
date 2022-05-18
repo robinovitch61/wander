@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/dev"
 	"wander/style"
@@ -91,8 +92,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.cursorRowDown(yOffset)
 		}
 
-		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.CursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
-
 	case tea.MouseMsg:
 		if !m.mouseWheelEnabled {
 			break
@@ -147,7 +146,7 @@ func (m Model) View() string {
 
 		viewLines += "\n"
 	}
-	trimmedViewLines := strings.TrimSpace(viewLines)
+	trimmedViewLines := strings.TrimSpace(viewLines + m.getFooterString())
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
 }
@@ -232,7 +231,7 @@ func (m *Model) fixState() {
 }
 
 func (m *Model) setContentHeight() {
-	m.contentHeight = max(0, m.height-len(m.header))
+	m.contentHeight = max(0, m.height-len(m.header)-m.getFooterHeight())
 }
 
 // maxLinesIdx returns the maximum index of the model's lines
@@ -326,6 +325,18 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	return line
 }
 
+func (m Model) getFooterString() string {
+	if numLines := len(m.lines); numLines > m.height {
+		progressString := fmt.Sprintf("%d%% (%d/%d)", percent(m.CursorRow+1, numLines), m.CursorRow+1, numLines)
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#737373")).Render(progressString)
+	}
+	return ""
+}
+
+func (m Model) getFooterHeight() int {
+	return len(strings.Split(m.getFooterString(), "\n"))
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -338,4 +349,8 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func percent(a, b int) int {
+	return int(float32(a) / float32(b) * 100)
 }
