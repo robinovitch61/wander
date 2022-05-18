@@ -56,11 +56,12 @@ func initialModel() model {
 		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
 	}
 	logoString := strings.Join(logo, "\n")
+	firstPage := page.Jobs
 	return model{
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
-		currentPage: page.Jobs,
-		header:      header.New(logoString, nomadUrl, ""),
+		currentPage: firstPage,
+		header:      header.New(logoString, nomadUrl, keymap.GetPageKeyHelp(firstPage, false, false)),
 	}
 }
 

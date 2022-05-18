@@ -1,7 +1,12 @@
 package keymap
 
 import (
+	"fmt"
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"wander/components/page"
+	"wander/components/viewport"
+	"wander/style"
 )
 
 type keyMap struct {
@@ -45,47 +50,46 @@ var KeyMap = keyMap{
 	),
 }
 
-//func getPageKeyMapView(currentPage Page, isFiltering, hasFilter bool) string {
-//	keyHelper := help.New()
-//	keyHelper.ShortSeparator = "    "
-//	keyHelper.Styles.ShortKey = style.KeyHelpKey
-//	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
-//
-//	mainKm := GetKeyMap()
-//	var alwaysShown []key.Binding
-//	if !isFiltering {
-//		alwaysShown = append(alwaysShown, []key.Binding{mainKm.Exit, mainKm.Filter, mainKm.Reload}...)
-//
-//		if nextPage := currentPage.Forward(); nextPage != currentPage {
-//			mainKm.Forward.SetHelp(mainKm.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
-//			alwaysShown = append(alwaysShown, mainKm.Forward)
-//		}
-//
-//		if !hasFilter {
-//			if prevPage := currentPage.Backward(); prevPage != currentPage {
-//				mainKm.Back.SetHelp(mainKm.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
-//				alwaysShown = append(alwaysShown, mainKm.Back)
-//			}
-//		} else {
-//			mainKm.Back.SetHelp(mainKm.Back.Help().Key, "clear filter")
-//			alwaysShown = append(alwaysShown, mainKm.Back)
-//		}
-//	} else {
-//		mainKm.Forward.SetHelp(mainKm.Forward.Help().Key, "keep filter")
-//		alwaysShown = append(alwaysShown, mainKm.Forward)
-//
-//		mainKm.Back.SetHelp(mainKm.Back.Help().Key, "discard filter")
-//		alwaysShown = append(alwaysShown, mainKm.Back)
-//	}
-//	firstRow := keyHelper.ShortHelpView(alwaysShown)
-//
-//	viewportKm := viewport.GetKeyMap()
-//	viewportAlwaysShown := []key.Binding{viewportKm.Up, viewportKm.Down, viewportKm.PageUp, viewportKm.PageDown}
-//	secondRow := keyHelper.ShortHelpView(viewportAlwaysShown)
-//
-//	final := firstRow
-//	if !isFiltering {
-//		final += "\n" + secondRow
-//	}
-//	return final
-//}
+func GetPageKeyHelp(currentPage page.Page, isFiltering, hasFilter bool) string {
+	keyHelper := help.New()
+	keyHelper.ShortSeparator = "    "
+	keyHelper.Styles.ShortKey = style.KeyHelpKey
+	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
+
+	var alwaysShown []key.Binding
+	if !isFiltering {
+		alwaysShown = append(alwaysShown, []key.Binding{KeyMap.Exit, KeyMap.Filter, KeyMap.Reload}...)
+
+		if nextPage := currentPage.Forward(); nextPage != currentPage {
+			KeyMap.Forward.SetHelp(KeyMap.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
+			alwaysShown = append(alwaysShown, KeyMap.Forward)
+		}
+
+		if !hasFilter {
+			if prevPage := currentPage.Backward(); prevPage != currentPage {
+				KeyMap.Back.SetHelp(KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
+				alwaysShown = append(alwaysShown, KeyMap.Back)
+			}
+		} else {
+			KeyMap.Back.SetHelp(KeyMap.Back.Help().Key, "clear filter")
+			alwaysShown = append(alwaysShown, KeyMap.Back)
+		}
+	} else {
+		KeyMap.Forward.SetHelp(KeyMap.Forward.Help().Key, "keep filter")
+		alwaysShown = append(alwaysShown, KeyMap.Forward)
+
+		KeyMap.Back.SetHelp(KeyMap.Back.Help().Key, "discard filter")
+		alwaysShown = append(alwaysShown, KeyMap.Back)
+	}
+	firstRow := keyHelper.ShortHelpView(alwaysShown)
+
+	viewportKm := viewport.GetKeyMap()
+	viewportAlwaysShown := []key.Binding{viewportKm.Up, viewportKm.Down, viewportKm.PageUp, viewportKm.PageDown}
+	secondRow := keyHelper.ShortHelpView(viewportAlwaysShown)
+
+	final := firstRow
+	if !isFiltering {
+		final += "\n" + secondRow
+	}
+	return final
+}
