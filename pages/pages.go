@@ -9,6 +9,7 @@ const (
 	Jobs
 	Allocations
 	Logs
+	Logline
 )
 
 func (p Page) String() string {
@@ -21,6 +22,8 @@ func (p Page) String() string {
 		return "allocations"
 	case Logs:
 		return "logs"
+	case Logline:
+		return "log"
 	}
 	return "unknown"
 }
@@ -39,6 +42,8 @@ func (p Page) Forward() Page {
 		return Allocations
 	case Allocations:
 		return Logs
+	case Logs:
+		return Logline
 	}
 	return p
 }
@@ -49,6 +54,8 @@ func (p Page) Backward() Page {
 		return Jobs
 	case Logs:
 		return Allocations
+	case Logline:
+		return Logs
 	}
 	return p
 }

@@ -168,7 +168,7 @@ func (m *Model) SetHeaderAndContent(header, content string) {
 
 	maxLineLength := 0
 	for _, line := range append(newHeader, lines...) {
-		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
+		if lineLength := len(strings.TrimRight(line, " ")); lineLength > maxLineLength {
 			maxLineLength = lineLength
 		}
 	}
@@ -311,11 +311,11 @@ func (m *Model) viewRight(n int) {
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
-	trimmedLineLength := len(strings.TrimSpace(line))
+	rightTrimmedLineLength := len(strings.TrimRight(line, " "))
 	if len(line) > m.width {
 		//dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
 		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
-		if m.xOffset+m.width+1 < trimmedLineLength {
+		if m.xOffset+m.width+1 < rightTrimmedLineLength {
 			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
 		}
 		if m.xOffset > 0 {
@@ -328,7 +328,7 @@ func (m Model) getVisiblePartOfLine(line string) string {
 func (m Model) getFooterString() string {
 	if numLines := len(m.lines); numLines > m.height {
 		progressString := fmt.Sprintf("%d%% (%d/%d)", percent(m.CursorRow+1, numLines), m.CursorRow+1, numLines)
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#737373")).Render(progressString)
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#737373")).Render(progressString) // TODO LEO: make style
 	}
 	return ""
 }

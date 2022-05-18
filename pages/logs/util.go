@@ -90,11 +90,6 @@ func logsAsTable(logs []logRow, logType LogType) formatter.Table {
 		}
 	}
 
-	// ignore the first log line if there are more than one as it's likely truncated due to the request's offset
-	if len(logs) > 1 {
-		logRows = logRows[1:]
-	}
-
 	return formatter.GetRenderedTableAsString(
 		[]string{logType.String()},
 		logRows,
