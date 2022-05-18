@@ -65,27 +65,29 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Loading = false
 
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keymap.KeyMap.Reload):
-			m.Loading = true
-			cmds = append(cmds, FetchJobs(m.url, m.token))
-
-		case key.Matches(msg, keymap.KeyMap.Forward):
-			if !m.filter.EditingFilter && len(m.jobsData.filteredData) > 0 {
-				m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
+		if m.filter.EditingFilter || key.Matches(msg, keymap.KeyMap.Filter) {
+			prevFilter := m.filter.Filter
+			m.filter, cmd = m.filter.Update(msg)
+			if m.filter.Filter != prevFilter {
+				m.updateJobViewport()
 			}
-		}
+			cmds = append(cmds, cmd)
+		} else {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Reload):
+				m.Loading = true
+				cmds = append(cmds, FetchJobs(m.url, m.token))
 
-		prevFilter := m.filter.Filter
-		m.filter, cmd = m.filter.Update(msg)
-		if m.filter.Filter != prevFilter {
-			m.updateJobViewport()
-		}
-		cmds = append(cmds, cmd)
+			case key.Matches(msg, keymap.KeyMap.Forward):
+				if len(m.jobsData.filteredData) > 0 {
+					m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
+					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
+				}
 
-		// prevent viewport adjustments if filtering
-		if !m.filter.EditingFilter {
+			case key.Matches(msg, keymap.KeyMap.Back):
+				m.ClearFilter()
+			}
+
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
