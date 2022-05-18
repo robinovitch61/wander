@@ -18,7 +18,7 @@ func (p Page) String() string {
 	case Jobs:
 		return "jobs"
 	case Allocations:
-		return "allocation"
+		return "allocations"
 	case Logs:
 		return "logs"
 	}
