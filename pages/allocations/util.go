@@ -1,58 +1,27 @@
-package nomad
+package allocations
 
 import (
+	"encoding/json"
+	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"sort"
 	"strings"
 	"time"
+	"wander/dev"
+	"wander/formatter"
+	"wander/message"
+	"wander/nomad"
 )
 
-type JobResponseEntry struct {
-	ID                string      `json:"ID"`
-	ParentID          string      `json:"ParentID"`
-	Name              string      `json:"Name"`
-	Namespace         string      `json:"Namespace"`
-	Datacenters       []string    `json:"Datacenters"`
-	Multiregion       interface{} `json:"Multiregion"`
-	Type              string      `json:"Type"`
-	Priority          int         `json:"Priority"`
-	Periodic          bool        `json:"Periodic"`
-	ParameterizedJob  bool        `json:"ParameterizedJob"`
-	Stop              bool        `json:"Stop"`
-	Status            string      `json:"Status"`
-	StatusDescription string      `json:"StatusDescription"`
-	JobSummary        struct {
-		JobID     string `json:"JobID"`
-		Namespace string `json:"Namespace"`
-		Summary   struct {
-			YourProjectName struct {
-				Queued   int `json:"Queued"`
-				Complete int `json:"Complete"`
-				Failed   int `json:"Failed"`
-				Running  int `json:"Running"`
-				Starting int `json:"Starting"`
-				Lost     int `json:"Lost"`
-			} `json:"your_project_name"`
-		} `json:"Summary"`
-		Children struct {
-			Pending int `json:"Pending"`
-			Running int `json:"Running"`
-			Dead    int `json:"Dead"`
-		} `json:"Children"`
-		CreateIndex int `json:"CreateIndex"`
-		ModifyIndex int `json:"ModifyIndex"`
-	} `json:"JobSummary"`
-	CreateIndex    int   `json:"CreateIndex"`
-	ModifyIndex    int   `json:"ModifyIndex"`
-	JobModifyIndex int   `json:"JobModifyIndex"`
-	SubmitTime     int64 `json:"SubmitTime"`
+type allocationsData struct {
+	allData, filteredData []allocationRowEntry
 }
 
-func (e JobResponseEntry) MatchesFilter(filter string) bool {
-	return strings.Contains(e.ID, filter)
-}
+type nomadAllocationMsg []allocationRowEntry
 
-// AllocationResponseEntry is returned from GET /v1/job/:job_id/allocations
+// allocationResponseEntry is returned from GET /v1/job/:job_id/allocations
 // https://www.nomadproject.io/api-docs/jobs#list-job-allocations
-type AllocationResponseEntry struct {
+type allocationResponseEntry struct {
 	ID                 string `json:"ID"`
 	EvalID             string `json:"EvalID"`
 	Name               string `json:"Name"`
@@ -108,37 +77,75 @@ type AllocationResponseEntry struct {
 	ModifyTime  int64 `json:"ModifyTime"`
 }
 
-// AllocationRowEntry is an item extracted from AllocationResponseEntry
-type AllocationRowEntry struct {
+// allocationRowEntry is an item extracted from allocationResponseEntry
+type allocationRowEntry struct {
 	ID, Name, TaskName, State string
 	StartedAt, FinishedAt     time.Time
 }
 
-func (e AllocationRowEntry) MatchesFilter(filter string) bool {
+func (e allocationRowEntry) MatchesFilter(filter string) bool {
 	return strings.Contains(e.TaskName, filter)
 }
 
-// LogRow is a log line
-type LogRow string
+func FetchAllocations(url, token, jobID string) tea.Cmd {
+	return func() tea.Msg {
+		dev.Debug(fmt.Sprintf("jobID %s", jobID))
+		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
+		body, err := nomad.Get(fullPath, token, nil)
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
 
-func (e LogRow) MatchesFilter(filter string) bool {
-	return strings.Contains(string(e), filter)
+		var allocationResponse []allocationResponseEntry
+		if err := json.Unmarshal(body, &allocationResponse); err != nil {
+			return message.ErrMsg{Err: err}
+		}
+
+		var allocationRowEntries []allocationRowEntry
+		for _, alloc := range allocationResponse {
+			for taskName, task := range alloc.TaskStates {
+				allocationRowEntries = append(allocationRowEntries, allocationRowEntry{
+					ID:         alloc.ID,
+					Name:       alloc.Name,
+					TaskName:   taskName,
+					State:      task.State,
+					StartedAt:  task.StartedAt,
+					FinishedAt: task.FinishedAt,
+				})
+			}
+		}
+
+		sort.Slice(allocationRowEntries, func(x, y int) bool {
+			firstTask := allocationRowEntries[x]
+			secondTask := allocationRowEntries[y]
+			if firstTask.TaskName == secondTask.TaskName {
+				if firstTask.Name == secondTask.Name {
+					return firstTask.State > secondTask.State
+				}
+				return firstTask.Name < secondTask.Name
+			}
+			return firstTask.TaskName < secondTask.TaskName
+		})
+
+		return nomadAllocationMsg(allocationRowEntries)
+	}
 }
 
-// LogType is an enum for the log type
-type LogType int8
-
-const (
-	StdOut LogType = iota
-	StdErr
-)
-
-func (p LogType) String() string {
-	switch p {
-	case StdOut:
-		return "Stdout Logs"
-	case StdErr:
-		return "Stderr Logs"
+func allocationsAsTable(allocations []allocationRowEntry) formatter.Table {
+	var allocationResponseRows [][]string
+	for _, alloc := range allocations {
+		allocationResponseRows = append(allocationResponseRows, []string{
+			alloc.ID,
+			alloc.Name,
+			alloc.TaskName,
+			alloc.State,
+			formatter.FormatTime(alloc.StartedAt),
+			formatter.FormatTime(alloc.FinishedAt),
+		})
 	}
-	return "Stdout Logs"
+
+	return formatter.GetRenderedTableAsString(
+		[]string{"Alloc ID", "Alloc Name", "Task Name", "State", "Started", "Finished"},
+		allocationResponseRows,
+	)
 }

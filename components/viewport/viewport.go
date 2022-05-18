@@ -1,24 +1,18 @@
 package viewport
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
+	"wander/dev"
 	"wander/style"
 )
 
 const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
-// New returns a new model with the given width and height as well as default values.
-func New(width, height int) (m Model) {
-	m.width = width
-	m.height = height
-	m.setInitialValues()
-	return m
-}
-
-// Model is the Bubble Tea model for this viewport element.
 type Model struct {
 	width         int
 	height        int
@@ -37,7 +31,7 @@ type Model struct {
 	// CursorRow is the row index of the cursor.
 	CursorRow int
 
-	// Highlight is the text to highlight (case sensitive), used for search, filter etc.
+	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
 
 	initialized   bool
@@ -46,8 +40,163 @@ type Model struct {
 	maxLineLength int
 }
 
+func New(width, height int) (m Model) {
+	m.width = width
+	m.height = height
+	m.setInitialValues()
+	return m
+}
+
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("viewport %T", msg))
+	if !m.initialized {
+		m.setInitialValues()
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keyMap.Up):
+			m.cursorRowUp(1)
+
+		case key.Matches(msg, m.keyMap.Down):
+			m.cursorRowDown(1)
+
+		case key.Matches(msg, m.keyMap.Left):
+			m.viewLeft(m.width / 4)
+
+		case key.Matches(msg, m.keyMap.Right):
+			m.viewRight(m.width / 4)
+
+		case key.Matches(msg, m.keyMap.HalfPageUp):
+			m.viewUp(m.contentHeight / 2)
+			m.cursorRowUp(m.contentHeight / 2)
+
+		case key.Matches(msg, m.keyMap.HalfPageDown):
+			m.viewDown(m.contentHeight / 2)
+			m.cursorRowDown(m.contentHeight / 2)
+
+		case key.Matches(msg, m.keyMap.PageUp):
+			m.viewUp(m.contentHeight)
+			m.cursorRowUp(m.contentHeight)
+
+		case key.Matches(msg, m.keyMap.PageDown):
+			m.viewDown(m.contentHeight)
+			m.cursorRowDown(m.contentHeight)
+
+		case key.Matches(msg, m.keyMap.Top):
+			m.cursorRowUp(m.yOffset + m.CursorRow)
+
+		case key.Matches(msg, m.keyMap.Bottom):
+			yOffset := m.maxLinesIdx()
+			m.cursorRowDown(yOffset)
+		}
+
+	case tea.MouseMsg:
+		if !m.mouseWheelEnabled {
+			break
+		}
+		switch msg.Type {
+		case tea.MouseWheelUp:
+			m.cursorRowUp(1)
+
+		case tea.MouseWheelDown:
+			m.cursorRowDown(1)
+		}
+	}
+
+	// could return non-nil cmd in the future
+	return m, nil
+}
+
+func (m Model) View() string {
+	nothingHighlighted := len(m.Highlight) == 0
+	var viewLines string
+
+	for _, headerLine := range m.header {
+		viewLines += style.TableHeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
+	}
+
+	for idx, line := range m.visibleLines() {
+		isSelected := m.yOffset+idx == m.CursorRow
+		line = m.getVisiblePartOfLine(line)
+
+		if nothingHighlighted {
+			if isSelected {
+				viewLines += style.ViewportCursorRow.Render(line)
+			} else {
+				viewLines += line
+			}
+		} else {
+			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
+			// so only do it if something is actually highlighted
+			styledHighlight := style.ViewportHighlight.Render(m.Highlight)
+			if isSelected {
+				lineChunks := strings.Split(line, m.Highlight)
+				var styledChunks []string
+				for _, chunk := range lineChunks {
+					styledChunks = append(styledChunks, style.ViewportCursorRow.Render(chunk))
+				}
+				viewLines += strings.Join(styledChunks, styledHighlight)
+			} else {
+				line = strings.ReplaceAll(line, m.Highlight, styledHighlight)
+				viewLines += line
+			}
+		}
+
+		viewLines += "\n"
+	}
+	trimmedViewLines := strings.TrimSpace(viewLines + m.getFooterString())
+	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
+	return renderedViewLines
+}
+
 func (m Model) ContentEmpty() bool {
 	return len(m.header) == 0 && len(m.lines) == 0
+}
+
+// SetSize sets the viewport's width and height, including header.
+func (m *Model) SetSize(width, height int) {
+	m.width, m.height = width, height
+	m.setContentHeight()
+	m.fixState()
+}
+
+func (m *Model) SetHeaderAndContent(header, content string) {
+	newHeader := strings.Split(normalizeLineEndings(header), "\n")
+	lines := strings.Split(normalizeLineEndings(content), "\n")
+
+	maxLineLength := 0
+	for _, line := range append(newHeader, lines...) {
+		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
+			maxLineLength = lineLength
+		}
+	}
+
+	m.header = newHeader
+	m.lines = lines
+	m.maxLineLength = maxLineLength
+	m.setContentHeight()
+	m.fixState()
+}
+
+// SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
+func (m *Model) SetCursorRow(n int) {
+	if m.contentHeight == 0 {
+		return
+	}
+
+	if maxSelection := m.maxCursorRow(); n > maxSelection {
+		m.CursorRow = maxSelection
+	} else {
+		m.CursorRow = max(0, n)
+	}
+
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
+		m.viewDown(m.CursorRow - lastVisibleLineIdx)
+	} else if m.CursorRow < m.yOffset {
+		m.viewUp(m.yOffset - m.CursorRow)
+	}
 }
 
 func (m *Model) setInitialValues() {
@@ -55,11 +204,6 @@ func (m *Model) setInitialValues() {
 	m.keyMap = GetKeyMap()
 	m.mouseWheelEnabled = false
 	m.initialized = true
-}
-
-// Init exists to satisfy the tea.Model interface for composability purposes.
-func (m Model) Init() tea.Cmd {
-	return nil
 }
 
 func normalizeLineEndings(s string) string {
@@ -87,45 +231,7 @@ func (m *Model) fixState() {
 }
 
 func (m *Model) setContentHeight() {
-	m.contentHeight = max(0, m.height-len(m.header))
-}
-
-// SetHeight sets the pager's height, including header.
-func (m *Model) SetHeight(h int) {
-	m.height = h
-	m.setContentHeight()
-	m.fixState()
-}
-
-// SetWidth sets the pager's width.
-func (m *Model) SetWidth(w int) {
-	m.width = w
-}
-
-// SetHeader sets the pager's header content.
-func (m *Model) SetHeader(header string) {
-	m.header = strings.Split(normalizeLineEndings(header), "\n")
-	m.setContentHeight()
-}
-
-// SetContent sets the pager's text content.
-func (m *Model) SetContent(s string) {
-	lines := strings.Split(normalizeLineEndings(s), "\n")
-	maxLineLength := 0
-	for _, line := range lines {
-		if lineLength := len(strings.TrimSpace(line)); lineLength > maxLineLength {
-			maxLineLength = lineLength
-		}
-	}
-	m.lines = lines
-	m.maxLineLength = maxLineLength
-	m.fixState()
-}
-
-// SetLoading clears the header and content and displays the loading message
-func (m *Model) SetLoading(s string) {
-	m.SetContent("")
-	m.SetHeader(s)
+	m.contentHeight = max(0, m.height-len(m.header)-m.getFooterHeight())
 }
 
 // maxLinesIdx returns the maximum index of the model's lines
@@ -157,25 +263,6 @@ func (m *Model) setYOffset(n int) {
 		m.yOffset = maxYOffset
 	} else {
 		m.yOffset = max(0, n)
-	}
-}
-
-// SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
-func (m *Model) SetCursorRow(n int) {
-	if m.contentHeight == 0 {
-		return
-	}
-
-	if maxSelection := m.maxCursorRow(); n > maxSelection {
-		m.CursorRow = maxSelection
-	} else {
-		m.CursorRow = max(0, n)
-	}
-
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
-		m.viewDown(m.CursorRow - lastVisibleLineIdx)
-	} else if m.CursorRow < m.yOffset {
-		m.viewUp(m.yOffset - m.CursorRow)
 	}
 }
 
@@ -223,70 +310,6 @@ func (m *Model) viewRight(n int) {
 	m.setXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
 }
 
-// Update handles standard message-based viewport updates.
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	if !m.initialized {
-		m.setInitialValues()
-	}
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.Up):
-			m.cursorRowUp(1)
-
-		case key.Matches(msg, m.keyMap.Down):
-			m.cursorRowDown(1)
-
-		case key.Matches(msg, m.keyMap.Left):
-			m.viewLeft(m.width / 4)
-
-		case key.Matches(msg, m.keyMap.Right):
-			m.viewRight(m.width / 4)
-
-		case key.Matches(msg, m.keyMap.HalfPageUp):
-			m.viewUp(m.contentHeight / 2)
-			m.cursorRowUp(m.contentHeight / 2)
-
-		case key.Matches(msg, m.keyMap.HalfPageDown):
-			m.viewDown(m.contentHeight / 2)
-			m.cursorRowDown(m.contentHeight / 2)
-
-		case key.Matches(msg, m.keyMap.PageUp):
-			m.viewUp(m.contentHeight)
-			m.cursorRowUp(m.contentHeight)
-
-		case key.Matches(msg, m.keyMap.PageDown):
-			m.viewDown(m.contentHeight)
-			m.cursorRowDown(m.contentHeight)
-
-		case key.Matches(msg, m.keyMap.Top):
-			m.cursorRowUp(m.yOffset + m.CursorRow)
-
-		case key.Matches(msg, m.keyMap.Bottom):
-			yOffset := m.maxLinesIdx()
-			m.cursorRowDown(yOffset)
-		}
-
-		//dev.Debug(fmt.Sprintf("selection %d, yoffset %d, height %d, contentHeight %d, len(m.lines) %d", m.CursorRow, m.yOffset, m.height, m.contentHeight, len(m.lines)))
-
-	case tea.MouseMsg:
-		if !m.mouseWheelEnabled {
-			break
-		}
-		switch msg.Type {
-		case tea.MouseWheelUp:
-			m.cursorRowUp(1)
-
-		case tea.MouseWheelDown:
-			m.cursorRowDown(1)
-		}
-	}
-
-	// could return non-nil cmd in the future
-	return m, nil
-}
-
 func (m Model) getVisiblePartOfLine(line string) string {
 	trimmedLineLength := len(strings.TrimSpace(line))
 	if len(line) > m.width {
@@ -302,48 +325,16 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	return line
 }
 
-// View returns the string representing the viewport.
-func (m Model) View() string {
-	nothingHighlighted := len(m.Highlight) == 0
-
-	var viewLines string
-
-	for _, headerLine := range m.header {
-		viewLines += style.TableHeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
+func (m Model) getFooterString() string {
+	if numLines := len(m.lines); numLines > m.height {
+		progressString := fmt.Sprintf("%d%% (%d/%d)", percent(m.CursorRow+1, numLines), m.CursorRow+1, numLines)
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#737373")).Render(progressString)
 	}
+	return ""
+}
 
-	for idx, line := range m.visibleLines() {
-		isSelected := m.yOffset+idx == m.CursorRow
-		line = m.getVisiblePartOfLine(line)
-
-		if nothingHighlighted {
-			if isSelected {
-				viewLines += style.ViewportCursorRow.Render(line)
-			} else {
-				viewLines += line
-			}
-		} else {
-			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
-			// so only do it if something is actually highlighted
-			styledHighlight := style.ViewportHighlight.Render(m.Highlight)
-			if isSelected {
-				lineChunks := strings.Split(line, m.Highlight)
-				var styledChunks []string
-				for _, chunk := range lineChunks {
-					styledChunks = append(styledChunks, style.ViewportCursorRow.Render(chunk))
-				}
-				viewLines += strings.Join(styledChunks, styledHighlight)
-			} else {
-				line = strings.ReplaceAll(line, m.Highlight, styledHighlight)
-				viewLines += line
-			}
-		}
-
-		viewLines += "\n"
-	}
-	trimmedViewLines := strings.TrimSpace(viewLines)
-	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
-	return renderedViewLines
+func (m Model) getFooterHeight() int {
+	return len(strings.Split(m.getFooterString(), "\n"))
 }
 
 func min(a, b int) int {
@@ -358,4 +349,8 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func percent(a, b int) int {
+	return int(float32(a) / float32(b) * 100)
 }
