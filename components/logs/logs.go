@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
-	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
+	"wander/keymap"
 	"wander/message"
 	"wander/style"
 )
@@ -20,7 +20,6 @@ type Model struct {
 	width, height       int
 	viewport            viewport.Model
 	filter              filter.Model
-	keyMap              page.KeyMap
 	allocID             string
 	taskName            string
 	Loading             bool
@@ -36,7 +35,6 @@ func New(url, token string, width, height int) Model {
 		height:   height,
 		viewport: viewport.New(width, height-logsFilter.ViewHeight()),
 		filter:   logsFilter,
-		keyMap:   page.GetKeyMap(),
 		Loading:  true,
 	}
 	return model
@@ -59,23 +57,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.keyMap.Reload):
+		case key.Matches(msg, keymap.KeyMap.Reload):
 			m.Loading = true
 			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
 
-		case key.Matches(msg, m.keyMap.Back):
+		case key.Matches(msg, keymap.KeyMap.Back):
 			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
 			}
 
-		case key.Matches(msg, m.keyMap.StdOut):
+		case key.Matches(msg, keymap.KeyMap.StdOut):
 			if !m.filter.EditingFilter {
 				m.setLogType(StdOut)
 				m.Loading = true
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 
-		case key.Matches(msg, m.keyMap.StdErr):
+		case key.Matches(msg, keymap.KeyMap.StdErr):
 			if !m.filter.EditingFilter {
 				m.setLogType(StdErr)
 				m.Loading = true

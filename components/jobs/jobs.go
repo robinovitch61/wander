@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
-	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
+	"wander/keymap"
 	"wander/message"
 )
 
@@ -26,7 +26,6 @@ type Model struct {
 	width, height     int
 	viewport          viewport.Model
 	filter            filter.Model
-	keyMap            page.KeyMap
 	Loading           bool
 	LastSelectedJobID string
 }
@@ -40,7 +39,6 @@ func New(url, token string, width, height int) Model {
 		height:   height,
 		viewport: viewport.New(width, height-jobsFilter.ViewHeight()),
 		filter:   jobsFilter,
-		keyMap:   page.GetKeyMap(),
 		Loading:  true,
 	}
 	return model
@@ -67,11 +65,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.keyMap.Reload):
+		case key.Matches(msg, keymap.KeyMap.Reload):
 			m.Loading = true
 			cmds = append(cmds, FetchJobs(m.url, m.token))
 
-		case key.Matches(msg, m.keyMap.Forward):
+		case key.Matches(msg, keymap.KeyMap.Forward):
 			if !m.filter.EditingFilter && len(m.jobsData.filteredData) > 0 {
 				m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }

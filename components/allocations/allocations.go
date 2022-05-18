@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
-	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
+	"wander/keymap"
 	"wander/message"
 	"wander/style"
 )
@@ -20,7 +20,6 @@ type Model struct {
 	width, height        int
 	viewport             viewport.Model
 	filter               filter.Model
-	keyMap               page.KeyMap
 	jobID                string
 	Loading              bool
 	LastSelectedAllocID  string
@@ -36,7 +35,6 @@ func New(url, token string, width, height int) Model {
 		height:   height,
 		viewport: viewport.New(width, height-allocationsFilter.ViewHeight()),
 		filter:   allocationsFilter,
-		keyMap:   page.GetKeyMap(),
 		Loading:  true,
 	}
 	return model
@@ -59,11 +57,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.keyMap.Reload):
+		case key.Matches(msg, keymap.KeyMap.Reload):
 			m.Loading = true
 			cmds = append(cmds, func() tea.Msg { return message.ViewAllocationsMsg{} })
 
-		case key.Matches(msg, m.keyMap.Forward):
+		case key.Matches(msg, keymap.KeyMap.Forward):
 			if !m.filter.EditingFilter && len(m.allocationsData.filteredData) > 0 {
 				selectedAlloc := m.allocationsData.filteredData[m.viewport.CursorRow]
 				m.LastSelectedAllocID = selectedAlloc.ID
@@ -71,7 +69,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
 			}
 
-		case key.Matches(msg, m.keyMap.Back):
+		case key.Matches(msg, keymap.KeyMap.Back):
 			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
 				return m, func() tea.Msg { return message.ViewJobsMsg{} }
 			}

@@ -12,6 +12,7 @@ import (
 	"wander/components/logs"
 	"wander/components/page"
 	"wander/dev"
+	"wander/keymap"
 	"wander/message"
 )
 
@@ -23,7 +24,6 @@ var (
 type model struct {
 	nomadToken       string
 	nomadUrl         string
-	keyMap           mainKeyMap
 	currentPage      page.Page
 	jobsPage         jobs.Model
 	allocationsPage  allocations.Model
@@ -51,7 +51,6 @@ func initialModel() model {
 		os.Exit(1)
 	}
 
-	keyMap := getMainKeyMap()
 	logo := []string{
 		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
 		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
@@ -60,7 +59,6 @@ func initialModel() model {
 	return model{
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
-		keyMap:      keyMap,
 		currentPage: page.Jobs,
 		header:      header.New(logoString, nomadUrl, ""),
 	}
@@ -80,7 +78,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.keyMap.Exit):
+		case key.Matches(msg, keymap.KeyMap.Exit):
 			return m, tea.Quit
 
 		default:
