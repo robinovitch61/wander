@@ -71,7 +71,6 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO LEO: no first line of logs if longer than total
 	dev.Debug(fmt.Sprintf("main %T", msg))
 	var (
 		cmd  tea.Cmd
@@ -103,7 +102,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.logsPage = logs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
 			m.initialized = true
 		} else {
-			// TODO LEO: dry
 			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
 			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
 			m.logsPage.SetWindowSize(msg.Width, pageHeight)

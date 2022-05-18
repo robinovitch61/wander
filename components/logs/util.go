@@ -84,13 +84,15 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 
 func logsAsTable(logs []logRow, logType LogType) formatter.Table {
 	var logRows [][]string
-	// ignore the first log line because it may be truncated due to offset
-	// TODO LEO: check if there's actually a truncated line based on the offset size and log char length^
-	//for _, row := range logs[1:] {
 	for _, row := range logs {
 		if stripped := strings.TrimSpace(string(row)); stripped != "" {
 			logRows = append(logRows, []string{stripped})
 		}
+	}
+
+	// ignore the first log line if there are more than one as it's likely truncated due to the request's offset
+	if len(logs) > 1 {
+		logRows = logRows[1:]
 	}
 
 	return formatter.GetRenderedTableAsString(
