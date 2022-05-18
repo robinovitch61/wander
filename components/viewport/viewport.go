@@ -163,7 +163,10 @@ func (m Model) View() string {
 
 		viewLines += "\n"
 	}
-	trimmedViewLines := strings.TrimSpace(viewLines + m.getFooterString())
+	if footerString, _ := m.getFooter(); footerString != "" {
+		viewLines += footerString
+	}
+	trimmedViewLines := strings.TrimSpace(viewLines)
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
 }
@@ -241,7 +244,8 @@ func (m *Model) fixState() {
 }
 
 func (m *Model) setContentHeight() {
-	m.contentHeight = max(0, m.height-len(m.header)-m.getFooterHeight())
+	_, footerHeight := m.getFooter()
+	m.contentHeight = max(0, m.height-len(m.header)-footerHeight)
 }
 
 // maxLinesIdx returns the maximum index of the model's lines
@@ -335,16 +339,13 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	return line
 }
 
-func (m Model) getFooterString() string {
-	if numLines := len(m.lines); numLines > m.height {
-		progressString := fmt.Sprintf("%d%% (%d/%d)", percent(m.CursorRow+1, numLines), m.CursorRow+1, numLines)
-		return m.FooterStyle.Render(progressString)
+func (m Model) getFooter() (string, int) {
+	if numLines := len(m.lines); numLines > m.height-len(m.header) {
+		percentScrolled := percent(m.CursorRow+1, numLines)
+		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, m.CursorRow+1, numLines)
+		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))
 	}
-	return ""
-}
-
-func (m Model) getFooterHeight() int {
-	return len(strings.Split(m.getFooterString(), "\n"))
+	return "", 0
 }
 
 func min(a, b int) int {
