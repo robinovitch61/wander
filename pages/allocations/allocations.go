@@ -59,34 +59,35 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Loading = false
 
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keymap.KeyMap.Reload):
-			m.Loading = true
-			return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
+		if m.filter.EditingFilter || key.Matches(msg, keymap.KeyMap.Filter) {
+			prevFilter := m.filter.Filter
+			m.filter, cmd = m.filter.Update(msg)
+			if m.filter.Filter != prevFilter {
+				m.updateAllocationViewport()
+			}
+			cmds = append(cmds, cmd)
+		} else {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Reload):
+				m.Loading = true
+				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
 
-		case key.Matches(msg, keymap.KeyMap.Forward):
-			if !m.filter.EditingFilter && len(m.allocationsData.filteredData) > 0 {
-				selectedAlloc := m.allocationsData.filteredData[m.viewport.CursorRow]
-				m.LastSelectedAllocID = selectedAlloc.ID
-				m.LastSelectedTaskName = selectedAlloc.TaskName
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+			case key.Matches(msg, keymap.KeyMap.Forward):
+				if len(m.allocationsData.filteredData) > 0 {
+					selectedAlloc := m.allocationsData.filteredData[m.viewport.CursorRow]
+					m.LastSelectedAllocID = selectedAlloc.ID
+					m.LastSelectedTaskName = selectedAlloc.TaskName
+					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+				}
+
+			case key.Matches(msg, keymap.KeyMap.Back):
+				if len(m.filter.Filter) == 0 {
+					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Jobs} }
+				} else {
+					m.ClearFilter()
+				}
 			}
 
-		case key.Matches(msg, keymap.KeyMap.Back):
-			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Jobs} }
-			}
-		}
-
-		prevFilter := m.filter.Filter
-		m.filter, cmd = m.filter.Update(msg)
-		if m.filter.Filter != prevFilter {
-			m.updateAllocationViewport()
-		}
-		cmds = append(cmds, cmd)
-
-		// prevent viewport adjustments if filtering
-		if !m.filter.EditingFilter {
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
@@ -106,6 +107,11 @@ func (m Model) View() string {
 func (m *Model) SetWindowSize(width, height int) {
 	m.width, m.height = width, height
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
+}
+
+func (m *Model) ClearFilter() {
+	m.filter.SetFilter("")
+	m.updateAllocationViewport()
 }
 
 func (m *Model) SetJobID(jobID string) {

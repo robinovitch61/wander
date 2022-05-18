@@ -53,22 +53,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keymap.KeyMap.Back):
-			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+		if m.filter.EditingFilter || key.Matches(msg, keymap.KeyMap.Filter) {
+			prevFilter := m.filter.Filter
+			m.filter, cmd = m.filter.Update(msg)
+			if m.filter.Filter != prevFilter {
+				m.updateLoglineViewport()
 			}
-		}
+			cmds = append(cmds, cmd)
+		} else {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Back):
+				if len(m.filter.Filter) == 0 {
+					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+				} else {
+					m.ClearFilter()
+				}
+			}
 
-		prevFilter := m.filter.Filter
-		m.filter, cmd = m.filter.Update(msg)
-		if m.filter.Filter != prevFilter {
-			m.updateLoglineViewport()
-		}
-		cmds = append(cmds, cmd)
-
-		// prevent viewport adjustments if filtering
-		if !m.filter.EditingFilter {
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
@@ -84,6 +85,11 @@ func (m Model) View() string {
 func (m *Model) SetWindowSize(width, height int) {
 	m.width, m.height = width, height
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
+}
+
+func (m *Model) ClearFilter() {
+	m.filter.SetFilter("")
+	m.updateLoglineViewport()
 }
 
 func (m *Model) SetLogline(logline string) {

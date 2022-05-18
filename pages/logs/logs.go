@@ -60,46 +60,43 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Loading = false
 
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keymap.KeyMap.Reload):
-			m.Loading = true
-			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
-
-		case key.Matches(msg, keymap.KeyMap.Forward):
-			if !m.filter.EditingFilter && len(m.logsData.filteredData) > 0 {
-				m.LastSelectedLogline = string(m.logsData.filteredData[m.viewport.CursorRow])
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logline} }
+		if m.filter.EditingFilter || key.Matches(msg, keymap.KeyMap.Filter) {
+			prevFilter := m.filter.Filter
+			m.filter, cmd = m.filter.Update(msg)
+			if m.filter.Filter != prevFilter {
+				m.updateLogViewport()
 			}
+			cmds = append(cmds, cmd)
+		} else {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Reload):
+				m.Loading = true
+				cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
 
-		case key.Matches(msg, keymap.KeyMap.Back):
-			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
-			}
+			case key.Matches(msg, keymap.KeyMap.Forward):
+				if len(m.logsData.filteredData) > 0 {
+					m.LastSelectedLogline = string(m.logsData.filteredData[m.viewport.CursorRow])
+					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logline} }
+				}
 
-		case key.Matches(msg, keymap.KeyMap.StdOut):
-			if !m.filter.EditingFilter {
+			case key.Matches(msg, keymap.KeyMap.Back):
+				if len(m.filter.Filter) == 0 {
+					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
+				} else {
+					m.ClearFilter()
+				}
+
+			case key.Matches(msg, keymap.KeyMap.StdOut):
 				m.setLogType(StdOut)
 				m.Loading = true
 				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
-			}
 
-		case key.Matches(msg, keymap.KeyMap.StdErr):
-			if !m.filter.EditingFilter {
+			case key.Matches(msg, keymap.KeyMap.StdErr):
 				m.setLogType(StdErr)
 				m.Loading = true
 				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
 			}
-		}
 
-		prevFilter := m.filter.Filter
-		m.filter, cmd = m.filter.Update(msg)
-		if m.filter.Filter != prevFilter {
-			m.updateLogViewport()
-		}
-		cmds = append(cmds, cmd)
-
-		// prevent viewport adjustments if filtering
-		if !m.filter.EditingFilter {
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
