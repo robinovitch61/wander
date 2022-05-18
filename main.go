@@ -107,27 +107,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	// this is how subcomponents currently tell main model to update the parent state
-	case message.ViewJobsMsg:
-		m.setPage(page.Jobs)
-		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
+	case message.ChangePageMsg:
+		newPage := msg.NewPage
+		m.setPage(newPage)
+		m.header.KeyHelp = keymap.GetPageKeyHelp(newPage)
 
-	case message.ViewAllocationsMsg:
-		m.setPage(page.Allocations)
-		jobID := m.jobsPage.LastSelectedJobID
-		m.allocationsPage.SetJobID(jobID)
-		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
+		switch newPage {
+		case page.Jobs:
+			return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
-	case message.ViewLogsMsg:
-		m.setPage(page.Logs)
-		allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
-		m.logsPage.SetAllocationData(allocID, taskName)
-		return m, logs.FetchLogs(
-			m.nomadUrl,
-			m.nomadToken,
-			allocID,
-			taskName,
-			m.logsPage.LastSelectedLogType,
-		)
+		case page.Allocations:
+			jobID := m.jobsPage.LastSelectedJobID
+			m.allocationsPage.SetJobID(jobID)
+			return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
+
+		case page.Logs:
+			m.setPage(page.Logs)
+			allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
+			m.logsPage.SetAllocationData(allocID, taskName)
+			return m, logs.FetchLogs(
+				m.nomadUrl,
+				m.nomadToken,
+				allocID,
+				taskName,
+				m.logsPage.LastSelectedLogType,
+			)
+		}
 	}
 
 	switch m.currentPage {

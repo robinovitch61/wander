@@ -1,11 +1,9 @@
 package message
 
+import "wander/components/page"
+
 type ErrMsg struct{ Err error }
 
-type ViewJobsMsg struct{}
-
-type ViewAllocationsMsg struct{}
-
-type ViewLogsMsg struct{}
+type ChangePageMsg struct{ NewPage page.Page }
 
 func (e ErrMsg) Error() string { return e.Err.Error() }

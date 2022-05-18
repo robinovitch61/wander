@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
+	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
@@ -72,7 +73,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keymap.KeyMap.Forward):
 			if !m.filter.EditingFilter && len(m.jobsData.filteredData) > 0 {
 				m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
-				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
+				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: page.Allocations} }
 			}
 		}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
+	"wander/components/page"
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
@@ -59,19 +60,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keymap.KeyMap.Reload):
 			m.Loading = true
-			cmds = append(cmds, func() tea.Msg { return message.ViewAllocationsMsg{} })
+			return m, func() tea.Msg { return message.ChangePageMsg{NewPage: page.Allocations} }
 
 		case key.Matches(msg, keymap.KeyMap.Forward):
 			if !m.filter.EditingFilter && len(m.allocationsData.filteredData) > 0 {
 				selectedAlloc := m.allocationsData.filteredData[m.viewport.CursorRow]
 				m.LastSelectedAllocID = selectedAlloc.ID
 				m.LastSelectedTaskName = selectedAlloc.TaskName
-				return m, func() tea.Msg { return message.ViewLogsMsg{} }
+				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: page.Logs} }
 			}
 
 		case key.Matches(msg, keymap.KeyMap.Back):
 			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {
-				return m, func() tea.Msg { return message.ViewJobsMsg{} }
+				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: page.Jobs} }
 			}
 		}
 
