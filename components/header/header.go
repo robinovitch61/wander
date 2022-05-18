@@ -9,20 +9,13 @@ import (
 )
 
 type Model struct {
-	logo          []string
-	nomadUrl      string
-	KeyHelp       string
-	Filter        string
-	EditingFilter bool
+	logo     string
+	nomadUrl string
+	KeyHelp  string
 }
 
-var (
-	clusterURLPrefix = style.Bold.Render("Cluster URL:")
-	filterPrefix     = style.Bold.Render("Filter:")
-)
-
-func New(logo []string, nomadUrl, keyHelp string) (m Model) {
-	return Model{logo: logo, nomadUrl: nomadUrl, KeyHelp: keyHelp, Filter: "", EditingFilter: false}
+func New(logo string, nomadUrl, keyHelp string) (m Model) {
+	return Model{logo: logo, nomadUrl: nomadUrl, KeyHelp: keyHelp}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -33,36 +26,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) formatFilterString(s string) string {
-	if !m.EditingFilter {
-		return s
-	}
-	return style.EditingText.Render(s)
-}
-
 func (m Model) View() string {
-	logo := style.Logo.Render(strings.Join(m.logo, "\n"))
-	viewString := fmt.Sprintf("%s %s", clusterURLPrefix, m.nomadUrl)
-	viewString += "\n" + m.formatFilterString(fmt.Sprintf("%s ", filterPrefix))
-	if m.EditingFilter {
-		if m.Filter == "" {
-			viewString += m.formatFilterString("<type to filter>")
-		}
-	} else {
-		if m.Filter == "" {
-			viewString += m.formatFilterString("none ('/' to filter)")
-		}
-	}
-	viewString += m.formatFilterString(m.Filter)
-	styledViewString := style.Header.Render(viewString)
+	logo := style.Logo.Render(m.logo)
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)
-	return lipgloss.JoinHorizontal(0.3, logo, styledViewString, styledKeyHelp)
+	top := lipgloss.JoinHorizontal(lipgloss.Center, logo, styledKeyHelp)
+	clusterUrl := style.Bold.Copy().Padding(0, 0, 0, 1).Render(fmt.Sprintf("URL: %s", m.nomadUrl))
+	return lipgloss.JoinVertical(lipgloss.Left, top, clusterUrl)
 }
 
 func (m Model) ViewHeight() int {
 	return len(strings.Split(m.View(), "\n"))
-}
-
-func (m Model) HasFilter() bool {
-	return len(m.Filter) > 0
 }
