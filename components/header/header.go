@@ -28,10 +28,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	logo := style.Logo.Render(m.logo)
+	clusterUrl := style.ClusterUrl.Render(fmt.Sprintf("URL: %s", m.nomadUrl))
+	left := style.Header.Render(lipgloss.JoinVertical(lipgloss.Center, logo, clusterUrl))
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)
-	top := lipgloss.JoinHorizontal(lipgloss.Center, logo, styledKeyHelp)
-	clusterUrl := style.Bold.Copy().Padding(0, 0, 0, 1).Render(fmt.Sprintf("URL: %s", m.nomadUrl))
-	return lipgloss.JoinVertical(lipgloss.Left, top, clusterUrl)
+	return lipgloss.JoinHorizontal(lipgloss.Center, left, styledKeyHelp)
 }
 
 func (m Model) ViewHeight() int {
