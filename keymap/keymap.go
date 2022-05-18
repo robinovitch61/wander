@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"wander/components/page"
 	"wander/components/viewport"
+	"wander/pages"
 	"wander/style"
 )
 
@@ -50,7 +50,7 @@ var KeyMap = keyMap{
 	),
 }
 
-func GetPageKeyHelp(currentPage page.Page) string {
+func GetPageKeyHelp(currentPage pages.Page) string {
 	keyHelper := help.New()
 	keyHelper.ShortSeparator = "    "
 	keyHelper.Styles.ShortKey = style.KeyHelpKey

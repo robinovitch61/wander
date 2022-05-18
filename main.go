@@ -6,14 +6,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
 	"strings"
-	"wander/components/allocations"
 	"wander/components/header"
-	"wander/components/jobs"
-	"wander/components/logs"
-	"wander/components/page"
 	"wander/dev"
 	"wander/keymap"
 	"wander/message"
+	"wander/pages"
+	"wander/pages/allocations"
+	"wander/pages/jobs"
+	"wander/pages/logs"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 type model struct {
 	nomadToken       string
 	nomadUrl         string
-	currentPage      page.Page
+	currentPage      pages.Page
 	jobsPage         jobs.Model
 	allocationsPage  allocations.Model
 	logsPage         logs.Model
@@ -56,7 +56,7 @@ func initialModel() model {
 		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
 	}
 	logoString := strings.Join(logo, "\n")
-	firstPage := page.Jobs
+	firstPage := pages.Jobs
 	return model{
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
@@ -113,16 +113,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.header.KeyHelp = keymap.GetPageKeyHelp(newPage)
 
 		switch newPage {
-		case page.Jobs:
+		case pages.Jobs:
 			return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
-		case page.Allocations:
+		case pages.Allocations:
 			jobID := m.jobsPage.LastSelectedJobID
 			m.allocationsPage.SetJobID(jobID)
 			return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
 
-		case page.Logs:
-			m.setPage(page.Logs)
+		case pages.Logs:
+			m.setPage(pages.Logs)
 			allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
 			m.logsPage.SetAllocationData(allocID, taskName)
 			return m, logs.FetchLogs(
@@ -136,15 +136,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.currentPage {
-	case page.Jobs:
+	case pages.Jobs:
 		m.jobsPage, cmd = m.jobsPage.Update(msg)
 		cmds = append(cmds, cmd)
 
-	case page.Allocations:
+	case pages.Allocations:
 		m.allocationsPage, cmd = m.allocationsPage.Update(msg)
 		cmds = append(cmds, cmd)
 
-	case page.Logs:
+	case pages.Logs:
 		m.logsPage, cmd = m.logsPage.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -159,13 +159,13 @@ func (m model) View() string {
 
 	pageView := ""
 	switch m.currentPage {
-	case page.Jobs:
+	case pages.Jobs:
 		pageView = m.jobsPage.View()
 
-	case page.Allocations:
+	case pages.Allocations:
 		pageView = m.allocationsPage.View()
 
-	case page.Logs:
+	case pages.Logs:
 		pageView = m.logsPage.View()
 	}
 
@@ -173,7 +173,7 @@ func (m model) View() string {
 	return finalView
 }
 
-func (m *model) setPage(p page.Page) {
+func (m *model) setPage(p pages.Page) {
 	m.currentPage = p
 	//m.setHeaderKeyHelp()
 }
@@ -188,11 +188,11 @@ func (m model) getPageHeight() int {
 
 func (m model) currentPageLoading() bool {
 	switch m.currentPage {
-	case page.Jobs:
+	case pages.Jobs:
 		return m.jobsPage.Loading
-	case page.Allocations:
+	case pages.Allocations:
 		return m.allocationsPage.Loading
-	case page.Logs:
+	case pages.Logs:
 		return m.logsPage.Loading
 	}
 	return true
