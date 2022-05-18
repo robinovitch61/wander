@@ -29,12 +29,14 @@ const filterPrefix = "Log Line"
 func New(logline string, width, height int) Model {
 	splitLoglines := splitLogline(logline)
 	loglineFilter := filter.New(filterPrefix)
+	loglineViewport := viewport.New(width, height-loglineFilter.ViewHeight())
+	loglineViewport.SetCursorEnabled(false)
 	model := Model{
 		logline:     logline,
 		loglineData: loglineData{splitLoglines, splitLoglines},
 		width:       width,
 		height:      height,
-		viewport:    viewport.New(width, height-loglineFilter.ViewHeight()),
+		viewport:    loglineViewport,
 		filter:      loglineFilter,
 	}
 	return model

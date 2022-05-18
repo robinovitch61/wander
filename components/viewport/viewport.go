@@ -18,6 +18,7 @@ type Model struct {
 	height        int
 	contentHeight int // excludes header height, should always be internal
 	keyMap        viewportKeyMap
+	cursorEnabled bool
 
 	// Currently, causes flickering if enabled.
 	mouseWheelEnabled bool
@@ -41,7 +42,6 @@ type Model struct {
 	ContentStyle   lipgloss.Style
 	FooterStyle    lipgloss.Style
 
-	//initialized   bool
 	header        []string
 	lines         []string
 	maxLineLength int
@@ -57,8 +57,8 @@ func New(width, height int) (m Model) {
 func (m *Model) setInitialValues() {
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
+	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
-	//m.initialized = true
 	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
@@ -67,18 +67,23 @@ func (m *Model) setInitialValues() {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("viewport %T", msg))
-	//if !m.initialized {
-	//	m.setInitialValues()
-	//}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keyMap.Up):
-			m.cursorRowUp(1)
+			if m.cursorEnabled {
+				m.cursorRowUp(1)
+			} else {
+				m.viewUp(1)
+			}
 
 		case key.Matches(msg, m.keyMap.Down):
-			m.cursorRowDown(1)
+			if m.cursorEnabled {
+				m.cursorRowDown(1)
+			} else {
+				m.viewDown(1)
+			}
 
 		case key.Matches(msg, m.keyMap.Left):
 			m.viewLeft(m.width / 4)
@@ -88,26 +93,41 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keyMap.HalfPageUp):
 			m.viewUp(m.contentHeight / 2)
-			m.cursorRowUp(m.contentHeight / 2)
+			if m.cursorEnabled {
+				m.cursorRowUp(m.contentHeight / 2)
+			}
 
 		case key.Matches(msg, m.keyMap.HalfPageDown):
 			m.viewDown(m.contentHeight / 2)
-			m.cursorRowDown(m.contentHeight / 2)
+			if m.cursorEnabled {
+				m.cursorRowDown(m.contentHeight / 2)
+			}
 
 		case key.Matches(msg, m.keyMap.PageUp):
 			m.viewUp(m.contentHeight)
-			m.cursorRowUp(m.contentHeight)
+			if m.cursorEnabled {
+				m.cursorRowUp(m.contentHeight)
+			}
 
 		case key.Matches(msg, m.keyMap.PageDown):
 			m.viewDown(m.contentHeight)
-			m.cursorRowDown(m.contentHeight)
+			if m.cursorEnabled {
+				m.cursorRowDown(m.contentHeight)
+			}
 
 		case key.Matches(msg, m.keyMap.Top):
-			m.cursorRowUp(m.yOffset + m.CursorRow)
+			if m.cursorEnabled {
+				m.cursorRowUp(m.yOffset + m.CursorRow)
+			} else {
+				m.viewUp(m.yOffset + m.CursorRow)
+			}
 
 		case key.Matches(msg, m.keyMap.Bottom):
-			yOffset := m.maxLinesIdx()
-			m.cursorRowDown(yOffset)
+			if m.cursorEnabled {
+				m.cursorRowDown(m.maxLinesIdx())
+			} else {
+				m.viewDown(m.maxLinesIdx())
+			}
 		}
 
 	case tea.MouseMsg:
@@ -136,7 +156,7 @@ func (m Model) View() string {
 	}
 
 	for idx, line := range m.visibleLines() {
-		isSelected := m.yOffset+idx == m.CursorRow
+		isSelected := m.cursorEnabled && m.yOffset+idx == m.CursorRow
 		line = m.getVisiblePartOfLine(line)
 
 		if nothingHighlighted {
@@ -173,6 +193,10 @@ func (m Model) View() string {
 
 func (m Model) ContentEmpty() bool {
 	return len(m.header) == 0 && len(m.lines) == 0
+}
+
+func (m *Model) SetCursorEnabled(cursorEnabled bool) {
+	m.cursorEnabled = cursorEnabled
 }
 
 // SetSize sets the viewport's width and height, including header.
@@ -344,9 +368,14 @@ func (m Model) getVisiblePartOfLine(line string) string {
 }
 
 func (m Model) getFooter() (string, int) {
+	numerator := m.CursorRow + 1
+	if !m.cursorEnabled {
+		numerator = m.yOffset + len(m.visibleLines())
+	}
+
 	if numLines := len(m.lines); numLines > m.height-len(m.header) {
-		percentScrolled := percent(m.CursorRow+1, numLines)
-		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, m.CursorRow+1, numLines)
+		percentScrolled := percent(numerator, numLines)
+		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
 		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))
 	}
 	return "", 0
