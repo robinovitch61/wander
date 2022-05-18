@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"strings"
 	"wander/components/filter"
 	"wander/components/viewport"
 	"wander/dev"
@@ -106,11 +105,8 @@ func (m *Model) updateFilteredLogData() {
 func (m *Model) updateLoglineViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredLogData()
-	table := logsAsTable(m.loglineData.filteredData)
-	m.viewport.SetHeaderAndContent(
-		strings.Join(table.HeaderRows, "\n"),
-		strings.Join(table.ContentRows, "\n"),
-	)
+	content := logsAsString(m.loglineData.filteredData)
+	m.viewport.SetHeaderAndContent("", content)
 	m.viewport.SetCursorRow(0)
 }
 

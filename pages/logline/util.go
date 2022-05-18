@@ -2,7 +2,6 @@ package logline
 
 import (
 	"strings"
-	"wander/formatter"
 )
 
 type loglineData struct {
@@ -15,14 +14,11 @@ func (e loglineRow) MatchesFilter(filter string) bool {
 	return strings.Contains(string(e), filter)
 }
 
-func logsAsTable(logs []loglineRow) formatter.Table {
-	var logRows [][]string
+func logsAsString(logs []loglineRow) string {
+	// is there a better way to do this in Go? Seems silly
+	var logRows []string
 	for _, row := range logs {
-		logRows = append(logRows, []string{string(row)})
+		logRows = append(logRows, string(row))
 	}
-
-	return formatter.GetRenderedTableAsString(
-		[]string{"Content"},
-		logRows,
-	)
+	return strings.Join(logRows, "\n")
 }
