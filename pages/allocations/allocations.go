@@ -27,8 +27,10 @@ type Model struct {
 	LastSelectedTaskName string
 }
 
+const filterPrefix = "Allocations"
+
 func New(url, token string, width, height int) Model {
-	allocationsFilter := filter.New("Allocations")
+	allocationsFilter := filter.New(filterPrefix)
 	model := Model{
 		url:      url,
 		token:    token,
@@ -108,7 +110,7 @@ func (m *Model) SetWindowSize(width, height int) {
 
 func (m *Model) SetJobID(jobID string) {
 	m.jobID = jobID
-	m.filter.SetPrefix(fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID)))
+	m.filter.SetPrefix(fmt.Sprintf("%s for %s", filterPrefix, style.Bold.Render(jobID)))
 }
 
 func (m *Model) updateFilteredAllocationData() {

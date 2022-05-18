@@ -28,8 +28,10 @@ type Model struct {
 	LastSelectedLogline string
 }
 
+const filterPrefix = "Logs"
+
 func New(url, token string, width, height int) Model {
-	logsFilter := filter.New("Logs")
+	logsFilter := filter.New(filterPrefix)
 	model := Model{
 		url:      url,
 		token:    token,
@@ -128,12 +130,16 @@ func (m *Model) SetWindowSize(width, height int) {
 
 func (m *Model) SetAllocationData(allocID, taskName string) {
 	m.allocID, m.taskName = allocID, taskName
-	m.filter.SetPrefix(fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), allocID[:8]))
+	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), allocID[:8]))
 }
 
 func (m *Model) ClearFilter() {
 	m.filter.SetFilter("")
 	m.updateLogViewport()
+}
+
+func (m *Model) ResetXOffset() {
+	m.viewport.SetXOffset(0)
 }
 
 func (m *Model) setLogType(logType LogType) {
