@@ -25,6 +25,7 @@ type Model struct {
 	taskName            string
 	Loading             bool
 	LastSelectedLogType LogType
+	LastSelectedLogline string
 }
 
 func New(url, token string, width, height int) Model {
@@ -61,6 +62,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keymap.KeyMap.Reload):
 			m.Loading = true
 			cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
+
+		case key.Matches(msg, keymap.KeyMap.Forward):
+			if !m.filter.EditingFilter && len(m.logsData.filteredData) > 0 {
+				m.LastSelectedLogline = string(m.logsData.filteredData[m.viewport.CursorRow])
+				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logline} }
+			}
 
 		case key.Matches(msg, keymap.KeyMap.Back):
 			if !m.filter.EditingFilter && len(m.filter.Filter) == 0 {

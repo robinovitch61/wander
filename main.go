@@ -13,6 +13,7 @@ import (
 	"wander/pages"
 	"wander/pages/allocations"
 	"wander/pages/jobs"
+	"wander/pages/logline"
 	"wander/pages/logs"
 )
 
@@ -28,6 +29,7 @@ type model struct {
 	jobsPage         jobs.Model
 	allocationsPage  allocations.Model
 	logsPage         logs.Model
+	loglinePage      logline.Model
 	selectedJobID    string
 	selectedAllocID  string
 	selectedTaskName string
@@ -99,11 +101,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.jobsPage = jobs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
 			m.allocationsPage = allocations.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
 			m.logsPage = logs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
+			m.loglinePage = logline.New("", msg.Width, pageHeight)
 			m.initialized = true
 		} else {
 			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
 			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
 			m.logsPage.SetWindowSize(msg.Width, pageHeight)
+			m.loglinePage.SetWindowSize(msg.Width, pageHeight)
 		}
 
 	// this is how subcomponents currently tell main model to update the parent state
@@ -114,17 +118,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch newPage {
 		case pages.Jobs:
+			m.jobsPage.Loading = true
 			return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
 		case pages.Allocations:
 			jobID := m.jobsPage.LastSelectedJobID
 			m.allocationsPage.SetJobID(jobID)
+			m.allocationsPage.Loading = true
 			return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
 
 		case pages.Logs:
 			m.setPage(pages.Logs)
 			allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
 			m.logsPage.SetAllocationData(allocID, taskName)
+			m.logsPage.Loading = true
 			return m, logs.FetchLogs(
 				m.nomadUrl,
 				m.nomadToken,
@@ -132,6 +139,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				taskName,
 				m.logsPage.LastSelectedLogType,
 			)
+
+		case pages.Logline:
+			m.setPage(pages.Logline)
+			m.loglinePage.SetLogline(m.logsPage.LastSelectedLogline)
 		}
 	}
 
@@ -139,13 +150,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case pages.Jobs:
 		m.jobsPage, cmd = m.jobsPage.Update(msg)
 		cmds = append(cmds, cmd)
-
 	case pages.Allocations:
 		m.allocationsPage, cmd = m.allocationsPage.Update(msg)
 		cmds = append(cmds, cmd)
-
 	case pages.Logs:
 		m.logsPage, cmd = m.logsPage.Update(msg)
+		cmds = append(cmds, cmd)
+	case pages.Logline:
+		m.loglinePage, cmd = m.loglinePage.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -161,12 +173,12 @@ func (m model) View() string {
 	switch m.currentPage {
 	case pages.Jobs:
 		pageView = m.jobsPage.View()
-
 	case pages.Allocations:
 		pageView = m.allocationsPage.View()
-
 	case pages.Logs:
 		pageView = m.logsPage.View()
+	case pages.Logline:
+		pageView = m.loglinePage.View()
 	}
 
 	finalView := m.header.View() + "\n" + pageView
@@ -194,6 +206,8 @@ func (m model) currentPageLoading() bool {
 		return m.allocationsPage.Loading
 	case pages.Logs:
 		return m.logsPage.Loading
+	case pages.Logline:
+		return false
 	}
 	return true
 }
