@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"wander/dev"
 )
 
 var (
@@ -48,6 +49,7 @@ func New(prefix string) Model {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("filter %T", msg))
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Back) {
@@ -69,7 +71,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 						}
 					}
 				case tea.KeyRunes:
-					m.SetFilter(m.Filter + msg.String())
+					// without this check, matches M+Backspace as \x18\u007f, etc.
+					if len(msg.String()) == 1 {
+						dev.Debug(fmt.Sprintf("filter key %s", msg))
+						m.SetFilter(m.Filter + msg.String())
+					}
 				}
 			}
 		} else if key.Matches(msg, m.keyMap.Filter) {

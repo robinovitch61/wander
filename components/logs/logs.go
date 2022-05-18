@@ -145,5 +145,5 @@ func (m *Model) updateLogViewport() {
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),
 	)
-	m.viewport.SetCursorRow(0)
+	m.viewport.SetCursorRow(len(m.logsData.filteredData) - 1)
 }

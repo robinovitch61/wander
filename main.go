@@ -71,7 +71,6 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO LEO: go to bottom of logs after load
 	// TODO LEO: no first line of logs if longer than total
 	dev.Debug(fmt.Sprintf("main %T", msg))
 	var (
