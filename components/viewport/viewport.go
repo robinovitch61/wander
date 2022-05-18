@@ -355,9 +355,9 @@ func (m *Model) viewRight(n int) {
 func (m Model) getVisiblePartOfLine(line string) string {
 	rightTrimmedLineLength := len(strings.TrimRight(line, " "))
 	if len(line) > m.width {
-		//dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
+		// dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
 		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
-		if m.xOffset+m.width+1 < rightTrimmedLineLength {
+		if m.xOffset+m.width < rightTrimmedLineLength {
 			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
 		}
 		if m.xOffset > 0 {
