@@ -193,7 +193,11 @@ func (m *Model) SetHeaderAndContent(header, content string) {
 		}
 	}
 
-	m.header = newHeader
+	if len(newHeader) == 1 && newHeader[0] == "" {
+		m.header = []string{}
+	} else {
+		m.header = newHeader
+	}
 	m.lines = lines
 	m.maxLineLength = maxLineLength
 	m.setContentHeight()
