@@ -56,8 +56,10 @@ func GetPageKeyHelp(currentPage pages.Page) string {
 	keyHelper.Styles.ShortKey = style.KeyHelpKey
 	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
 
-	var alwaysShown []key.Binding
-	alwaysShown = append(alwaysShown, []key.Binding{KeyMap.Exit, KeyMap.Reload}...)
+	alwaysShown := []key.Binding{KeyMap.Exit}
+	if currentPage != pages.Logline {
+		alwaysShown = append(alwaysShown, KeyMap.Reload)
+	}
 
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
 		KeyMap.Forward.SetHelp(KeyMap.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
