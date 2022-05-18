@@ -13,6 +13,7 @@ import (
 	"wander/keymap"
 	"wander/message"
 	"wander/pages"
+	"wander/style"
 )
 
 type Model struct {
@@ -23,9 +24,11 @@ type Model struct {
 	filter        filter.Model
 }
 
+const filterPrefix = "Log Line"
+
 func New(logline string, width, height int) Model {
 	splitLoglines := splitLogline(logline)
-	loglineFilter := filter.New("Log Line")
+	loglineFilter := filter.New(filterPrefix)
 	model := Model{
 		logline:     logline,
 		loglineData: loglineData{splitLoglines, splitLoglines},
@@ -87,9 +90,8 @@ func (m *Model) SetLogline(logline string) {
 	m.updateLoglineViewport()
 }
 
-func (m *Model) ClearFilter() {
-	m.filter.SetFilter("")
-	m.updateLoglineViewport()
+func (m *Model) SetAllocationData(allocID, taskName string) {
+	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), allocID[:8]))
 }
 
 func (m *Model) updateFilteredLogData() {

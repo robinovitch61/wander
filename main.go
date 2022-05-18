@@ -130,6 +130,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case pages.Logs:
 			m.setPage(pages.Logs)
+			m.logsPage.ResetXOffset()
 			allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
 			m.logsPage.SetAllocationData(allocID, taskName)
 			m.logsPage.Loading = true
@@ -143,6 +144,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case pages.Logline:
 			m.setPage(pages.Logline)
+			m.loglinePage.SetAllocationData(m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName)
 			m.loglinePage.SetLogline(m.logsPage.LastSelectedLogline)
 		}
 	}
