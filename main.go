@@ -61,7 +61,7 @@ func initialModel() model {
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
 		currentPage: firstPage,
-		header:      header.New(logoString, nomadUrl, keymap.GetPageKeyHelp(firstPage, false, false)),
+		header:      header.New(logoString, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
 	}
 }
 
