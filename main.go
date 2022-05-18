@@ -1,10 +1,5 @@
 package main
 
-// TODO LEO: consider:
-// - can deduplicate state by only having viewport, header, etc. having copies of certain state and having top-level reference it
-// - can pass updater functions that mutate parent state as props into components (e.g. onEnter(m *model) to viewport)
-// - can pass pointer to main model to child components in order to avoid replicating state
-
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -26,17 +21,21 @@ var (
 )
 
 type model struct {
-	nomadToken      string
-	nomadUrl        string
-	keyMap          mainKeyMap
-	currentPage     page.Page
-	jobsPage        jobs.Model
-	allocationsPage allocations.Model
-	logsPage        logs.Model
-	header          header.Model
-	width, height   int
-	initialized     bool
-	err             error
+	nomadToken       string
+	nomadUrl         string
+	keyMap           mainKeyMap
+	currentPage      page.Page
+	jobsPage         jobs.Model
+	allocationsPage  allocations.Model
+	logsPage         logs.Model
+	selectedJobID    string
+	selectedAllocID  string
+	selectedTaskName string
+	selectedLogType  logs.LogType
+	header           header.Model
+	width, height    int
+	initialized      bool
+	err              error
 }
 
 func initialModel() model {
@@ -71,73 +70,9 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
-//func (m model) fetchPageDataCmd() tea.Cmd {
-//	switch m.currentPage {
-//
-//	case page.Jobs:
-//		return command.fetchJobs(m.nomadUrl, m.nomadToken)
-//
-//	case page.Allocations:
-//		return command.fetchAllocations(m.nomadUrl, m.nomadToken, m.jobsPage.SelectedJobId)
-//
-//	case page.Logs:
-//		return command.FetchLogs(m.nomadUrl, m.nomadToken, m.selectedAlloc.ID, m.selectedAlloc.taskName, m.logType)
-//	}
-//	return nil
-//}
-
-//func (m *model) setHeaderKeyHelp() {
-//	m.header.KeyHelp = getPageKeyMapView(m.currentPage, m.header.EditingFilter, m.header.HasFilter())
-//}
-
-//func (m *model) setFilter(s string) {
-//m.header.Filter = s
-//m.jobsPage.SetHighlightText(s)
-
-//switch m.currentPage {
-//case page.Jobs:
-//	m.updateJobViewport()
-//case page.Allocations:
-//	m.updateAllocationViewport()
-//case page.Logs:
-//	m.updateLogViewport()
-//}
-//}
-
-//func (m *model) updateFilteredAllocationData() {
-//	var filteredAllocationData []nomad.AllocationRowEntry
-//	for _, entry := range m.nomadAllocationData.allData {
-//		if entry.MatchesFilter(m.header.Filter) {
-//			filteredAllocationData = append(filteredAllocationData, entry)
-//		}
-//	}
-//	m.nomadAllocationData.filteredData = filteredAllocationData
-//}
-//
-//func (m *model) updateAllocationViewport() {
-//	m.updateFilteredAllocationData()
-//	table := formatter.AllocationsAsTable(m.nomadAllocationData.filteredData)
-//	m.updateViewport(table, 0)
-//}
-//
-//func (m *model) updateFilteredLogData() {
-//	var filteredLogData []nomad.LogRow
-//	for _, log := range m.nomadLogData.allData {
-//		if log.MatchesFilter(m.header.Filter) {
-//			filteredLogData = append(filteredLogData, log)
-//		}
-//	}
-//	m.nomadLogData.filteredData = filteredLogData
-//}
-//
-//func (m *model) updateLogViewport() {
-//	m.updateFilteredLogData()
-//	table := formatter.LogsAsTable(m.nomadLogData.filteredData, m.logType)
-//	m.updateViewport(table, len(table.ContentRows)-1)
-//}
-//
-
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// TODO LEO: no pan if filtering
+	// TODO LEO: go to bottom of logs after load
 	dev.Debug(fmt.Sprintf("main %T", msg))
 	var (
 		cmd  tea.Cmd

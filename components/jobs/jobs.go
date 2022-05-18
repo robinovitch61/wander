@@ -13,7 +13,7 @@ import (
 	"wander/message"
 )
 
-type nomadJobData struct {
+type jobsData struct {
 	allData, filteredData []jobResponseEntry
 }
 
@@ -22,7 +22,7 @@ type nomadJobsMsg []jobResponseEntry
 type Model struct {
 	initialized       bool
 	url, token        string
-	nomadJobData      nomadJobData
+	jobsData          jobsData
 	width, height     int
 	viewport          viewport.Model
 	filter            filter.Model
@@ -61,7 +61,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case nomadJobsMsg:
-		m.nomadJobData.allData = msg
+		m.jobsData.allData = msg
 		m.updateJobViewport()
 		m.Loading = false
 
@@ -72,8 +72,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			cmds = append(cmds, FetchJobs(m.url, m.token))
 
 		case key.Matches(msg, m.keyMap.Forward):
-			if !m.filter.EditingFilter {
-				m.LastSelectedJobID = m.nomadJobData.filteredData[m.viewport.CursorRow].ID
+			if !m.filter.EditingFilter && len(m.jobsData.filteredData) > 0 {
+				m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
 				return m, func() tea.Msg { return message.ViewAllocationsMsg{} }
 			}
 		}
@@ -112,18 +112,18 @@ func (m *Model) ClearFilter() {
 
 func (m *Model) updateFilteredJobData() {
 	var filteredJobData []jobResponseEntry
-	for _, entry := range m.nomadJobData.allData {
+	for _, entry := range m.jobsData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
 			filteredJobData = append(filteredJobData, entry)
 		}
 	}
-	m.nomadJobData.filteredData = filteredJobData
+	m.jobsData.filteredData = filteredJobData
 }
 
 func (m *Model) updateJobViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredJobData()
-	table := jobResponsesAsTable(m.nomadJobData.filteredData)
+	table := jobResponsesAsTable(m.jobsData.filteredData)
 	m.viewport.SetHeaderAndContent(
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),

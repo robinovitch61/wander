@@ -9,7 +9,7 @@ import (
 	"wander/nomad"
 )
 
-type nomadLogsData struct {
+type logsData struct {
 	allData, filteredData []logRow
 }
 

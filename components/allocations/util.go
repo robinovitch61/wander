@@ -13,7 +13,7 @@ import (
 	"wander/nomad"
 )
 
-type nomadAllocationData struct {
+type allocationsData struct {
 	allData, filteredData []allocationRowEntry
 }
 

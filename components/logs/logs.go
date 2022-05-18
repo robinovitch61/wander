@@ -16,7 +16,7 @@ import (
 
 type Model struct {
 	url, token          string
-	nomadLogsData       nomadLogsData
+	logsData            logsData
 	width, height       int
 	viewport            viewport.Model
 	filter              filter.Model
@@ -53,7 +53,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case nomadLogsMsg:
-		m.nomadLogsData.allData = msg.Data
+		m.logsData.allData = msg.Data
 		m.updateLogViewport()
 		m.Loading = false
 
@@ -126,18 +126,18 @@ func (m *Model) setLogType(logType LogType) {
 
 func (m *Model) updateFilteredLogData() {
 	var filteredLogData []logRow
-	for _, entry := range m.nomadLogsData.allData {
+	for _, entry := range m.logsData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
 			filteredLogData = append(filteredLogData, entry)
 		}
 	}
-	m.nomadLogsData.filteredData = filteredLogData
+	m.logsData.filteredData = filteredLogData
 }
 
 func (m *Model) updateLogViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredLogData()
-	table := logsAsTable(m.nomadLogsData.filteredData, m.LastSelectedLogType)
+	table := logsAsTable(m.logsData.filteredData, m.LastSelectedLogType)
 	m.viewport.SetHeaderAndContent(
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),

@@ -16,7 +16,7 @@ import (
 
 type Model struct {
 	url, token           string
-	nomadAllocationData  nomadAllocationData
+	allocationsData      allocationsData
 	width, height        int
 	viewport             viewport.Model
 	filter               filter.Model
@@ -53,7 +53,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case nomadAllocationMsg:
-		m.nomadAllocationData.allData = msg
+		m.allocationsData.allData = msg
 		m.updateAllocationViewport()
 		m.Loading = false
 
@@ -64,8 +64,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			cmds = append(cmds, func() tea.Msg { return message.ViewAllocationsMsg{} })
 
 		case key.Matches(msg, m.keyMap.Forward):
-			if !m.filter.EditingFilter {
-				selectedAlloc := m.nomadAllocationData.filteredData[m.viewport.CursorRow]
+			if !m.filter.EditingFilter && len(m.allocationsData.filteredData) > 0 {
+				selectedAlloc := m.allocationsData.filteredData[m.viewport.CursorRow]
 				m.LastSelectedAllocID = selectedAlloc.ID
 				m.LastSelectedTaskName = selectedAlloc.TaskName
 				return m, func() tea.Msg { return message.ViewLogsMsg{} }
@@ -111,18 +111,18 @@ func (m *Model) SetJobID(jobID string) {
 
 func (m *Model) updateFilteredAllocationData() {
 	var filteredAllocationData []allocationRowEntry
-	for _, entry := range m.nomadAllocationData.allData {
+	for _, entry := range m.allocationsData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
 			filteredAllocationData = append(filteredAllocationData, entry)
 		}
 	}
-	m.nomadAllocationData.filteredData = filteredAllocationData
+	m.allocationsData.filteredData = filteredAllocationData
 }
 
 func (m *Model) updateAllocationViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredAllocationData()
-	table := allocationsAsTable(m.nomadAllocationData.filteredData)
+	table := allocationsAsTable(m.allocationsData.filteredData)
 	m.viewport.SetHeaderAndContent(
 		strings.Join(table.HeaderRows, "\n"),
 		strings.Join(table.ContentRows, "\n"),
