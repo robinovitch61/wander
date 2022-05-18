@@ -71,8 +71,8 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO LEO: no pan if filtering
 	// TODO LEO: go to bottom of logs after load
+	// TODO LEO: no first line of logs if longer than total
 	dev.Debug(fmt.Sprintf("main %T", msg))
 	var (
 		cmd  tea.Cmd
@@ -110,9 +110,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.logsPage.SetWindowSize(msg.Width, pageHeight)
 		}
 
+	// this is how subcomponents currently tell main model to update the parent state
 	case message.ViewJobsMsg:
 		m.setPage(page.Jobs)
-		m.jobsPage.ClearFilter()
 		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 
 	case message.ViewAllocationsMsg:

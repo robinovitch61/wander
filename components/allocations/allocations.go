@@ -84,8 +84,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		cmds = append(cmds, cmd)
 
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
+		// prevent viewport adjustments if filtering
+		if !m.filter.EditingFilter {
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
