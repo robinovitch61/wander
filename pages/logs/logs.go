@@ -109,6 +109,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	content := fmt.Sprintf("Loading %s logs for %s...", m.LastSelectedLogType.ShortString(), m.taskName)
 	if !m.Loading {
+		if m.LastSelectedLogType == StdOut {
+			m.viewport.ContentStyle = style.StdOut
+			m.viewport.HeaderStyle = style.StdOut.Copy().Bold(true)
+		} else {
+			m.viewport.ContentStyle = style.StdErr
+			m.viewport.HeaderStyle = style.StdErr.Copy().Bold(true)
+		}
 		content = m.viewport.View()
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)

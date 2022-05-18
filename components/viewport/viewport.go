@@ -34,7 +34,14 @@ type Model struct {
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
 
-	initialized   bool
+	// Styles
+	HeaderStyle    lipgloss.Style
+	CursorRowStyle lipgloss.Style
+	HighlightStyle lipgloss.Style
+	ContentStyle   lipgloss.Style
+	FooterStyle    lipgloss.Style
+
+	//initialized   bool
 	header        []string
 	lines         []string
 	maxLineLength int
@@ -47,11 +54,22 @@ func New(width, height int) (m Model) {
 	return m
 }
 
+func (m *Model) setInitialValues() {
+	m.setContentHeight()
+	m.keyMap = GetKeyMap()
+	m.mouseWheelEnabled = false
+	//m.initialized = true
+	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
+	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
+	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
+	m.FooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))
+}
+
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("viewport %T", msg))
-	if !m.initialized {
-		m.setInitialValues()
-	}
+	//if !m.initialized {
+	//	m.setInitialValues()
+	//}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -114,7 +132,7 @@ func (m Model) View() string {
 	var viewLines string
 
 	for _, headerLine := range m.header {
-		viewLines += style.TableHeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
+		viewLines += m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
 	}
 
 	for idx, line := range m.visibleLines() {
@@ -123,25 +141,24 @@ func (m Model) View() string {
 
 		if nothingHighlighted {
 			if isSelected {
-				viewLines += style.ViewportCursorRow.Render(line)
+				viewLines += m.CursorRowStyle.Render(line)
 			} else {
-				viewLines += line
+				viewLines += m.ContentStyle.Render(line)
 			}
 		} else {
 			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
-			styledHighlight := style.ViewportHighlight.Render(m.Highlight)
+			styledHighlight := m.HighlightStyle.Render(m.Highlight)
+			lineStyle := m.ContentStyle
 			if isSelected {
-				lineChunks := strings.Split(line, m.Highlight)
-				var styledChunks []string
-				for _, chunk := range lineChunks {
-					styledChunks = append(styledChunks, style.ViewportCursorRow.Render(chunk))
-				}
-				viewLines += strings.Join(styledChunks, styledHighlight)
-			} else {
-				line = strings.ReplaceAll(line, m.Highlight, styledHighlight)
-				viewLines += line
+				lineStyle = m.CursorRowStyle
 			}
+			lineChunks := strings.Split(line, m.Highlight)
+			var styledChunks []string
+			for _, chunk := range lineChunks {
+				styledChunks = append(styledChunks, lineStyle.Render(chunk))
+			}
+			viewLines += strings.Join(styledChunks, styledHighlight)
 		}
 
 		viewLines += "\n"
@@ -197,13 +214,6 @@ func (m *Model) SetCursorRow(n int) {
 	} else if m.CursorRow < m.yOffset {
 		m.viewUp(m.yOffset - m.CursorRow)
 	}
-}
-
-func (m *Model) setInitialValues() {
-	m.setContentHeight()
-	m.keyMap = GetKeyMap()
-	m.mouseWheelEnabled = false
-	m.initialized = true
 }
 
 func normalizeLineEndings(s string) string {
@@ -328,7 +338,7 @@ func (m Model) getVisiblePartOfLine(line string) string {
 func (m Model) getFooterString() string {
 	if numLines := len(m.lines); numLines > m.height {
 		progressString := fmt.Sprintf("%d%% (%d/%d)", percent(m.CursorRow+1, numLines), m.CursorRow+1, numLines)
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#737373")).Render(progressString) // TODO LEO: make style
+		return m.FooterStyle.Render(progressString)
 	}
 	return ""
 }

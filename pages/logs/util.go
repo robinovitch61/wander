@@ -38,7 +38,7 @@ func (p LogType) String() string {
 	case StdErr:
 		return "Stderr Logs"
 	}
-	return "Stdout Logs"
+	return "Unknown"
 }
 
 func (p LogType) ShortString() string {
@@ -48,7 +48,7 @@ func (p LogType) ShortString() string {
 	case StdErr:
 		return "stderr"
 	}
-	return "stdout"
+	return "unknown"
 }
 
 func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
