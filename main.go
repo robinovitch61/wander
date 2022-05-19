@@ -71,7 +71,7 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
-// TODO LEO: No reload when filtering
+// TODO LEO: papermill logs broken?
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("main %T", msg))
 	var (
