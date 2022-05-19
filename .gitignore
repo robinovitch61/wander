@@ -1,5 +1,5 @@
 .idea
 **/*.iml
-debug.log
+wander.log
 wander
 mock.go

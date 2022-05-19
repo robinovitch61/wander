@@ -37,4 +37,4 @@ The `dev/dev.sh` script watches the source code and rebuilds the app on changes 
 
 Run `./wander` to run the built app.
 
-The `dev.Debug(s string)` function prints to `debug.log`, which you can tail with `tail -f debug.log`
+If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs logs to `wander.log`.

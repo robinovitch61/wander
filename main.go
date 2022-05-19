@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	NomadTokenEnvVariable = "NOMAD_TOKEN"
-	NomadUrlEnvVariable   = "NOMAD_ADDR"
+	nomadTokenEnvVariable = "NOMAD_TOKEN"
+	nomadUrlEnvVariable   = "NOMAD_ADDR"
 )
 
 type model struct {
@@ -41,15 +41,15 @@ type model struct {
 }
 
 func initialModel() model {
-	nomadToken := os.Getenv(NomadTokenEnvVariable)
+	nomadToken := os.Getenv(nomadTokenEnvVariable)
 	if nomadToken == "" {
-		fmt.Printf("Set environment variable %s\n", NomadTokenEnvVariable)
+		fmt.Printf("Set environment variable %s\n", nomadTokenEnvVariable)
 		os.Exit(1)
 	}
 
-	nomadUrl := os.Getenv(NomadUrlEnvVariable)
+	nomadUrl := os.Getenv(nomadUrlEnvVariable)
 	if nomadUrl == "" {
-		fmt.Printf("Set environment variable %s\n", NomadUrlEnvVariable)
+		fmt.Printf("Set environment variable %s\n", nomadUrlEnvVariable)
 		os.Exit(1)
 	}
 
@@ -190,7 +190,7 @@ func (m model) View() string {
 
 func (m *model) setPage(p pages.Page) {
 	m.currentPage = p
-	//m.setHeaderKeyHelp()
+	// m.setHeaderKeyHelp()
 }
 
 func (m *model) setWindowSize(width, height int) {
