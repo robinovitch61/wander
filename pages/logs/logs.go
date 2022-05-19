@@ -9,6 +9,7 @@ import (
 	"wander/components/filter"
 	"wander/components/viewport"
 	"wander/dev"
+	"wander/formatter"
 	"wander/keymap"
 	"wander/message"
 	"wander/pages"
@@ -127,7 +128,7 @@ func (m *Model) SetWindowSize(width, height int) {
 
 func (m *Model) SetAllocationData(allocID, taskName string) {
 	m.allocID, m.taskName = allocID, taskName
-	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), allocID[:8]))
+	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), formatter.ShortAllocID(allocID)))
 }
 
 func (m *Model) ClearFilter() {

@@ -2,6 +2,10 @@ package formatter
 
 import "time"
 
+func ShortAllocID(allocID string) string {
+	return allocID[:8]
+}
+
 func FormatTime(t time.Time) string {
 	if t.IsZero() {
 		return "-"
