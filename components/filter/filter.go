@@ -16,8 +16,8 @@ type Model struct {
 	prefix             string
 	onUpdateFilter     func()
 	keyMap             filterKeyMap
+	focus              bool
 	Filter             string
-	EditingFilter      bool
 	PrefixStyle        lipgloss.Style
 	FilterStyle        lipgloss.Style
 	AppliedFilterStyle lipgloss.Style
@@ -53,13 +53,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Back) {
-			m.SetFiltering(false, true)
+			m.BlurAndClear()
 		}
 
-		if m.EditingFilter {
+		if m.focus {
 			switch {
 			case key.Matches(msg, m.keyMap.Forward):
-				m.SetFiltering(false, false)
+				m.Blur()
 			default:
 				switch msg.Type {
 				case tea.KeyBackspace:
@@ -79,7 +79,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 			}
 		} else if key.Matches(msg, m.keyMap.Filter) {
-			m.SetFiltering(true, false)
+			m.Focus()
 		}
 	}
 
@@ -91,7 +91,7 @@ func (m Model) View() string {
 	switch {
 	case len(m.Filter) > 0:
 		filterString = fmt.Sprintf("filter: %s", m.Filter)
-	case m.EditingFilter:
+	case m.focus:
 		filterString = "type to filter"
 	default:
 		filterString = "<'/' to filter>"
@@ -111,15 +111,25 @@ func (m *Model) SetFilter(filter string) {
 	m.Filter = filter
 }
 
-func (m *Model) SetFiltering(isEditingFilter, clearFilter bool) {
-	m.EditingFilter = isEditingFilter
-	if clearFilter {
-		m.SetFilter("")
-	}
+func (m Model) Focused() bool {
+	return m.focus
+}
+
+func (m *Model) Focus() {
+	m.focus = true
+}
+
+func (m *Model) Blur() {
+	m.focus = false
+}
+
+func (m *Model) BlurAndClear() {
+	m.Blur()
+	m.Filter = ""
 }
 
 func (m Model) formatFilterString(s string) string {
-	if !m.EditingFilter {
+	if !m.focus {
 		if len(m.Filter) == 0 {
 			return m.FilterStyle.Render(s)
 		} else {
