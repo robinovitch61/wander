@@ -29,7 +29,8 @@ const filterPrefix = "Log Line"
 func New(logline string, width, height int) Model {
 	splitLoglines := splitLogline(logline)
 	loglineFilter := filter.New(filterPrefix)
-	loglineViewport := viewport.New(width, height-loglineFilter.ViewHeight())
+	saveDialogPlaceholder := pages.GetSaveDialogPlaceholder(pages.Logline)
+	loglineViewport := viewport.New(width, height-loglineFilter.ViewHeight(), saveDialogPlaceholder)
 	loglineViewport.SetCursorEnabled(false)
 	model := Model{
 		logline:     logline,

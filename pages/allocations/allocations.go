@@ -30,12 +30,13 @@ const filterPrefix = "Allocations"
 
 func New(url, token string, width, height int) Model {
 	allocationsFilter := filter.New(filterPrefix)
+	saveDialogPlaceholder := pages.GetSaveDialogPlaceholder(pages.Allocations)
 	model := Model{
 		url:      url,
 		token:    token,
 		width:    width,
 		height:   height,
-		viewport: viewport.New(width, height-allocationsFilter.ViewHeight()),
+		viewport: viewport.New(width, height-allocationsFilter.ViewHeight(), saveDialogPlaceholder),
 		filter:   allocationsFilter,
 		Loading:  true,
 	}

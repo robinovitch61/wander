@@ -31,12 +31,17 @@ func (p Page) String() string {
 	return "unknown"
 }
 
-func (p Page) LoadingString() string {
+func (p Page) loadingString() string {
 	return fmt.Sprintf("Loading %s...", p.String())
 }
 
-func (p Page) ReloadingString() string {
+func (p Page) reloadingString() string {
 	return fmt.Sprintf("Reloading %s...", p.String())
+}
+
+func GetSaveDialogPlaceholder(page Page) string {
+	template := "Output file name for %s (path optional)"
+	return fmt.Sprintf(template, page.String())
 }
 
 func (p Page) Forward() Page {
