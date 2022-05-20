@@ -64,18 +64,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Loading = false
 
 	case tea.KeyMsg:
-		if m.filter.Focused() || key.Matches(msg, keymap.KeyMap.Filter) {
-			prevFilter := m.filter.Filter
-			m.filter, cmd = m.filter.Update(msg)
-			if m.filter.Filter != prevFilter {
-				m.updateJobViewport()
+		if m.filter.Focused() {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Forward):
+				m.filter.Blur()
+
+			case key.Matches(msg, keymap.KeyMap.Back):
+				m.clearFilter()
 			}
-			cmds = append(cmds, cmd)
 		} else {
 			switch {
+			case key.Matches(msg, keymap.KeyMap.Filter):
+				m.filter.Focus()
+				return m, nil
+
 			case key.Matches(msg, keymap.KeyMap.Reload):
-				m.Loading = true
-				cmds = append(cmds, FetchJobs(m.url, m.token))
+				return m, pages.ToJobsPageCmd
 
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				if len(m.jobsData.filteredData) > 0 {
@@ -84,12 +88,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
-				m.ClearFilter()
+				m.clearFilter()
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+
+		// filter won't respond to key messages if not focused
+		prevFilter := m.filter.Filter
+		m.filter, cmd = m.filter.Update(msg)
+		if m.filter.Filter != prevFilter {
+			m.updateJobViewport()
+		}
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -108,8 +120,8 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) ClearFilter() {
-	m.filter.SetFilter("")
+func (m *Model) clearFilter() {
+	m.filter.BlurAndClear()
 	m.updateJobViewport()
 }
 

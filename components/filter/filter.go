@@ -2,7 +2,6 @@ package filter
 
 import (
 	"fmt"
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"wander/dev"
@@ -52,34 +51,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("filter %T", msg))
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if key.Matches(msg, m.keyMap.Back) {
-			m.BlurAndClear()
-		}
-
 		if m.focus {
-			switch {
-			case key.Matches(msg, m.keyMap.Forward):
-				m.Blur()
-			default:
-				switch msg.Type {
-				case tea.KeyBackspace:
-					if len(m.Filter) > 0 {
-						if msg.Alt {
-							m.SetFilter("")
-						} else {
-							m.SetFilter(m.Filter[:len(m.Filter)-1])
-						}
-					}
-				case tea.KeyRunes:
-					// without this check, matches M+Backspace as \x18\u007f, etc.
-					if len(msg.String()) == 1 {
-						dev.Debug(fmt.Sprintf("filter key %s", msg))
-						m.SetFilter(m.Filter + msg.String())
+			switch msg.Type {
+			case tea.KeyBackspace:
+				if len(m.Filter) > 0 {
+					if msg.Alt {
+						m.SetFilter("")
+					} else {
+						m.SetFilter(m.Filter[:len(m.Filter)-1])
 					}
 				}
+			case tea.KeyRunes:
+				// without this check, matches M+Backspace as \x18\u007f, etc.
+				if len(msg.String()) == 1 {
+					dev.Debug(fmt.Sprintf("filter key %s", msg))
+					m.SetFilter(m.Filter + msg.String())
+				}
 			}
-		} else if key.Matches(msg, m.keyMap.Filter) {
-			m.Focus()
 		}
 	}
 
