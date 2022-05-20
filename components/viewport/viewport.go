@@ -5,6 +5,7 @@ package viewport
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
@@ -16,11 +17,13 @@ const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
 type Model struct {
-	width         int
-	height        int
-	contentHeight int // excludes header height, should always be internal
-	keyMap        viewportKeyMap
-	cursorEnabled bool
+	width             int
+	height            int
+	contentHeight     int // excludes header height, should always be internal
+	keyMap            viewportKeyMap
+	cursorEnabled     bool
+	saveDialog        textinput.Model
+	saveDialogVisible bool
 
 	// Currently, causes flickering if enabled.
 	mouseWheelEnabled bool
@@ -130,6 +133,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			} else {
 				m.viewDown(m.maxLinesIdx())
 			}
+
+		case key.Matches(msg, m.keyMap.Save):
+			m.saveDialogVisible = true
 		}
 
 	case tea.MouseMsg:
@@ -150,22 +156,33 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	var viewString string
+
 	nothingHighlighted := len(m.Highlight) == 0
-	var viewLines string
+	footerString, footerHeight := m.getFooter()
+	lineCount := 0
+	viewportWithoutFooterHeight := m.height - footerHeight
+
+	addLineToViewString := func(line string, isFooter bool) {
+		if isFooter || lineCount < viewportWithoutFooterHeight {
+			viewString += line + "\n"
+			lineCount += 1
+		}
+	}
 
 	for _, headerLine := range m.header {
-		viewLines += m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
+		addLineToViewString(m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)), false)
 	}
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.CursorRow
-		line = m.getVisiblePartOfLine(line)
+		visiblePartOfLine := m.getVisiblePartOfLine(line)
 
 		if nothingHighlighted {
 			if isSelected {
-				viewLines += m.CursorRowStyle.Render(line)
+				addLineToViewString(m.CursorRowStyle.Render(visiblePartOfLine), false)
 			} else {
-				viewLines += m.ContentStyle.Render(line)
+				addLineToViewString(m.ContentStyle.Render(visiblePartOfLine), false)
 			}
 		} else {
 			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
@@ -175,20 +192,23 @@ func (m Model) View() string {
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
-			lineChunks := strings.Split(line, m.Highlight)
+			lineChunks := strings.Split(visiblePartOfLine, m.Highlight)
 			var styledChunks []string
 			for _, chunk := range lineChunks {
 				styledChunks = append(styledChunks, lineStyle.Render(chunk))
 			}
-			viewLines += strings.Join(styledChunks, styledHighlight)
+			addLineToViewString(strings.Join(styledChunks, styledHighlight), false)
 		}
+	}
 
-		viewLines += "\n"
+	if footerHeight > 0 {
+		// pad so footer shows up at bottom
+		for lineCount < viewportWithoutFooterHeight {
+			addLineToViewString("", true)
+		}
+		addLineToViewString(footerString, true)
 	}
-	if footerString, _ := m.getFooter(); footerString != "" {
-		viewLines += footerString
-	}
-	trimmedViewLines := strings.TrimSpace(viewLines)
+	trimmedViewLines := strings.TrimSpace(viewString)
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
 }
@@ -371,6 +391,13 @@ func (m Model) getVisiblePartOfLine(line string) string {
 
 func (m Model) getFooter() (string, int) {
 	numerator := m.CursorRow + 1
+
+	if m.saveDialogVisible {
+		return m.saveDialog.View(), 1
+	}
+
+	// if cursor is disabled, percentage should show from the bottom of the visible content
+	// such that panning the view to the bottom shows 100%
 	if !m.cursorEnabled {
 		numerator = m.yOffset + len(m.visibleLines())
 	}
