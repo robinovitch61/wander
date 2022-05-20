@@ -140,7 +140,7 @@ func (m *Model) SetAllocationData(allocID, taskName string) {
 }
 
 func (m *Model) clearFilter() {
-	m.filter.SetFilter("")
+	m.filter.BlurAndClear()
 	m.updateLogViewport()
 }
 
