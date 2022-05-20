@@ -91,9 +91,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, m.keyMap.Cancel):
 				m.saveDialog.Blur()
+				m.saveDialog.Reset()
 
-			case key.Matches(msg, m.keyMap.Save):
+			case key.Matches(msg, m.keyMap.Confirm):
 				// TODO LEO: return I/O cmd writing viewport content to path here or display error
+				m.saveDialog.Blur()
+				m.saveDialog.Reset()
 			}
 		}
 	} else {
@@ -184,6 +187,7 @@ func (m Model) View() string {
 	nothingHighlighted := len(m.Highlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
+	// TODO LEO: logline footer not showing up at bottom when empty
 	viewportWithoutFooterHeight := m.height - footerHeight
 
 	addLineToViewString := func(line string, isFooter bool) {
@@ -236,10 +240,6 @@ func (m Model) View() string {
 	return renderedViewLines
 }
 
-func (m Model) ContentEmpty() bool {
-	return len(m.header) == 0 && len(m.lines) == 0
-}
-
 func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 	m.cursorEnabled = cursorEnabled
 }
@@ -290,6 +290,10 @@ func (m *Model) SetCursorRow(n int) {
 	} else if m.CursorRow < m.yOffset {
 		m.viewUp(m.yOffset - m.CursorRow)
 	}
+}
+
+func (m Model) Saving() bool {
+	return m.saveDialog.Focused()
 }
 
 func normalizeLineEndings(s string) string {
@@ -400,7 +404,6 @@ func (m *Model) viewRight(n int) {
 func (m Model) getVisiblePartOfLine(line string) string {
 	rightTrimmedLineLength := len(strings.TrimRight(line, " "))
 	if len(line) > m.width {
-		// dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
 		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
 		if m.xOffset+m.width < rightTrimmedLineLength {
 			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator

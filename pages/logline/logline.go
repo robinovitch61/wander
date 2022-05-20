@@ -52,7 +52,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.filter.Focused() {
+		if m.viewport.Saving() {
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+		} else if m.filter.Focused() {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				m.filter.Blur()

@@ -64,7 +64,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case tea.KeyRunes:
 				// without this check, matches M+Backspace as \x18\u007f, etc.
 				if len(msg.String()) == 1 {
-					dev.Debug(fmt.Sprintf("filter key %s", msg))
 					m.SetFilter(m.Filter + msg.String())
 				}
 			}
