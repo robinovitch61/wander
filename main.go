@@ -112,7 +112,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	// this is how subcomponents currently tell main model to update the parent state
-	case message.ChangePageMsg:
+	case pages.ChangePageMsg:
 		newPage := msg.NewPage
 		m.setPage(newPage)
 		m.header.KeyHelp = keymap.GetPageKeyHelp(newPage)

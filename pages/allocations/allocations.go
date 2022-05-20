@@ -10,7 +10,6 @@ import (
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
-	"wander/message"
 	"wander/pages"
 	"wander/style"
 )
@@ -70,19 +69,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Reload):
 				m.Loading = true
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
+				return m, pages.ToAllocationsPageCmd
 
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				if len(m.allocationsData.filteredData) > 0 {
 					selectedAlloc := m.allocationsData.filteredData[m.viewport.CursorRow]
 					m.LastSelectedAllocID = selectedAlloc.ID
 					m.LastSelectedTaskName = selectedAlloc.TaskName
-					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+					return m, pages.ToLogsPageCmd
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if len(m.filter.Filter) == 0 {
-					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Jobs} }
+					return m, pages.ToJobsPageCmd
 				} else {
 					m.ClearFilter()
 				}

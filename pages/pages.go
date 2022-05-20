@@ -1,6 +1,9 @@
 package pages
 
-import "fmt"
+import (
+	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 type Page int8
 
@@ -58,4 +61,22 @@ func (p Page) Backward() Page {
 		return Logs
 	}
 	return p
+}
+
+type ChangePageMsg struct{ NewPage Page }
+
+func ToJobsPageCmd() tea.Msg {
+	return ChangePageMsg{NewPage: Jobs}
+}
+
+func ToAllocationsPageCmd() tea.Msg {
+	return ChangePageMsg{NewPage: Allocations}
+}
+
+func ToLogsPageCmd() tea.Msg {
+	return ChangePageMsg{NewPage: Logs}
+}
+
+func ToLoglinePageCmd() tea.Msg {
+	return ChangePageMsg{NewPage: Logline}
 }
