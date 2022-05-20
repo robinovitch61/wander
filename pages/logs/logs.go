@@ -53,25 +53,28 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-
 	case nomadLogsMsg:
 		m.logsData.allData = msg.Data
 		m.updateLogViewport()
 		m.Loading = false
 
 	case tea.KeyMsg:
-		if m.filter.Focused() || key.Matches(msg, keymap.KeyMap.Filter) {
-			prevFilter := m.filter.Filter
-			m.filter, cmd = m.filter.Update(msg)
-			if m.filter.Filter != prevFilter {
-				m.updateLogViewport()
+		if m.filter.Focused() {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Forward):
+				m.filter.Blur()
+
+			case key.Matches(msg, keymap.KeyMap.Back):
+				m.clearFilter()
 			}
-			cmds = append(cmds, cmd)
 		} else {
 			switch {
+			case key.Matches(msg, keymap.KeyMap.Filter):
+				m.filter.Focus()
+				return m, nil
+
 			case key.Matches(msg, keymap.KeyMap.Reload):
-				m.Loading = true
-				cmds = append(cmds, FetchLogs(m.url, m.token, m.allocID, m.taskName, m.LastSelectedLogType))
+				return m, pages.ToLogsPageCmd
 
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				if len(m.logsData.filteredData) > 0 {
@@ -83,23 +86,29 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				if len(m.filter.Filter) == 0 {
 					return m, pages.ToAllocationsPageCmd
 				} else {
-					m.ClearFilter()
+					m.clearFilter()
 				}
 
 			case key.Matches(msg, keymap.KeyMap.StdOut):
 				m.setLogType(StdOut)
-				m.Loading = true
 				return m, pages.ToLogsPageCmd
 
 			case key.Matches(msg, keymap.KeyMap.StdErr):
 				m.setLogType(StdErr)
-				m.Loading = true
 				return m, pages.ToLogsPageCmd
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+
+		// filter won't respond to key messages if not focused
+		prevFilter := m.filter.Filter
+		m.filter, cmd = m.filter.Update(msg)
+		if m.filter.Filter != prevFilter {
+			m.updateLogViewport()
+		}
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -130,7 +139,7 @@ func (m *Model) SetAllocationData(allocID, taskName string) {
 	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), formatter.ShortAllocID(allocID)))
 }
 
-func (m *Model) ClearFilter() {
+func (m *Model) clearFilter() {
 	m.filter.SetFilter("")
 	m.updateLogViewport()
 }

@@ -51,28 +51,43 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-
 	case tea.KeyMsg:
-		if m.filter.Focused() || key.Matches(msg, keymap.KeyMap.Filter) {
-			prevFilter := m.filter.Filter
-			m.filter, cmd = m.filter.Update(msg)
-			if m.filter.Filter != prevFilter {
-				m.updateLoglineViewport()
+		if m.filter.Focused() {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.Forward):
+				m.filter.Blur()
+
+			case key.Matches(msg, keymap.KeyMap.Back):
+				m.clearFilter()
 			}
-			cmds = append(cmds, cmd)
 		} else {
 			switch {
+			case key.Matches(msg, keymap.KeyMap.Filter):
+				m.filter.Focus()
+				return m, nil
+
+			case key.Matches(msg, keymap.KeyMap.Reload):
+				return m, pages.ToAllocationsPageCmd
+
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if len(m.filter.Filter) == 0 {
 					return m, pages.ToLogsPageCmd
 				} else {
-					m.ClearFilter()
+					m.clearFilter()
 				}
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+
+		// filter won't respond to key messages if not focused
+		prevFilter := m.filter.Filter
+		m.filter, cmd = m.filter.Update(msg)
+		if m.filter.Filter != prevFilter {
+			m.updateLoglineViewport()
+		}
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -87,8 +102,8 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) ClearFilter() {
-	m.filter.SetFilter("")
+func (m *Model) clearFilter() {
+	m.filter.BlurAndClear()
 	m.updateLoglineViewport()
 }
 
