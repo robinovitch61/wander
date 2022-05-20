@@ -39,9 +39,6 @@ type Model struct {
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
 
-	// To be shown for the save placeholder
-	saveDialogPlaceholder string
-
 	// Styles
 	HeaderStyle    lipgloss.Style
 	CursorRowStyle lipgloss.Style
@@ -54,15 +51,18 @@ type Model struct {
 	maxLineLength int
 }
 
-func New(width, height int, saveDialogPlaceholder string) (m Model) {
+func New(width, height int) (m Model) {
 	m.width = width
 	m.height = height
+	m.setInitialValues()
+	return m
+}
 
+func (m *Model) setInitialValues() {
 	ti := textinput.New()
-	ti.Placeholder = saveDialogPlaceholder
+	ti.Placeholder = "Path to save"
 	ti.CharLimit = 156
 	ti.Width = 20
-	ti.PlaceholderStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF000000")).Foreground(lipgloss.Color("#000000"))
 
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
@@ -73,7 +73,6 @@ func New(width, height int, saveDialogPlaceholder string) (m Model) {
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
 	m.FooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))
-	return m
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {

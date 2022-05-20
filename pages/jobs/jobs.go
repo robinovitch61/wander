@@ -32,13 +32,12 @@ type Model struct {
 
 func New(url, token string, width, height int) Model {
 	jobsFilter := filter.New("Jobs")
-	saveDialogPlaceholder := pages.GetSaveDialogPlaceholder(pages.Jobs)
 	model := Model{
 		url:      url,
 		token:    token,
 		width:    width,
 		height:   height,
-		viewport: viewport.New(width, height-jobsFilter.ViewHeight(), saveDialogPlaceholder),
+		viewport: viewport.New(width, height-jobsFilter.ViewHeight()),
 		filter:   jobsFilter,
 		Loading:  true,
 	}

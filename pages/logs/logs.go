@@ -32,13 +32,12 @@ const filterPrefix = "Logs"
 
 func New(url, token string, width, height int) Model {
 	logsFilter := filter.New(filterPrefix)
-	saveDialogPlaceholder := pages.GetSaveDialogPlaceholder(pages.Logs)
 	model := Model{
 		url:      url,
 		token:    token,
 		width:    width,
 		height:   height,
-		viewport: viewport.New(width, height-logsFilter.ViewHeight(), saveDialogPlaceholder),
+		viewport: viewport.New(width, height-logsFilter.ViewHeight()),
 		filter:   logsFilter,
 		Loading:  true,
 	}
