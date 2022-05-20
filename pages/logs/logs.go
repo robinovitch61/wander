@@ -60,7 +60,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Loading = false
 
 	case tea.KeyMsg:
-		if m.filter.EditingFilter || key.Matches(msg, keymap.KeyMap.Filter) {
+		if m.filter.Focused() || key.Matches(msg, keymap.KeyMap.Filter) {
 			prevFilter := m.filter.Filter
 			m.filter, cmd = m.filter.Update(msg)
 			if m.filter.Filter != prevFilter {
