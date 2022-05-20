@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"wander/components/header"
+	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
 	"wander/message"
@@ -161,6 +162,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case pages.Logline:
 		m.loglinePage, cmd = m.loglinePage.Update(msg)
 		cmds = append(cmds, cmd)
+	}
+
+	switch msg.(type) {
+	case viewport.DialogTimeoutMsg:
+		m.jobsPage.HideSaveStatus()
+		m.allocationsPage.HideSaveStatus()
+		m.logsPage.HideSaveStatus()
+		m.loglinePage.HideSaveStatus()
 	}
 
 	return m, tea.Batch(cmds...)

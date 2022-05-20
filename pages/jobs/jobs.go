@@ -63,16 +63,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	if m.viewport.ShowSaveSuccessful {
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
 	switch msg := msg.(type) {
 	case nomadJobsMsg:
 		m.jobsData.allData = msg
 		m.updateJobViewport()
 		m.Loading = false
+
+	case viewport.SaveStatusMsg:
+		m.viewport.ShowSaveStatus = true
+		m.viewport.SaveStatus = msg
 
 	case tea.KeyMsg:
 		if m.filter.Focused() {
@@ -129,6 +128,10 @@ func (m Model) View() string {
 func (m *Model) SetWindowSize(width, height int) {
 	m.width, m.height = width, height
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
+}
+
+func (m *Model) HideSaveStatus() {
+	m.viewport.ShowSaveStatus = false
 }
 
 func (m *Model) clearFilter() {

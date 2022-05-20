@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
-	"time"
 	"wander/dev"
 	"wander/style"
 )
@@ -19,6 +18,10 @@ const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
 type DialogTimeoutMsg struct{}
 
+type SaveStatusMsg struct {
+	SavedPath, Err string
+}
+
 type Model struct {
 	// CursorRow is the row index of the cursor.
 	CursorRow int
@@ -26,8 +29,9 @@ type Model struct {
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
 
-	// ShowSaveSuccessful is true when save was successful
-	ShowSaveSuccessful bool
+	// SaveStatus replaces the footer when showing
+	SaveStatus     SaveStatusMsg
+	ShowSaveStatus bool
 
 	// Styles
 	HeaderStyle    lipgloss.Style
@@ -91,14 +95,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	switch msg.(type) {
-	case DialogTimeoutMsg:
-		// TODO LEO: might need to do this at the global level because of possible page changes during save dialog
-		m.ShowSaveSuccessful = false
-		m.saveDialog.Blur()
-		m.saveDialog.SetValue("")
-	}
-
 	if m.saveDialog.Focused() {
 		m.saveDialog, cmd = m.saveDialog.Update(msg)
 		cmds = append(cmds, cmd)
@@ -106,23 +102,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch {
-			case key.Matches(msg, m.keyMap.Cancel):
+			case key.Matches(msg, m.keyMap.CancelSave):
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
 
-			case key.Matches(msg, m.keyMap.Confirm):
+			case key.Matches(msg, m.keyMap.ConfirmSave):
 				dev.Debug(m.saveDialog.Value())
-				// TODO LEO: return I/O cmd writing viewport content to path here or display error
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
-
-				// TODO LEO: this should only be set when the I/O cmd actually returns non-ErrMsg
-				m.ShowSaveSuccessful = true
-
-				cmds = append(
-					cmds,
-					tea.Tick(time.Second*2, func(t time.Time) tea.Msg { return DialogTimeoutMsg{} }),
-				)
+				cmds = append(cmds, func() tea.Msg {
+					// TODO LEO: actual I/O here
+					return SaveStatusMsg{SavedPath: m.saveDialog.Value()}
+				})
+				//
+				// cmds = append(
+				// 	cmds,
+				// 	tea.Tick(time.Second*2, func(t time.Time) tea.Msg { return DialogTimeoutMsg{} }),
+				// )
 			}
 		}
 	} else {
@@ -188,8 +184,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, m.keyMap.Save):
-				m.saveDialog.Focus()
-				cmds = append(cmds, textinput.Blink)
+				if !m.ShowSaveStatus {
+					m.saveDialog.Focus()
+					cmds = append(cmds, textinput.Blink)
+				}
 			}
 
 		case tea.MouseMsg:
@@ -445,8 +443,9 @@ func (m Model) getVisiblePartOfLine(line string) string {
 func (m Model) getFooter() (string, int) {
 	numerator := m.CursorRow + 1
 
-	if m.ShowSaveSuccessful {
-		return "fuck yea", 1
+	if m.ShowSaveStatus {
+		// TODO LEO: handle error
+		return m.SaveStatus.SavedPath, 1
 	}
 
 	if m.saveDialog.Focused() {
