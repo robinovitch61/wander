@@ -12,7 +12,6 @@ import (
 	"wander/dev"
 	"wander/formatter"
 	"wander/keymap"
-	"wander/message"
 	"wander/pages"
 	"wander/style"
 )
@@ -65,7 +64,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if len(m.filter.Filter) == 0 {
-					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+					return m, pages.ToLogsPageCmd
 				} else {
 					m.ClearFilter()
 				}

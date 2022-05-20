@@ -11,7 +11,6 @@ import (
 	"wander/dev"
 	"wander/formatter"
 	"wander/keymap"
-	"wander/message"
 	"wander/pages"
 	"wander/style"
 )
@@ -77,12 +76,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				if len(m.logsData.filteredData) > 0 {
 					m.LastSelectedLogline = string(m.logsData.filteredData[m.viewport.CursorRow])
-					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logline} }
+					return m, pages.ToLoglinePageCmd
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if len(m.filter.Filter) == 0 {
-					return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Allocations} }
+					return m, pages.ToAllocationsPageCmd
 				} else {
 					m.ClearFilter()
 				}
@@ -90,12 +89,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case key.Matches(msg, keymap.KeyMap.StdOut):
 				m.setLogType(StdOut)
 				m.Loading = true
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+				return m, pages.ToLogsPageCmd
 
 			case key.Matches(msg, keymap.KeyMap.StdErr):
 				m.setLogType(StdErr)
 				m.Loading = true
-				return m, func() tea.Msg { return message.ChangePageMsg{NewPage: pages.Logs} }
+				return m, pages.ToLogsPageCmd
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
