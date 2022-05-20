@@ -16,6 +16,7 @@ type viewportKeyMap struct {
 	Top          key.Binding
 	Bottom       key.Binding
 	Save         key.Binding
+	Cancel       key.Binding
 }
 
 func GetKeyMap() viewportKeyMap {
@@ -63,6 +64,10 @@ func GetKeyMap() viewportKeyMap {
 		Save: key.NewBinding(
 			key.WithKeys("s"),
 			key.WithHelp("s", "save"),
+		),
+		Cancel: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "cancel"),
 		),
 	}
 }

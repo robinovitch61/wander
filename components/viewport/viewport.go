@@ -17,13 +17,12 @@ const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
 type Model struct {
-	width             int
-	height            int
-	contentHeight     int // excludes header height, should always be internal
-	keyMap            viewportKeyMap
-	cursorEnabled     bool
-	saveDialog        textinput.Model
-	saveDialogVisible bool
+	width         int
+	height        int
+	contentHeight int // excludes header height, should always be internal
+	keyMap        viewportKeyMap
+	cursorEnabled bool
+	saveDialog    textinput.Model
 
 	// Currently, causes flickering if enabled.
 	mouseWheelEnabled bool
@@ -60,8 +59,14 @@ func New(width, height int) (m Model) {
 }
 
 func (m *Model) setInitialValues() {
+	ti := textinput.New()
+	ti.Placeholder = "Path to save"
+	ti.CharLimit = 156
+	ti.Width = 20
+
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
+	m.saveDialog = ti
 	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
 	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
@@ -72,87 +77,105 @@ func (m *Model) setInitialValues() {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("viewport %T", msg))
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.Up):
-			if m.cursorEnabled {
+	if m.saveDialog.Focused() {
+		m.saveDialog, cmd = m.saveDialog.Update(msg)
+		cmds = append(cmds, cmd)
+
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.keyMap.Cancel):
+				m.saveDialog.Blur()
+
+			case key.Matches(msg, m.keyMap.Save):
+				// TODO LEO: return I/O cmd writing viewport content to path here or display error
+			}
+		}
+	} else {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.keyMap.Up):
+				if m.cursorEnabled {
+					m.cursorRowUp(1)
+				} else {
+					m.viewUp(1)
+				}
+
+			case key.Matches(msg, m.keyMap.Down):
+				if m.cursorEnabled {
+					m.cursorRowDown(1)
+				} else {
+					m.viewDown(1)
+				}
+
+			case key.Matches(msg, m.keyMap.Left):
+				m.viewLeft(m.width / 4)
+
+			case key.Matches(msg, m.keyMap.Right):
+				m.viewRight(m.width / 4)
+
+			case key.Matches(msg, m.keyMap.HalfPageUp):
+				m.viewUp(m.contentHeight / 2)
+				if m.cursorEnabled {
+					m.cursorRowUp(m.contentHeight / 2)
+				}
+
+			case key.Matches(msg, m.keyMap.HalfPageDown):
+				m.viewDown(m.contentHeight / 2)
+				if m.cursorEnabled {
+					m.cursorRowDown(m.contentHeight / 2)
+				}
+
+			case key.Matches(msg, m.keyMap.PageUp):
+				m.viewUp(m.contentHeight)
+				if m.cursorEnabled {
+					m.cursorRowUp(m.contentHeight)
+				}
+
+			case key.Matches(msg, m.keyMap.PageDown):
+				m.viewDown(m.contentHeight)
+				if m.cursorEnabled {
+					m.cursorRowDown(m.contentHeight)
+				}
+
+			case key.Matches(msg, m.keyMap.Top):
+				if m.cursorEnabled {
+					m.cursorRowUp(m.yOffset + m.CursorRow)
+				} else {
+					m.viewUp(m.yOffset + m.CursorRow)
+				}
+
+			case key.Matches(msg, m.keyMap.Bottom):
+				if m.cursorEnabled {
+					m.cursorRowDown(m.maxLinesIdx())
+				} else {
+					m.viewDown(m.maxLinesIdx())
+				}
+
+			case key.Matches(msg, m.keyMap.Save):
+				m.saveDialog.Focus()
+			}
+
+		case tea.MouseMsg:
+			if !m.mouseWheelEnabled {
+				break
+			}
+			switch msg.Type {
+			case tea.MouseWheelUp:
 				m.cursorRowUp(1)
-			} else {
-				m.viewUp(1)
-			}
 
-		case key.Matches(msg, m.keyMap.Down):
-			if m.cursorEnabled {
+			case tea.MouseWheelDown:
 				m.cursorRowDown(1)
-			} else {
-				m.viewDown(1)
 			}
-
-		case key.Matches(msg, m.keyMap.Left):
-			m.viewLeft(m.width / 4)
-
-		case key.Matches(msg, m.keyMap.Right):
-			m.viewRight(m.width / 4)
-
-		case key.Matches(msg, m.keyMap.HalfPageUp):
-			m.viewUp(m.contentHeight / 2)
-			if m.cursorEnabled {
-				m.cursorRowUp(m.contentHeight / 2)
-			}
-
-		case key.Matches(msg, m.keyMap.HalfPageDown):
-			m.viewDown(m.contentHeight / 2)
-			if m.cursorEnabled {
-				m.cursorRowDown(m.contentHeight / 2)
-			}
-
-		case key.Matches(msg, m.keyMap.PageUp):
-			m.viewUp(m.contentHeight)
-			if m.cursorEnabled {
-				m.cursorRowUp(m.contentHeight)
-			}
-
-		case key.Matches(msg, m.keyMap.PageDown):
-			m.viewDown(m.contentHeight)
-			if m.cursorEnabled {
-				m.cursorRowDown(m.contentHeight)
-			}
-
-		case key.Matches(msg, m.keyMap.Top):
-			if m.cursorEnabled {
-				m.cursorRowUp(m.yOffset + m.CursorRow)
-			} else {
-				m.viewUp(m.yOffset + m.CursorRow)
-			}
-
-		case key.Matches(msg, m.keyMap.Bottom):
-			if m.cursorEnabled {
-				m.cursorRowDown(m.maxLinesIdx())
-			} else {
-				m.viewDown(m.maxLinesIdx())
-			}
-
-		case key.Matches(msg, m.keyMap.Save):
-			m.saveDialogVisible = true
-		}
-
-	case tea.MouseMsg:
-		if !m.mouseWheelEnabled {
-			break
-		}
-		switch msg.Type {
-		case tea.MouseWheelUp:
-			m.cursorRowUp(1)
-
-		case tea.MouseWheelDown:
-			m.cursorRowDown(1)
 		}
 	}
-
-	// could return non-nil cmd in the future
-	return m, nil
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
@@ -392,7 +415,7 @@ func (m Model) getVisiblePartOfLine(line string) string {
 func (m Model) getFooter() (string, int) {
 	numerator := m.CursorRow + 1
 
-	if m.saveDialogVisible {
+	if m.saveDialog.Focused() {
 		return m.saveDialog.View(), 1
 	}
 

@@ -92,6 +92,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
+			dev.Debug(fmt.Sprintf("%T", cmd))
 			cmds = append(cmds, cmd)
 		}
 
