@@ -63,6 +63,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
+	if m.viewport.ShowSaveSuccessful {
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case nomadJobsMsg:
 		m.jobsData.allData = msg

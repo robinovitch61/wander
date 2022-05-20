@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
+	"time"
 	"wander/dev"
 	"wander/style"
 )
@@ -16,7 +17,25 @@ import (
 const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
+type DialogTimeoutMsg struct{}
+
 type Model struct {
+	// CursorRow is the row index of the cursor.
+	CursorRow int
+
+	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
+	Highlight string
+
+	// ShowSaveSuccessful is true when save was successful
+	ShowSaveSuccessful bool
+
+	// Styles
+	HeaderStyle    lipgloss.Style
+	CursorRowStyle lipgloss.Style
+	HighlightStyle lipgloss.Style
+	ContentStyle   lipgloss.Style
+	FooterStyle    lipgloss.Style
+
 	width         int
 	height        int
 	contentHeight int // excludes header height, should always be internal
@@ -33,19 +52,6 @@ type Model struct {
 	// xOffset is the horizontal scroll position of the text.
 	xOffset int
 
-	// CursorRow is the row index of the cursor.
-	CursorRow int
-
-	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
-	Highlight string
-
-	// Styles
-	HeaderStyle    lipgloss.Style
-	CursorRowStyle lipgloss.Style
-	HighlightStyle lipgloss.Style
-	ContentStyle   lipgloss.Style
-	FooterStyle    lipgloss.Style
-
 	header        []string
 	lines         []string
 	maxLineLength int
@@ -60,7 +66,10 @@ func New(width, height int) (m Model) {
 
 func (m *Model) setInitialValues() {
 	ti := textinput.New()
-	ti.Placeholder = "Path to save"
+	ti.Placeholder = "Output file name (path optional)"
+	ti.Prompt = ">"
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Margin(0, 1, 0, 0)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
 	ti.CharLimit = 156
 	ti.Width = 20
 
@@ -82,6 +91,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	switch msg.(type) {
+	case DialogTimeoutMsg:
+		// TODO LEO: might need to do this at the global level because of possible page changes during save dialog
+		m.ShowSaveSuccessful = false
+		m.saveDialog.Blur()
+		m.saveDialog.SetValue("")
+	}
+
 	if m.saveDialog.Focused() {
 		m.saveDialog, cmd = m.saveDialog.Update(msg)
 		cmds = append(cmds, cmd)
@@ -98,6 +115,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				// TODO LEO: return I/O cmd writing viewport content to path here or display error
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
+
+				// TODO LEO: this should only be set when the I/O cmd actually returns non-ErrMsg
+				m.ShowSaveSuccessful = true
+
+				cmds = append(
+					cmds,
+					tea.Tick(time.Second*2, func(t time.Time) tea.Msg { return DialogTimeoutMsg{} }),
+				)
 			}
 		}
 	} else {
@@ -419,6 +444,10 @@ func (m Model) getVisiblePartOfLine(line string) string {
 
 func (m Model) getFooter() (string, int) {
 	numerator := m.CursorRow + 1
+
+	if m.ShowSaveSuccessful {
+		return "fuck yea", 1
+	}
 
 	if m.saveDialog.Focused() {
 		return m.saveDialog.View(), 1
