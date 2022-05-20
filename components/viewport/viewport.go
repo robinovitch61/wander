@@ -94,6 +94,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.saveDialog.Reset()
 
 			case key.Matches(msg, m.keyMap.Confirm):
+				dev.Debug(m.saveDialog.Value())
 				// TODO LEO: return I/O cmd writing viewport content to path here or display error
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
@@ -163,6 +164,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			case key.Matches(msg, m.keyMap.Save):
 				m.saveDialog.Focus()
+				cmds = append(cmds, textinput.Blink)
 			}
 
 		case tea.MouseMsg:
