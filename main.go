@@ -116,7 +116,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showToast = true
 		cmds = append(
 			cmds,
-			tea.Tick(time.Second*2, func(t time.Time) tea.Msg { return toastTimeoutMsg{} }),
+			tea.Tick(time.Second*5, func(t time.Time) tea.Msg { return toastTimeoutMsg{} }),
 		)
 		return m, tea.Batch(cmds...)
 
