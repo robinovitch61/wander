@@ -69,10 +69,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.updateJobViewport()
 		m.Loading = false
 
-	case viewport.SaveStatusMsg:
-		m.viewport.ShowSaveStatus = true
-		m.viewport.SaveStatus = msg
-
 	case tea.KeyMsg:
 		if m.filter.Focused() {
 			switch {
@@ -128,10 +124,6 @@ func (m Model) View() string {
 func (m *Model) SetWindowSize(width, height int) {
 	m.width, m.height = width, height
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
-}
-
-func (m *Model) HideSaveStatus() {
-	m.viewport.ShowSaveStatus = false
 }
 
 func (m *Model) clearFilter() {

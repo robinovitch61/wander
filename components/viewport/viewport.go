@@ -16,10 +16,8 @@ import (
 const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
-type DialogTimeoutMsg struct{}
-
 type SaveStatusMsg struct {
-	SavedPath, Err string
+	SuccessMessage, Err string
 }
 
 type Model struct {
@@ -28,10 +26,6 @@ type Model struct {
 
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
-
-	// SaveStatus replaces the footer when showing
-	SaveStatus     SaveStatusMsg
-	ShowSaveStatus bool
 
 	// Styles
 	HeaderStyle    lipgloss.Style
@@ -107,18 +101,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.saveDialog.Reset()
 
 			case key.Matches(msg, m.keyMap.ConfirmSave):
-				dev.Debug(m.saveDialog.Value())
+				content := strings.Join(m.header, "\n") + strings.Join(m.lines, "\n")
+				cmds = append(cmds, saveCommand(m.saveDialog.Value(), strings.TrimSpace(content)))
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
-				cmds = append(cmds, func() tea.Msg {
-					// TODO LEO: actual I/O here
-					return SaveStatusMsg{SavedPath: m.saveDialog.Value()}
-				})
-				//
-				// cmds = append(
-				// 	cmds,
-				// 	tea.Tick(time.Second*2, func(t time.Time) tea.Msg { return DialogTimeoutMsg{} }),
-				// )
 			}
 		}
 	} else {
@@ -184,10 +170,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, m.keyMap.Save):
-				if !m.ShowSaveStatus {
-					m.saveDialog.Focus()
-					cmds = append(cmds, textinput.Blink)
-				}
+				m.saveDialog.Focus()
+				cmds = append(cmds, textinput.Blink)
 			}
 
 		case tea.MouseMsg:
@@ -443,11 +427,6 @@ func (m Model) getVisiblePartOfLine(line string) string {
 func (m Model) getFooter() (string, int) {
 	numerator := m.CursorRow + 1
 
-	if m.ShowSaveStatus {
-		// TODO LEO: handle error
-		return m.SaveStatus.SavedPath, 1
-	}
-
 	if m.saveDialog.Focused() {
 		return m.saveDialog.View(), 1
 	}
@@ -464,6 +443,13 @@ func (m Model) getFooter() (string, int) {
 		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))
 	}
 	return "", 0
+}
+
+func saveCommand(path string, content string) tea.Cmd {
+	return func() tea.Msg {
+		// TODO LEO: actual I/O here
+		return SaveStatusMsg{SuccessMessage: path, Err: ""}
+	}
 }
 
 func min(a, b int) int {

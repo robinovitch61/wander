@@ -125,10 +125,6 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) HideSaveStatus() {
-	m.viewport.ShowSaveStatus = false
-}
-
 func (m *Model) clearFilter() {
 	m.filter.BlurAndClear()
 	m.updateAllocationViewport()

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"os"
 	"strings"
+	"time"
 	"wander/components/header"
 	"wander/components/viewport"
 	"wander/dev"
@@ -16,12 +18,15 @@ import (
 	"wander/pages/jobs"
 	"wander/pages/logline"
 	"wander/pages/logs"
+	"wander/style"
 )
 
 var (
 	nomadTokenEnvVariable = "NOMAD_TOKEN"
 	nomadUrlEnvVariable   = "NOMAD_ADDR"
 )
+
+type toastTimeoutMsg struct{}
 
 type model struct {
 	nomadToken       string
@@ -38,6 +43,8 @@ type model struct {
 	header           header.Model
 	width, height    int
 	initialized      bool
+	toastMessage     string
+	showToast        bool
 	err              error
 }
 
@@ -94,6 +101,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.ErrMsg:
 		m.err = msg
 		return m, nil
+
+	case toastTimeoutMsg:
+		m.showToast = false
+		return m, nil
+
+	case viewport.SaveStatusMsg:
+		dev.Debug(msg.SuccessMessage)
+		if msg.Err != "" {
+			m.toastMessage = style.ErrorToast.Width(m.width).Render(msg.Err)
+		} else {
+			m.toastMessage = style.SuccessToast.Width(m.width).Render(msg.SuccessMessage)
+		}
+		m.showToast = true
+		cmds = append(
+			cmds,
+			tea.Tick(time.Second*2, func(t time.Time) tea.Msg { return toastTimeoutMsg{} }),
+		)
+		return m, tea.Batch(cmds...)
+
 	case tea.WindowSizeMsg:
 		m.setWindowSize(msg.Width, msg.Height)
 		pageHeight := m.getPageHeight()
@@ -164,14 +190,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	switch msg.(type) {
-	case viewport.DialogTimeoutMsg:
-		m.jobsPage.HideSaveStatus()
-		m.allocationsPage.HideSaveStatus()
-		m.logsPage.HideSaveStatus()
-		m.loglinePage.HideSaveStatus()
-	}
-
 	return m, tea.Batch(cmds...)
 }
 
@@ -192,8 +210,15 @@ func (m model) View() string {
 		pageView = m.loglinePage.View()
 	}
 
-	finalView := m.header.View() + "\n" + pageView
-	return finalView
+	pageView = m.header.View() + "\n" + pageView
+
+	if m.showToast {
+		lines := strings.Split(pageView, "\n")
+		lines = lines[:len(lines)-lipgloss.Height(m.toastMessage)]
+		pageView = strings.Join(lines, "\n") + "\n" + m.toastMessage
+	}
+
+	return pageView
 }
 
 func (m *model) setPage(p pages.Page) {

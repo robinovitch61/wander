@@ -140,10 +140,6 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) HideSaveStatus() {
-	m.viewport.ShowSaveStatus = false
-}
-
 func (m *Model) SetAllocationData(allocID, taskName string) {
 	m.allocID, m.taskName = allocID, taskName
 	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), formatter.ShortAllocID(allocID)))

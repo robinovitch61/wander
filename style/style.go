@@ -13,4 +13,6 @@ var (
 	Viewport           = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
 	StdOut             = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 	StdErr             = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5353"))
+	SuccessToast       = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#00FF00"))
+	ErrorToast         = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000"))
 )
