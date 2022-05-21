@@ -5,32 +5,23 @@ package viewport
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/dev"
+	"wander/fileio"
 	"wander/style"
 )
 
 const lineContinuationIndicator = "..."
 const lenLineContinuationIndicator = len(lineContinuationIndicator)
 
+type SaveStatusMsg struct {
+	SuccessMessage, Err string
+}
+
 type Model struct {
-	width         int
-	height        int
-	contentHeight int // excludes header height, should always be internal
-	keyMap        viewportKeyMap
-	cursorEnabled bool
-
-	// Currently, causes flickering if enabled.
-	mouseWheelEnabled bool
-
-	// yOffset is the vertical scroll position of the text.
-	yOffset int
-
-	// xOffset is the horizontal scroll position of the text.
-	xOffset int
-
 	// CursorRow is the row index of the cursor.
 	CursorRow int
 
@@ -43,6 +34,22 @@ type Model struct {
 	HighlightStyle lipgloss.Style
 	ContentStyle   lipgloss.Style
 	FooterStyle    lipgloss.Style
+
+	width         int
+	height        int
+	contentHeight int // excludes header height, should always be internal
+	keyMap        viewportKeyMap
+	cursorEnabled bool
+	saveDialog    textinput.Model
+
+	// Currently, causes flickering if enabled.
+	mouseWheelEnabled bool
+
+	// yOffset is the vertical scroll position of the text.
+	yOffset int
+
+	// xOffset is the horizontal scroll position of the text.
+	xOffset int
 
 	header        []string
 	lines         []string
@@ -57,8 +64,17 @@ func New(width, height int) (m Model) {
 }
 
 func (m *Model) setInitialValues() {
+	ti := textinput.New()
+	ti.Placeholder = "Output file name (path optional)"
+	ti.Prompt = ">"
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Margin(0, 1, 0, 0)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
+	ti.CharLimit = 156
+	ti.Width = 20
+
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
+	m.saveDialog = ti
 	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
 	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
@@ -69,103 +85,143 @@ func (m *Model) setInitialValues() {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("viewport %T", msg))
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.Up):
-			if m.cursorEnabled {
+	if m.saveDialog.Focused() {
+		m.saveDialog, cmd = m.saveDialog.Update(msg)
+		cmds = append(cmds, cmd)
+
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.keyMap.CancelSave):
+				m.saveDialog.Blur()
+				m.saveDialog.Reset()
+
+			case key.Matches(msg, m.keyMap.ConfirmSave):
+				var content string
+				for _, line := range append(m.header, m.lines...) {
+					content += strings.TrimRight(line, " ") + "\n"
+				}
+				cmds = append(cmds, saveCommand(m.saveDialog.Value(), content))
+				m.saveDialog.Blur()
+				m.saveDialog.Reset()
+			}
+		}
+	} else {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.keyMap.Up):
+				if m.cursorEnabled {
+					m.cursorRowUp(1)
+				} else {
+					m.viewUp(1)
+				}
+
+			case key.Matches(msg, m.keyMap.Down):
+				if m.cursorEnabled {
+					m.cursorRowDown(1)
+				} else {
+					m.viewDown(1)
+				}
+
+			case key.Matches(msg, m.keyMap.Left):
+				m.viewLeft(m.width / 4)
+
+			case key.Matches(msg, m.keyMap.Right):
+				m.viewRight(m.width / 4)
+
+			case key.Matches(msg, m.keyMap.HalfPageUp):
+				m.viewUp(m.contentHeight / 2)
+				if m.cursorEnabled {
+					m.cursorRowUp(m.contentHeight / 2)
+				}
+
+			case key.Matches(msg, m.keyMap.HalfPageDown):
+				m.viewDown(m.contentHeight / 2)
+				if m.cursorEnabled {
+					m.cursorRowDown(m.contentHeight / 2)
+				}
+
+			case key.Matches(msg, m.keyMap.PageUp):
+				m.viewUp(m.contentHeight)
+				if m.cursorEnabled {
+					m.cursorRowUp(m.contentHeight)
+				}
+
+			case key.Matches(msg, m.keyMap.PageDown):
+				m.viewDown(m.contentHeight)
+				if m.cursorEnabled {
+					m.cursorRowDown(m.contentHeight)
+				}
+
+			case key.Matches(msg, m.keyMap.Top):
+				if m.cursorEnabled {
+					m.cursorRowUp(m.yOffset + m.CursorRow)
+				} else {
+					m.viewUp(m.yOffset + m.CursorRow)
+				}
+
+			case key.Matches(msg, m.keyMap.Bottom):
+				if m.cursorEnabled {
+					m.cursorRowDown(m.maxLinesIdx())
+				} else {
+					m.viewDown(m.maxLinesIdx())
+				}
+
+			case key.Matches(msg, m.keyMap.Save):
+				m.saveDialog.Focus()
+				cmds = append(cmds, textinput.Blink)
+			}
+
+		case tea.MouseMsg:
+			if !m.mouseWheelEnabled {
+				break
+			}
+			switch msg.Type {
+			case tea.MouseWheelUp:
 				m.cursorRowUp(1)
-			} else {
-				m.viewUp(1)
-			}
 
-		case key.Matches(msg, m.keyMap.Down):
-			if m.cursorEnabled {
+			case tea.MouseWheelDown:
 				m.cursorRowDown(1)
-			} else {
-				m.viewDown(1)
 			}
-
-		case key.Matches(msg, m.keyMap.Left):
-			m.viewLeft(m.width / 4)
-
-		case key.Matches(msg, m.keyMap.Right):
-			m.viewRight(m.width / 4)
-
-		case key.Matches(msg, m.keyMap.HalfPageUp):
-			m.viewUp(m.contentHeight / 2)
-			if m.cursorEnabled {
-				m.cursorRowUp(m.contentHeight / 2)
-			}
-
-		case key.Matches(msg, m.keyMap.HalfPageDown):
-			m.viewDown(m.contentHeight / 2)
-			if m.cursorEnabled {
-				m.cursorRowDown(m.contentHeight / 2)
-			}
-
-		case key.Matches(msg, m.keyMap.PageUp):
-			m.viewUp(m.contentHeight)
-			if m.cursorEnabled {
-				m.cursorRowUp(m.contentHeight)
-			}
-
-		case key.Matches(msg, m.keyMap.PageDown):
-			m.viewDown(m.contentHeight)
-			if m.cursorEnabled {
-				m.cursorRowDown(m.contentHeight)
-			}
-
-		case key.Matches(msg, m.keyMap.Top):
-			if m.cursorEnabled {
-				m.cursorRowUp(m.yOffset + m.CursorRow)
-			} else {
-				m.viewUp(m.yOffset + m.CursorRow)
-			}
-
-		case key.Matches(msg, m.keyMap.Bottom):
-			if m.cursorEnabled {
-				m.cursorRowDown(m.maxLinesIdx())
-			} else {
-				m.viewDown(m.maxLinesIdx())
-			}
-		}
-
-	case tea.MouseMsg:
-		if !m.mouseWheelEnabled {
-			break
-		}
-		switch msg.Type {
-		case tea.MouseWheelUp:
-			m.cursorRowUp(1)
-
-		case tea.MouseWheelDown:
-			m.cursorRowDown(1)
 		}
 	}
-
-	// could return non-nil cmd in the future
-	return m, nil
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
+	var viewString string
+
 	nothingHighlighted := len(m.Highlight) == 0
-	var viewLines string
+	footerString, footerHeight := m.getFooter()
+	lineCount := 0
+	viewportWithoutFooterHeight := m.height - footerHeight
+
+	addLineToViewString := func(line string, isFooter bool) {
+		if isFooter || lineCount < viewportWithoutFooterHeight {
+			viewString += line + "\n"
+			lineCount += 1
+		}
+	}
 
 	for _, headerLine := range m.header {
-		viewLines += m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)) + "\n"
+		addLineToViewString(m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)), false)
 	}
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.CursorRow
-		line = m.getVisiblePartOfLine(line)
+		visiblePartOfLine := m.getVisiblePartOfLine(line)
 
 		if nothingHighlighted {
 			if isSelected {
-				viewLines += m.CursorRowStyle.Render(line)
+				addLineToViewString(m.CursorRowStyle.Render(visiblePartOfLine), false)
 			} else {
-				viewLines += m.ContentStyle.Render(line)
+				addLineToViewString(m.ContentStyle.Render(visiblePartOfLine), false)
 			}
 		} else {
 			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
@@ -175,26 +231,25 @@ func (m Model) View() string {
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
-			lineChunks := strings.Split(line, m.Highlight)
+			lineChunks := strings.Split(visiblePartOfLine, m.Highlight)
 			var styledChunks []string
 			for _, chunk := range lineChunks {
 				styledChunks = append(styledChunks, lineStyle.Render(chunk))
 			}
-			viewLines += strings.Join(styledChunks, styledHighlight)
+			addLineToViewString(strings.Join(styledChunks, styledHighlight), false)
 		}
+	}
 
-		viewLines += "\n"
+	if footerHeight > 0 {
+		// pad so footer shows up at bottom
+		for lineCount < viewportWithoutFooterHeight {
+			addLineToViewString("", true)
+		}
+		addLineToViewString(footerString, true)
 	}
-	if footerString, _ := m.getFooter(); footerString != "" {
-		viewLines += footerString
-	}
-	trimmedViewLines := strings.TrimSpace(viewLines)
+	trimmedViewLines := strings.TrimSpace(viewString)
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
-}
-
-func (m Model) ContentEmpty() bool {
-	return len(m.header) == 0 && len(m.lines) == 0
 }
 
 func (m *Model) SetCursorEnabled(cursorEnabled bool) {
@@ -247,6 +302,10 @@ func (m *Model) SetCursorRow(n int) {
 	} else if m.CursorRow < m.yOffset {
 		m.viewUp(m.yOffset - m.CursorRow)
 	}
+}
+
+func (m Model) Saving() bool {
+	return m.saveDialog.Focused()
 }
 
 func normalizeLineEndings(s string) string {
@@ -357,7 +416,6 @@ func (m *Model) viewRight(n int) {
 func (m Model) getVisiblePartOfLine(line string) string {
 	rightTrimmedLineLength := len(strings.TrimRight(line, " "))
 	if len(line) > m.width {
-		// dev.Debug(fmt.Sprintf("len(line) %d, m.xOffset %d, m.width %d", len(line), m.xOffset, m.width))
 		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
 		if m.xOffset+m.width < rightTrimmedLineLength {
 			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
@@ -371,6 +429,13 @@ func (m Model) getVisiblePartOfLine(line string) string {
 
 func (m Model) getFooter() (string, int) {
 	numerator := m.CursorRow + 1
+
+	if m.saveDialog.Focused() {
+		return m.saveDialog.View(), 1
+	}
+
+	// if cursor is disabled, percentage should show from the bottom of the visible content
+	// such that panning the view to the bottom shows 100%
 	if !m.cursorEnabled {
 		numerator = m.yOffset + len(m.visibleLines())
 	}
@@ -381,6 +446,17 @@ func (m Model) getFooter() (string, int) {
 		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))
 	}
 	return "", 0
+}
+
+func saveCommand(saveDialogValue string, fileContent string) tea.Cmd {
+	return func() tea.Msg {
+		savePathWithFileName, err := fileio.SaveToFile(saveDialogValue, fileContent)
+		if err != nil {
+			return SaveStatusMsg{SuccessMessage: "", Err: err.Error()}
+		}
+		successMessage := fmt.Sprintf("SUCCESS: Saved to %s", savePathWithFileName)
+		return SaveStatusMsg{SuccessMessage: successMessage, Err: ""}
+	}
 }
 
 func min(a, b int) int {
