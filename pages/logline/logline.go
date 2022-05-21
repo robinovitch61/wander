@@ -50,6 +50,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	if m.viewport.Saving() {
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.filter.Focused() {
