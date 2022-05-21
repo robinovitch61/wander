@@ -40,7 +40,7 @@ func SaveToFile(saveDialogValue, fileContent string) (string, error) {
 		return "", cleanPathErr
 	}
 
-	if exists, pathExistsErr := fileOrDirectoryExists(cleanPath); pathExistsErr != nil {
+	if exists, pathExistsErr := fileOrDirectoryExists(cleanPath); pathExistsErr == nil {
 		if !exists {
 			if mkdirErr := os.MkdirAll(cleanPath, 0755); mkdirErr != nil {
 				return "", mkdirErr
@@ -51,15 +51,14 @@ func SaveToFile(saveDialogValue, fileContent string) (string, error) {
 	}
 
 	pathWithFileName := fmt.Sprintf("%s/%s", cleanPath, fileName)
-	dev.Debug(fmt.Sprintf("pathWithFileName %s", pathWithFileName))
 
-	if exists, fileExistsErr := fileOrDirectoryExists(pathWithFileName); fileExistsErr != nil {
+	if exists, fileExistsErr := fileOrDirectoryExists(pathWithFileName); fileExistsErr == nil {
 		if exists {
 			extension := filepath.Ext(pathWithFileName)
 			dev.Debug(fmt.Sprintf("EXTENSION %s", extension))
 			now := formatter.FormatTime(time.Now())
 			if extension == "" {
-				pathWithFileName += now
+				pathWithFileName += "_" + now
 			} else {
 				pathWithFileName = strings.ReplaceAll(pathWithFileName, extension, now+extension)
 			}
