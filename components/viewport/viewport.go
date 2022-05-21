@@ -196,7 +196,6 @@ func (m Model) View() string {
 	nothingHighlighted := len(m.Highlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
-	// TODO LEO: logline footer not showing up at bottom when empty
 	viewportWithoutFooterHeight := m.height - footerHeight
 
 	addLineToViewString := func(line string, isFooter bool) {
