@@ -1,5 +1,7 @@
 package viewport
 
+// TODO LEO: resolve viewport errors when strange formatting in content
+
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
