@@ -35,13 +35,12 @@ type Model struct {
 	ContentStyle   lipgloss.Style
 	FooterStyle    lipgloss.Style
 
-	width          int
-	height         int
-	contentHeight  int // excludes header height, should always be internal
-	keyMap         viewportKeyMap
-	cursorEnabled  bool
-	saveDialog     textinput.Model
-	saveFilePrefix string
+	width         int
+	height        int
+	contentHeight int // excludes header height, should always be internal
+	keyMap        viewportKeyMap
+	cursorEnabled bool
+	saveDialog    textinput.Model
 
 	// Currently, causes flickering if enabled.
 	mouseWheelEnabled bool
@@ -76,7 +75,6 @@ func (m *Model) setInitialValues() {
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
 	m.saveDialog = ti
-	m.saveFilePrefix = ""
 	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
 	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
@@ -104,8 +102,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.saveDialog.Reset()
 
 			case key.Matches(msg, m.keyMap.ConfirmSave):
-				content := strings.Join(m.header, "\n") + "\n" + strings.Join(m.lines, "\n")
-				cmds = append(cmds, saveCommand(m.saveDialog.Value(), strings.TrimSpace(content)))
+				var content string
+				for _, line := range append(m.header, m.lines...) {
+					content += strings.TrimRight(line, " ") + "\n"
+				}
+				cmds = append(cmds, saveCommand(m.saveDialog.Value(), content))
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
 			}

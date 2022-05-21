@@ -55,8 +55,9 @@ func GetPageKeyHelp(currentPage pages.Page) string {
 	keyHelper.ShortSeparator = "    "
 	keyHelper.Styles.ShortKey = style.KeyHelpKey
 	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
+	viewportKeyMap := viewport.GetKeyMap()
 
-	alwaysShown := []key.Binding{KeyMap.Exit}
+	alwaysShown := []key.Binding{KeyMap.Exit, viewportKeyMap.Save}
 	if currentPage != pages.Logline {
 		alwaysShown = append(alwaysShown, KeyMap.Reload)
 	}
