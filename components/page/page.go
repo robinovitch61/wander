@@ -94,10 +94,10 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) SetPageData(headerRows, contentRows []string) {
-	m.pageData = pageData{allData: contentRows, filteredData: contentRows}
-	m.viewport.SetHeader(headerRows)
-	m.viewport.SetContent(contentRows)
+func (m *Model) SetPageData(pageData pageData) {
+	m.pageData = pageData
+	m.viewport.SetHeader(pageData.HeaderRows())
+	m.viewport.SetContent(pageData.ContentRows())
 }
 
 func (m *Model) clearFilter() {
