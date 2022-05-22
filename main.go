@@ -81,7 +81,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, keymap.KeyMap.Exit):
-			return m, tea.Quit
+			dev.Debug("HERE")
+			dev.Debug(msg.String())
+			if !(m.currentPageFilterFocused() && msg.String() == "q") {
+				return m, tea.Quit
+			}
 
 		default:
 			if m.currentPageLoading() {
@@ -234,6 +238,20 @@ func (m model) currentPageLoading() bool {
 		return m.logsPage.Loading
 	case pages.Logline:
 		return false
+	}
+	return true
+}
+
+func (m model) currentPageFilterFocused() bool {
+	switch m.currentPage {
+	case pages.Jobs:
+		return m.jobsPage.FilterFocused()
+	case pages.Allocations:
+		return m.allocationsPage.FilterFocused()
+	case pages.Logs:
+		return m.logsPage.FilterFocused()
+	case pages.Logline:
+		return m.loglinePage.FilterFocused()
 	}
 	return true
 }

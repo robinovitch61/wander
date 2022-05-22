@@ -121,6 +121,10 @@ func (m Model) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
 }
 
+func (m Model) FilterFocused() bool {
+	return m.filter.Focused()
+}
+
 func (m *Model) SetWindowSize(width, height int) {
 	m.width, m.height = width, height
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
