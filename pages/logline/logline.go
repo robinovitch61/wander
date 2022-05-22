@@ -72,9 +72,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.filter.Focus()
 				return m, nil
 
-			case key.Matches(msg, keymap.KeyMap.Reload):
-				return m, pages.ToAllocationsPageCmd
-
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if len(m.filter.Filter) == 0 {
 					return m, pages.ToLogsPageCmd
