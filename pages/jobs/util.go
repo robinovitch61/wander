@@ -12,7 +12,13 @@ import (
 	"wander/nomad"
 )
 
-type jobResponseEntry struct {
+type jobsData struct {
+	allData, filteredData []JobResponseEntry
+}
+
+type NomadJobsMsg []JobResponseEntry
+
+type JobResponseEntry struct {
 	ID                string      `json:"ID"`
 	ParentID          string      `json:"ParentID"`
 	Name              string      `json:"Name"`
@@ -53,7 +59,7 @@ type jobResponseEntry struct {
 	SubmitTime     int64 `json:"SubmitTime"`
 }
 
-func (e jobResponseEntry) MatchesFilter(filter string) bool {
+func (e JobResponseEntry) MatchesFilter(filter string) bool {
 	return strings.Contains(e.ID, filter)
 }
 
@@ -68,7 +74,7 @@ func FetchJobs(url, token string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		var jobResponse []jobResponseEntry
+		var jobResponse []JobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -82,11 +88,11 @@ func FetchJobs(url, token string) tea.Cmd {
 			return jobResponse[x].Name < jobResponse[y].Name
 		})
 
-		return nomadJobsMsg(jobResponse)
+		return NomadJobsMsg(jobResponse)
 	}
 }
 
-func jobResponsesAsTable(jobResponse []jobResponseEntry) formatter.Table {
+func JobResponsesAsTable(jobResponse []JobResponseEntry) formatter.Table {
 	var jobResponseRows [][]string
 	for _, row := range jobResponse {
 		jobResponseRows = append(jobResponseRows, []string{

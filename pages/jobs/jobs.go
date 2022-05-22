@@ -5,19 +5,12 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"strings"
 	"wander/components/filter"
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
 	"wander/pages"
 )
-
-type jobsData struct {
-	allData, filteredData []jobResponseEntry
-}
-
-type nomadJobsMsg []jobResponseEntry
 
 type Model struct {
 	initialized       bool
@@ -64,7 +57,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case nomadJobsMsg:
+	case NomadJobsMsg:
 		m.jobsData.allData = msg
 		m.updateJobViewport()
 		m.Loading = false
@@ -136,7 +129,7 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateFilteredJobData() {
-	var filteredJobData []jobResponseEntry
+	var filteredJobData []JobResponseEntry
 	for _, entry := range m.jobsData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
 			filteredJobData = append(filteredJobData, entry)
@@ -148,10 +141,10 @@ func (m *Model) updateFilteredJobData() {
 func (m *Model) updateJobViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredJobData()
-	table := jobResponsesAsTable(m.jobsData.filteredData)
-	m.viewport.SetHeaderAndContent(
-		strings.Join(table.HeaderRows, "\n"),
-		strings.Join(table.ContentRows, "\n"),
-	)
+	// table := JobResponsesAsTable(m.jobsData.filteredData)
+	// m.viewport.SetHeaderAndContent(
+	// 	strings.Join(table.HeaderRows, "\n"),
+	// 	strings.Join(table.ContentRows, "\n"),
+	// )
 	m.viewport.SetCursorRow(0)
 }

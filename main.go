@@ -9,15 +9,14 @@ import (
 	"strings"
 	"time"
 	"wander/components/header"
+	"wander/components/page"
 	"wander/components/viewport"
 	"wander/constants"
 	"wander/dev"
 	"wander/keymap"
 	"wander/message"
 	"wander/pages"
-	"wander/pages/allocations"
 	"wander/pages/jobs"
-	"wander/pages/logline"
 	"wander/pages/logs"
 	"wander/style"
 )
@@ -27,11 +26,11 @@ type toastTimeoutMsg struct{}
 type model struct {
 	nomadToken       string
 	nomadUrl         string
-	currentPage      pages.Page
-	jobsPage         jobs.Model
-	allocationsPage  allocations.Model
-	logsPage         logs.Model
-	loglinePage      logline.Model
+	currentPage      *page.Model
+	jobsPage         page.Model
+	allocationsPage  page.Model
+	logsPage         page.Model
+	loglinePage      page.Model
 	selectedJobID    string
 	selectedAllocID  string
 	selectedTaskName string
@@ -57,12 +56,34 @@ func initialModel() model {
 		os.Exit(1)
 	}
 
+<<<<<<< HEAD
 	firstPage := pages.Jobs
+||||||| parent of 20ee616 (Broken)
+	logo := []string{
+		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
+		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
+	}
+	logoString := strings.Join(logo, "\n")
+	firstPage := pages.Jobs
+=======
+	initialHeader := header.New(constants.LogoString, nomadUrl, "")
+>>>>>>> 20ee616 (Broken)
 	return model{
+<<<<<<< HEAD
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
 		currentPage: firstPage,
 		header:      header.New(constants.Logo, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
+||||||| parent of 20ee616 (Broken)
+		nomadToken:  nomadToken,
+		nomadUrl:    nomadUrl,
+		currentPage: firstPage,
+		header:      header.New(logoString, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
+=======
+		nomadToken: nomadToken,
+		nomadUrl:   nomadUrl,
+		header:     initialHeader,
+>>>>>>> 20ee616 (Broken)
 	}
 }
 
@@ -88,7 +109,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		default:
-			if m.currentPageLoading() {
+			if m.currentPage.Loading {
 				return m, nil
 			}
 		}
@@ -120,70 +141,71 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		pageHeight := m.getPageHeight()
 
 		if !m.initialized {
-			m.jobsPage = jobs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
-			m.allocationsPage = allocations.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
-			m.logsPage = logs.New(m.nomadUrl, m.nomadToken, msg.Width, pageHeight)
-			m.loglinePage = logline.New("", msg.Width, pageHeight)
+			m.jobsPage = page.New(msg.Width, pageHeight, "Jobs", "Loading jobs...")
+			m.allocationsPage = page.New(msg.Width, pageHeight, "Allocations", "")
+			m.logsPage = page.New(msg.Width, pageHeight, "Logs", "")
+			m.loglinePage = page.New(msg.Width, pageHeight, "Log Line", "")
+
+			m.currentPage = &m.jobsPage
 			m.initialized = true
+			cmds = append(cmds, jobs.FetchJobs(m.nomadUrl, m.nomadToken))
 		} else {
+<<<<<<< HEAD
 			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
 			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
 			m.logsPage.SetWindowSize(msg.Width, pageHeight)
 			m.loglinePage.SetWindowSize(msg.Width, pageHeight)
+||||||| parent of 20ee616 (Broken)
+			m.getCurrentPageModel().SetWindowSize(msg.Width, pageHeight)
+=======
+			m.currentPage.SetWindowSize(msg.Width, pageHeight)
+>>>>>>> 20ee616 (Broken)
 		}
 
-	// this is how subcomponents currently tell main model to update the parent state
-	case pages.ChangePageMsg:
-		newPage := msg.NewPage
-		m.setPage(newPage)
-		m.header.KeyHelp = keymap.GetPageKeyHelp(newPage)
+	case jobs.NomadJobsMsg:
+		m.currentPage = &m.jobsPage
+		m.currentPage.SetPageData(jobTable.HeaderRows, jobTable.ContentRows)
+		m.currentPage.Loading = false
 
-		switch newPage {
-		case pages.Jobs:
-			m.jobsPage.Loading = true
-			return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
-
-		case pages.Allocations:
-			jobID := m.jobsPage.LastSelectedJobID
-			m.allocationsPage.SetJobID(jobID)
-			m.allocationsPage.Loading = true
-			return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
-
-		case pages.Logs:
-			m.setPage(pages.Logs)
-			m.logsPage.ResetXOffset()
-			allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
-			m.logsPage.SetAllocationData(allocID, taskName)
-			m.logsPage.Loading = true
-			return m, logs.FetchLogs(
-				m.nomadUrl,
-				m.nomadToken,
-				allocID,
-				taskName,
-				m.logsPage.LastSelectedLogType,
-			)
-
-		case pages.Logline:
-			m.setPage(pages.Logline)
-			m.loglinePage.SetAllocationData(m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName)
-			m.loglinePage.SetLogline(m.logsPage.LastSelectedLogline)
-		}
+		// // this is how subcomponents currently tell main model to update the parent state
+		// case pages.ChangePageMsg:
+		// 	newPage := msg.NewPage
+		// 	m.setPage(newPage)
+		//
+		// 	switch newPage {
+		// 	case pages.Jobs:
+		// 		m.jobsPage.Loading = true
+		// 		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
+		//
+		// 	case pages.Allocations:
+		// 		jobID := m.jobsPage.LastSelectedJobID
+		// 		m.allocationsPage.SetJobID(jobID)
+		// 		m.allocationsPage.Loading = true
+		// 		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
+		//
+		// 	case pages.Logs:
+		// 		m.setPage(pages.Logs)
+		// 		m.logsPage.ResetXOffset()
+		// 		allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
+		// 		m.logsPage.SetAllocationData(allocID, taskName)
+		// 		m.logsPage.Loading = true
+		// 		return m, logs.FetchLogs(
+		// 			m.nomadUrl,
+		// 			m.nomadToken,
+		// 			allocID,
+		// 			taskName,
+		// 			m.logsPage.LastSelectedLogType,
+		// 		)
+		//
+		// 	case pages.Logline:
+		// 		m.setPage(pages.Logline)
+		// 		m.loglinePage.SetAllocationData(m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName)
+		// 		m.loglinePage.SetLogline(m.logsPage.LastSelectedLogline)
+		// 	}
 	}
 
-	switch m.currentPage {
-	case pages.Jobs:
-		m.jobsPage, cmd = m.jobsPage.Update(msg)
-		cmds = append(cmds, cmd)
-	case pages.Allocations:
-		m.allocationsPage, cmd = m.allocationsPage.Update(msg)
-		cmds = append(cmds, cmd)
-	case pages.Logs:
-		m.logsPage, cmd = m.logsPage.Update(msg)
-		cmds = append(cmds, cmd)
-	case pages.Logline:
-		m.loglinePage, cmd = m.loglinePage.Update(msg)
-		cmds = append(cmds, cmd)
-	}
+	*m.currentPage, cmd = m.currentPage.Update(msg)
+	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -191,8 +213,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("Error: %v", m.err)
+	} else if !m.initialized {
+		return ""
 	}
 
+<<<<<<< HEAD
 	pageView := ""
 	switch m.currentPage {
 	case pages.Jobs:
@@ -204,6 +229,11 @@ func (m model) View() string {
 	case pages.Logline:
 		pageView = m.loglinePage.View()
 	}
+||||||| parent of 20ee616 (Broken)
+	pageView := m.getCurrentPageModel().View()
+=======
+	pageView := m.currentPage.View()
+>>>>>>> 20ee616 (Broken)
 
 	pageView = m.header.View() + "\n" + pageView
 
@@ -216,9 +246,11 @@ func (m model) View() string {
 	return pageView
 }
 
-func (m *model) setPage(p pages.Page) {
-	m.currentPage = p
-}
+
+// func (m *model) setPage(p pages.Page) {
+// 	m.currentPage = p
+// 	// m.setHeaderKeyHelp()
+// }
 
 func (m *model) setWindowSize(width, height int) {
 	m.width, m.height = width, height
@@ -228,19 +260,19 @@ func (m model) getPageHeight() int {
 	return m.height - m.header.ViewHeight()
 }
 
-func (m model) currentPageLoading() bool {
-	switch m.currentPage {
-	case pages.Jobs:
-		return m.jobsPage.Loading
-	case pages.Allocations:
-		return m.allocationsPage.Loading
-	case pages.Logs:
-		return m.logsPage.Loading
-	case pages.Logline:
-		return false
-	}
-	return true
-}
+// func (m model) currentPageLoading() bool {
+// 	switch m.currentPage {
+// 	case pages.Jobs:
+// 		return m.jobsPage.Loading
+// 	case pages.Allocations:
+// 		return m.allocationsPage.Loading
+// 	case pages.Logs:
+// 		return m.logsPage.Loading
+// 	case pages.Logline:
+// 		return false
+// 	}
+// 	return true
+// }
 
 func (m model) currentPageFilterFocused() bool {
 	switch m.currentPage {
