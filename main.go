@@ -131,10 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loglinePage = logline.New("", msg.Width, pageHeight)
 			m.initialized = true
 		} else {
-			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
-			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
-			m.logsPage.SetWindowSize(msg.Width, pageHeight)
-			m.loglinePage.SetWindowSize(msg.Width, pageHeight)
+			m.getCurrentPageModel().SetWindowSize(msg.Width, pageHeight)
 		}
 
 	// this is how subcomponents currently tell main model to update the parent state
@@ -198,17 +195,7 @@ func (m model) View() string {
 		return fmt.Sprintf("Error: %v", m.err)
 	}
 
-	pageView := ""
-	switch m.currentPage {
-	case pages.Jobs:
-		pageView = m.jobsPage.View()
-	case pages.Allocations:
-		pageView = m.allocationsPage.View()
-	case pages.Logs:
-		pageView = m.logsPage.View()
-	case pages.Logline:
-		pageView = m.loglinePage.View()
-	}
+	pageView := m.getCurrentPageModel().View()
 
 	pageView = m.header.View() + "\n" + pageView
 
@@ -219,6 +206,25 @@ func (m model) View() string {
 	}
 
 	return pageView
+}
+
+type currentPageModel interface {
+	View() string
+	SetWindowSize(width, height int)
+}
+
+func (m model) getCurrentPageModel() currentPageModel {
+	switch m.currentPage {
+	case pages.Jobs:
+		return &m.jobsPage
+	case pages.Allocations:
+		return &m.allocationsPage
+	case pages.Logs:
+		return &m.logsPage
+	case pages.Logline:
+		return &m.loglinePage
+	}
+	return nil
 }
 
 func (m *model) setPage(p pages.Page) {
