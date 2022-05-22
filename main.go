@@ -10,6 +10,7 @@ import (
 	"time"
 	"wander/components/header"
 	"wander/components/viewport"
+	"wander/constants"
 	"wander/dev"
 	"wander/keymap"
 	"wander/message"
@@ -19,11 +20,6 @@ import (
 	"wander/pages/logline"
 	"wander/pages/logs"
 	"wander/style"
-)
-
-var (
-	nomadTokenEnvVariable = "NOMAD_TOKEN"
-	nomadUrlEnvVariable   = "NOMAD_ADDR"
 )
 
 type toastTimeoutMsg struct{}
@@ -49,29 +45,24 @@ type model struct {
 }
 
 func initialModel() model {
-	nomadToken := os.Getenv(nomadTokenEnvVariable)
+	nomadToken := os.Getenv(constants.NomadTokenEnvVariable)
 	if nomadToken == "" {
-		fmt.Printf("Set environment variable %s\n", nomadTokenEnvVariable)
+		fmt.Printf("Set environment variable %s\n", constants.NomadTokenEnvVariable)
 		os.Exit(1)
 	}
 
-	nomadUrl := os.Getenv(nomadUrlEnvVariable)
+	nomadUrl := os.Getenv(constants.NomadUrlEnvVariable)
 	if nomadUrl == "" {
-		fmt.Printf("Set environment variable %s\n", nomadUrlEnvVariable)
+		fmt.Printf("Set environment variable %s\n", constants.NomadUrlEnvVariable)
 		os.Exit(1)
 	}
 
-	logo := []string{
-		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
-		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
-	}
-	logoString := strings.Join(logo, "\n")
 	firstPage := pages.Jobs
 	return model{
 		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
 		currentPage: firstPage,
-		header:      header.New(logoString, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
+		header:      header.New(constants.Logo, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
 	}
 }
 
@@ -116,7 +107,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showToast = true
 		cmds = append(
 			cmds,
-			tea.Tick(time.Second*5, func(t time.Time) tea.Msg { return toastTimeoutMsg{} }),
+			tea.Tick(constants.ToastDuration, func(t time.Time) tea.Msg { return toastTimeoutMsg{} }),
 		)
 		return m, tea.Batch(cmds...)
 
@@ -229,7 +220,6 @@ func (m model) getCurrentPageModel() currentPageModel {
 
 func (m *model) setPage(p pages.Page) {
 	m.currentPage = p
-	// m.setHeaderKeyHelp()
 }
 
 func (m *model) setWindowSize(width, height int) {
