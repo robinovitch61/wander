@@ -9,6 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"strings"
+	"unicode/utf8"
+	"wander/constants"
 	"wander/dev"
 	"wander/fileio"
 	"wander/style"
@@ -57,30 +59,24 @@ type Model struct {
 }
 
 func New(width, height int) (m Model) {
-	m.width = width
-	m.height = height
-	m.setInitialValues()
-	return m
-}
+	m.width, m.height = width, height
 
-func (m *Model) setInitialValues() {
-	ti := textinput.New()
-	ti.Placeholder = "Output file name (path optional)"
-	ti.Prompt = ">"
-	ti.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Margin(0, 1, 0, 0)
-	ti.PlaceholderStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
-	ti.CharLimit = 156
-	ti.Width = 20
+	m.saveDialog = textinput.New()
+	m.saveDialog.Prompt = "> "
+	m.saveDialog.Placeholder = m.getSaveDialogPlaceholder()
+	m.saveDialog.PromptStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
+	m.saveDialog.PlaceholderStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
+	m.saveDialog.TextStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
 
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
-	m.saveDialog = ti
 	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
 	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
 	m.FooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))
+	return m
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -258,7 +254,7 @@ func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 
 // SetSize sets the viewport's width and height, including header.
 func (m *Model) SetSize(width, height int) {
-	m.width, m.height = width, height
+	m.setWidthAndHeight(width, height)
 	m.setContentHeight()
 	m.fixState()
 }
@@ -306,6 +302,16 @@ func (m *Model) SetCursorRow(n int) {
 
 func (m Model) Saving() bool {
 	return m.saveDialog.Focused()
+}
+
+func (m *Model) setWidthAndHeight(width, height int) {
+	m.width, m.height = width, height
+	m.saveDialog.Placeholder = m.getSaveDialogPlaceholder()
+}
+
+func (m Model) getSaveDialogPlaceholder() string {
+	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
+	return constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
 }
 
 func normalizeLineEndings(s string) string {
@@ -454,7 +460,7 @@ func saveCommand(saveDialogValue string, fileContent string) tea.Cmd {
 		if err != nil {
 			return SaveStatusMsg{SuccessMessage: "", Err: err.Error()}
 		}
-		successMessage := fmt.Sprintf("SUCCESS: Saved to %s", savePathWithFileName)
+		successMessage := fmt.Sprintf("Success: saved to %s", savePathWithFileName)
 		return SaveStatusMsg{SuccessMessage: successMessage, Err: ""}
 	}
 }

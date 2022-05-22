@@ -100,7 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case viewport.SaveStatusMsg:
 		dev.Debug(msg.SuccessMessage)
 		if msg.Err != "" {
-			m.toastMessage = style.ErrorToast.Width(m.width).Render(msg.Err)
+			m.toastMessage = style.ErrorToast.Width(m.width).Render(fmt.Sprintf("Error: %s", msg.Err))
 		} else {
 			m.toastMessage = style.SuccessToast.Width(m.width).Render(msg.SuccessMessage)
 		}
