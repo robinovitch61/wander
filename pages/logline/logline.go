@@ -105,9 +105,8 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) clearFilter() {
-	m.filter.BlurAndClear()
-	m.updateLoglineViewport()
+func (m Model) FilterFocused() bool {
+	return m.filter.Focused()
 }
 
 func (m *Model) SetLogline(logline string) {
@@ -118,6 +117,11 @@ func (m *Model) SetLogline(logline string) {
 
 func (m *Model) SetAllocationData(allocID, taskName string) {
 	m.filter.SetPrefix(fmt.Sprintf("%s for %s %s", filterPrefix, style.Bold.Render(taskName), formatter.ShortAllocID(allocID)))
+}
+
+func (m *Model) clearFilter() {
+	m.filter.BlurAndClear()
+	m.updateLoglineViewport()
 }
 
 func (m *Model) updateFilteredLogData() {
