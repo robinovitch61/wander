@@ -129,7 +129,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case key.Matches(msg, keymap.KeyMap.StdOut):
 				if m.logType != nomad.StdOut {
 					m.logType = nomad.StdOut
-					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.ViewportContentStyle)
+					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
 					m.getCurrentPageModel().SetLoading(true)
 					return m, m.getCurrentPageCmd()
 				}
