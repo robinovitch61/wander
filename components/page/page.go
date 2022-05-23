@@ -8,6 +8,7 @@ import (
 	"strings"
 	"wander/components/filter"
 	"wander/components/viewport"
+	"wander/dev"
 	"wander/keymap"
 )
 
@@ -38,6 +39,7 @@ func New(
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	dev.Debug(fmt.Sprintf("page %T", msg))
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd

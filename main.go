@@ -89,7 +89,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// TODO LEO: make actions during loading safe in the future
 		if m.currentPageLoading() {
-			dev.Debug("LOADING")
 			return m, nil
 		}
 
@@ -160,14 +159,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.PageLoadedMsg:
 		dev.Debug(msg.Page.String())
 		m.setPage(msg.Page)
-		dev.Debug("PAGE")
 		m.getCurrentPageModel().SetHeader(msg.TableHeader)
-		dev.Debug("HEADER")
 		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
-		dev.Debug("DATA")
 		m.getCurrentPageModel().SetLoading(false)
-		dev.Debug("LOADING")
-		dev.Debug(fmt.Sprintf("%t", m.getCurrentPageModel().Loading()))
 	}
 
 	currentPageModel := m.getCurrentPageModel()

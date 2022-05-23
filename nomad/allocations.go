@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 	"wander/components/page"
-	"wander/dev"
 	"wander/formatter"
 	"wander/message"
 )
@@ -79,7 +78,6 @@ type allocationRowEntry struct {
 
 func FetchAllocations(url, token, jobID string) tea.Cmd {
 	return func() tea.Msg {
-		dev.Debug(fmt.Sprintf("jobID %s", jobID))
 		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
 		body, err := Get(fullPath, token, nil)
 		if err != nil {

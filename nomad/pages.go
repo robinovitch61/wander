@@ -2,11 +2,10 @@ package nomad
 
 import (
 	"fmt"
-	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"strings"
 	"wander/components/page"
 	"wander/components/viewport"
-	"wander/dev"
 	"wander/keymap"
 	"wander/style"
 )
@@ -77,15 +76,17 @@ type PageLoadedMsg struct {
 
 type ChangePageMsg struct{ NewPage Page }
 
-func GetPageKeyHelp(currentPage Page) string {
-	keyHelper := help.New()
-	keyHelper.ShortSeparator = "    "
-	keyHelper.Styles.ShortKey = style.KeyHelpKey
-	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
-	viewportKeyMap := viewport.GetKeyMap()
+func getShortHelp(bindings []key.Binding) string {
+	var output string
+	for _, km := range bindings {
+		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "    "
+	}
+	output = strings.TrimSpace(output)
+	return output
+}
 
-	dev.Debug("HERE")
-	alwaysShown := []key.Binding{keymap.KeyMap.Exit, viewportKeyMap.Save}
+func GetPageKeyHelp(currentPage Page) string {
+	alwaysShown := []key.Binding{keymap.KeyMap.Exit}
 
 	if currentPage != LoglinePage {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Reload)
@@ -100,18 +101,11 @@ func GetPageKeyHelp(currentPage Page) string {
 		keymap.KeyMap.Back.SetHelp(keymap.KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Back)
 	}
+	firstRow := getShortHelp(alwaysShown)
 
-	dev.Debug("firstRow")
-	// firstRow := keyHelper.ShortHelpView(alwaysShown)
-	firstRow := "HI"
+	viewportKeyMap := viewport.GetKeyMap()
+	viewportAlwaysShown := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Save}
+	secondRow := getShortHelp(viewportAlwaysShown)
 
-	dev.Debug("HERE")
-	// viewportAlwaysShown := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp}
-	dev.Debug("secondRow")
-	// secondRow := keyHelper.ShortHelpView(viewportAlwaysShown)
-	secondRow := "THERE"
-
-	final := firstRow + "\n" + secondRow
-	dev.Debug("final")
-	return final
+	return firstRow + "\n" + secondRow
 }
