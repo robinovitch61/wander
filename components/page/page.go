@@ -25,9 +25,11 @@ type Model struct {
 func New(
 	width, height int,
 	filterPrefix, loadingString string,
+	cursorEnabled bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
+	pageViewport.SetCursorEnabled(cursorEnabled)
 	model := Model{
 		width:         width,
 		height:        height,
