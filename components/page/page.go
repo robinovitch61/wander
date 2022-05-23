@@ -8,7 +8,6 @@ import (
 	"strings"
 	"wander/components/filter"
 	"wander/components/viewport"
-	"wander/dev"
 	"wander/keymap"
 )
 
@@ -104,8 +103,6 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 
 func (m *Model) SetHeader(header []string) {
 	m.viewport.SetHeader(header)
-	dev.Debug("SET HEADER")
-	dev.Debug(strings.Join(header, "\n"))
 }
 
 func (m *Model) SetLoading(loading bool) {

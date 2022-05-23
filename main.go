@@ -102,8 +102,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.jobID = jobs.JobIDFromKey(selectedPageRow.Key)
 				case pages.Allocations:
 					m.allocID, m.taskName = allocations.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+				case pages.Logs:
 				default:
-					panic("IMPLEMENT ME")
+					panic("next page not found")
 				}
 
 				m.currentPage = m.currentPage.Forward()
@@ -143,6 +144,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case message.PageLoadMsg:
+		dev.Debug(msg.Page.String())
 		m.currentPage = msg.Page
 		pageModel := m.getCurrentPageModel()
 		pageModel.SetHeader(msg.TableHeader)
@@ -260,7 +262,7 @@ func (m *model) getCurrentPageModel() *page.Model {
 	case pages.Logline:
 		return &m.loglinePage
 	default:
-		panic("page not found")
+		panic("current page model not found")
 	}
 }
 
@@ -270,8 +272,12 @@ func (m model) getCurrentPageLoadCmd() tea.Cmd {
 		return jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 	case pages.Allocations:
 		return allocations.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID)
+	case pages.Logs:
+		return logs.FetchLogs(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
+	case pages.Logline:
+		return logs.FetchLogline(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
 	default:
-		panic("page not found")
+		panic("page load command not found")
 	}
 }
 
