@@ -80,7 +80,7 @@ func FetchJobs(url, token string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
-		return message.PageLoadMsg{Page: pages.Jobs, TableHeader: tableHeader, AllPageData: allPageData}
+		return message.PageLoadedMsg{Page: pages.Jobs, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 

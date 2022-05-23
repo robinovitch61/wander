@@ -18,6 +18,7 @@ import (
 	"wander/pages"
 	"wander/pages/allocations"
 	"wander/pages/jobs"
+	"wander/pages/logline"
 	"wander/pages/logs"
 	"wander/style"
 )
@@ -25,27 +26,24 @@ import (
 type toastTimeoutMsg struct{}
 
 type model struct {
-	nomadUrl    string
-	nomadToken  string
-	header      header.Model
-	currentPage pages.Page
-	jobsPage    page.Model
-	// jobsData        []jobs.jobResponseEntry
+	nomadUrl        string
+	nomadToken      string
+	header          header.Model
+	currentPage     pages.Page
+	jobsPage        page.Model
 	allocationsPage page.Model
-	// allocationsData []allocations.allocationResponseEntry
-	logsPage page.Model
-	// logsData        []logs.LogRow
-	loglinePage page.Model
-	// loglineData     []logline.LoglineRow
-	jobID         string
-	allocID       string
-	taskName      string
-	logType       logs.LogType
-	width, height int
-	initialized   bool
-	toastMessage  string
-	showToast     bool
-	err           error
+	logsPage        page.Model
+	loglinePage     page.Model
+	jobID           string
+	allocID         string
+	taskName        string
+	logline         string
+	logType         logs.LogType
+	width, height   int
+	initialized     bool
+	toastMessage    string
+	showToast       bool
+	err             error
 }
 
 func initialModel() model {
@@ -103,6 +101,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case pages.Allocations:
 					m.allocID, m.taskName = allocations.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
 				case pages.Logs:
+					m.logline = selectedPageRow.Row
 				default:
 					panic("next page not found")
 				}
@@ -143,7 +142,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setPageWindowSize()
 		}
 
-	case message.PageLoadMsg:
+	case message.PageLoadedMsg:
 		dev.Debug(msg.Page.String())
 		m.currentPage = msg.Page
 		pageModel := m.getCurrentPageModel()
@@ -215,19 +214,7 @@ func (m model) View() string {
 		return ""
 	}
 
-	pageView := ""
-	switch m.currentPage {
-	case pages.Jobs:
-		pageView = m.jobsPage.View()
-	case pages.Allocations:
-		pageView = m.allocationsPage.View()
-	case pages.Logs:
-		pageView = m.logsPage.View()
-	case pages.Logline:
-		pageView = m.loglinePage.View()
-	}
-
-	pageView = m.header.View() + "\n" + pageView
+	pageView := m.header.View() + "\n" + m.getCurrentPageModel().View()
 
 	if m.showToast {
 		lines := strings.Split(pageView, "\n")
@@ -275,9 +262,7 @@ func (m model) getCurrentPageLoadCmd() tea.Cmd {
 	case pages.Logs:
 		return logs.FetchLogs(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
 	case pages.Logline:
-		return func() tea.Cmd {
-			return message.PageLoadMsg{Page: pages.Logline, TableHeader: []string{}, AllPageData: Prett}
-		}
+		return logline.FetchLogLine(m.logline)
 	default:
 		panic("page load command not found")
 	}

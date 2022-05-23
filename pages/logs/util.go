@@ -56,7 +56,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 		logRows := strings.Split(string(body), "\n")
 
 		tableHeader, allPageData := logsAsTable(logRows, logType)
-		return message.PageLoadMsg{Page: pages.Logs, TableHeader: tableHeader, AllPageData: allPageData}
+		return message.PageLoadedMsg{Page: pages.Logs, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 

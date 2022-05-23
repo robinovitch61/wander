@@ -121,7 +121,7 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := allocationsAsTable(allocationRowEntries)
-		return message.PageLoadMsg{Page: pages.Allocations, TableHeader: tableHeader, AllPageData: allPageData}
+		return message.PageLoadedMsg{Page: pages.Allocations, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 
