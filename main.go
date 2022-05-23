@@ -173,11 +173,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.PageLoadedMsg:
-		dev.Debug(msg.Page.String())
 		m.setPage(msg.Page)
 		m.getCurrentPageModel().SetHeader(msg.TableHeader)
 		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
 		m.getCurrentPageModel().SetLoading(false)
+		if m.currentPage == nomad.LogsPage {
+			m.logsPage.SetViewportCursorToBottom()
+		}
 	}
 
 	currentPageModel := m.getCurrentPageModel()
@@ -207,10 +209,10 @@ func (m model) View() string {
 
 func (m *model) initialize() {
 	pageHeight := m.getPageHeight()
-	m.jobsPage = page.New(m.width, pageHeight, "Jobs", nomad.JobsPage.LoadingString())
-	m.allocationsPage = page.New(m.width, pageHeight, "Allocations", nomad.AllocationsPage.LoadingString())
-	m.logsPage = page.New(m.width, pageHeight, "Logs", nomad.LogsPage.LoadingString())
-	m.loglinePage = page.New(m.width, pageHeight, "Log Line", nomad.LoglinePage.LoadingString())
+	m.jobsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString())
+	m.allocationsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString())
+	m.logsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString())
+	m.loglinePage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString())
 	m.initialized = true
 }
 
@@ -224,6 +226,7 @@ func (m *model) setPageWindowSize() {
 func (m *model) setPage(page nomad.Page) {
 	m.currentPage = page
 	m.header.KeyHelp = nomad.GetPageKeyHelp(page)
+	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(page))
 	if page.Loads() {
 		m.getCurrentPageModel().SetLoading(true)
 	} else {
@@ -279,6 +282,10 @@ func (m model) currentPageFilterApplied() bool {
 
 func (m model) currentPageViewportSaving() bool {
 	return m.getCurrentPageModel().ViewportSaving()
+}
+
+func (m model) getFilterPrefix(page nomad.Page) string {
+	return page.GetFilterPrefix(m.jobID, m.taskName, m.allocID)
 }
 
 func main() {

@@ -25,6 +25,7 @@ type SaveStatusMsg struct {
 
 type Model struct {
 	// CursorRow is the row index of the cursor.
+	// TODO LEO: Make this private so no one ever sets it directly (only uses SetCursorRow)
 	CursorRow int
 
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.

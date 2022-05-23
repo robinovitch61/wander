@@ -100,13 +100,6 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m Model) GetSelectedPageRow() (Row, error) {
-	if filtered := m.pageData.Filtered; len(filtered) > 0 && m.viewport.CursorRow < len(filtered) {
-		return filtered[m.viewport.CursorRow], nil
-	}
-	return Row{}, fmt.Errorf("bad thing")
-}
-
 func (m *Model) SetHeader(header []string) {
 	m.viewport.SetHeader(header)
 }
@@ -121,13 +114,28 @@ func (m *Model) SetLoading(isLoading bool) {
 	m.loading = isLoading
 }
 
+func (m *Model) SetAllPageData(allPageData []Row) {
+	m.pageData.All = allPageData
+	m.updateViewport()
+}
+
+func (m *Model) SetFilterPrefix(prefix string) {
+	m.filter.SetPrefix(prefix)
+}
+
+func (m *Model) SetViewportCursorToBottom() {
+	m.viewport.SetCursorRow(len(m.pageData.Filtered) - 1)
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
 
-func (m *Model) SetAllPageData(allPageData []Row) {
-	m.pageData.All = allPageData
-	m.updateViewport()
+func (m Model) GetSelectedPageRow() (Row, error) {
+	if filtered := m.pageData.Filtered; len(filtered) > 0 && m.viewport.CursorRow < len(filtered) {
+		return filtered[m.viewport.CursorRow], nil
+	}
+	return Row{}, fmt.Errorf("bad thing")
 }
 
 func (m Model) FilterFocused() bool {

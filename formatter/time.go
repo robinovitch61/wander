@@ -7,7 +7,11 @@ import (
 )
 
 func ShortAllocID(allocID string) string {
-	return allocID[:8]
+	firstN := 8
+	if len(allocID) < firstN {
+		return ""
+	}
+	return allocID[:firstN]
 }
 
 func FormatTime(t time.Time) string {

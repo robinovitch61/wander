@@ -6,6 +6,7 @@ import (
 	"strings"
 	"wander/components/page"
 	"wander/components/viewport"
+	"wander/formatter"
 	"wander/keymap"
 	"wander/style"
 )
@@ -50,10 +51,6 @@ func (p Page) LoadingString() string {
 	return fmt.Sprintf("Loading %s...", p.String())
 }
 
-func (p Page) ReloadingString() string {
-	return fmt.Sprintf("Reloading %s...", p.String())
-}
-
 func (p Page) Forward() Page {
 	switch p {
 	case JobsPage:
@@ -76,6 +73,21 @@ func (p Page) Backward() Page {
 		return LogsPage
 	}
 	return p
+}
+
+func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
+	switch p {
+	case JobsPage:
+		return "Jobs"
+	case AllocationsPage:
+		return fmt.Sprintf("Allocations for %s", jobID)
+	case LogsPage:
+		return fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+	case LoglinePage:
+		return fmt.Sprintf("Log Line for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+	default:
+		panic("page not found")
+	}
 }
 
 type PageLoadedMsg struct {
