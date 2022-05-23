@@ -122,6 +122,10 @@ func (m Model) FilterFocused() bool {
 	return m.filter.Focused()
 }
 
+func (m Model) ViewportSaving() bool {
+	return m.viewport.Saving()
+}
+
 func (m *Model) clearFilter() {
 	m.filter.BlurAndClear()
 	m.updateViewport()

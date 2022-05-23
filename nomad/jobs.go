@@ -1,4 +1,4 @@
-package jobs
+package nomad
 
 import (
 	"encoding/json"
@@ -9,8 +9,6 @@ import (
 	"wander/components/page"
 	"wander/formatter"
 	"wander/message"
-	"wander/nomad"
-	"wander/pages"
 )
 
 type jobResponseEntry struct {
@@ -60,7 +58,7 @@ func FetchJobs(url, token string) tea.Cmd {
 			"namespace": "*",
 		}
 		fullPath := fmt.Sprintf("%s%s", url, "/v1/jobs")
-		body, err := nomad.Get(fullPath, token, params)
+		body, err := Get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -80,7 +78,7 @@ func FetchJobs(url, token string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
-		return message.PageLoadedMsg{Page: pages.Jobs, TableHeader: tableHeader, AllPageData: allPageData}
+		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 

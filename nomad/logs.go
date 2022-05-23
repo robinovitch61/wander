@@ -1,4 +1,4 @@
-package logs
+package nomad
 
 import (
 	"fmt"
@@ -7,8 +7,6 @@ import (
 	"wander/components/page"
 	"wander/formatter"
 	"wander/message"
-	"wander/nomad"
-	"wander/pages"
 )
 
 type LogType int8
@@ -21,9 +19,9 @@ const (
 func (p LogType) String() string {
 	switch p {
 	case StdOut:
-		return "Stdout Logs"
+		return "Stdout LogsPage"
 	case StdErr:
-		return "Stderr Logs"
+		return "Stderr LogsPage"
 	}
 	return "Unknown"
 }
@@ -48,7 +46,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 			"plain":  "true",
 		}
 		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocID)
-		body, err := nomad.Get(fullPath, token, params)
+		body, err := Get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -56,7 +54,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 		logRows := strings.Split(string(body), "\n")
 
 		tableHeader, allPageData := logsAsTable(logRows, logType)
-		return message.PageLoadedMsg{Page: pages.Logs, TableHeader: tableHeader, AllPageData: allPageData}
+		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 

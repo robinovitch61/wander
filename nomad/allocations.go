@@ -1,4 +1,4 @@
-package allocations
+package nomad
 
 import (
 	"encoding/json"
@@ -11,8 +11,6 @@ import (
 	"wander/dev"
 	"wander/formatter"
 	"wander/message"
-	"wander/nomad"
-	"wander/pages"
 )
 
 // allocationResponseEntry is returned from GET /v1/job/:job_id/allocations
@@ -83,7 +81,7 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 	return func() tea.Msg {
 		dev.Debug(fmt.Sprintf("jobID %s", jobID))
 		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
-		body, err := nomad.Get(fullPath, token, nil)
+		body, err := Get(fullPath, token, nil)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -121,7 +119,7 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := allocationsAsTable(allocationRowEntries)
-		return message.PageLoadedMsg{Page: pages.Allocations, TableHeader: tableHeader, AllPageData: allPageData}
+		return PageLoadedMsg{Page: AllocationsPage, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 
