@@ -8,7 +8,7 @@ func (r Row) String() string {
 	return r.Row
 }
 
-func RowsToStrings(rows []Row) []string {
+func rowsToStrings(rows []Row) []string {
 	var strs []string
 	for _, row := range rows {
 		strs = append(strs, row.String())
@@ -16,6 +16,6 @@ func RowsToStrings(rows []Row) []string {
 	return strs
 }
 
-type Data struct {
+type data struct {
 	All, Filtered []Row
 }

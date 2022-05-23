@@ -13,7 +13,7 @@ import (
 
 type Model struct {
 	width, height int
-	pageData      Data
+	pageData      data
 	viewport      viewport.Model
 	filter        filter.Model
 	loadingString string
@@ -122,16 +122,20 @@ func (m *Model) clearFilter() {
 func (m *Model) updateViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredData()
-	m.viewport.SetContent(RowsToStrings(m.pageData.Filtered))
+	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
 	m.viewport.SetCursorRow(0)
 }
 
 func (m *Model) updateFilteredData() {
-	var filteredData []Row
-	for _, entry := range m.pageData.All {
-		if strings.Contains(entry.Row, m.filter.Filter) {
-			filteredData = append(filteredData, entry)
+	if m.filter.Filter == "" {
+		m.pageData.Filtered = m.pageData.All
+	} else {
+		var filteredData []Row
+		for _, entry := range m.pageData.All {
+			if strings.Contains(entry.Row, m.filter.Filter) {
+				filteredData = append(filteredData, entry)
+			}
 		}
+		m.pageData.Filtered = filteredData
 	}
-	m.pageData.Filtered = filteredData
 }
