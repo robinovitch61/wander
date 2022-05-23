@@ -46,7 +46,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 			"plain":  "true",
 		}
 		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocID)
-		body, err := Get(fullPath, token, params)
+		body, err := get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}

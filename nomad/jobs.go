@@ -58,7 +58,7 @@ func FetchJobs(url, token string) tea.Cmd {
 			"namespace": "*",
 		}
 		fullPath := fmt.Sprintf("%s%s", url, "/v1/jobs")
-		body, err := Get(fullPath, token, params)
+		body, err := get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}

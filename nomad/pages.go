@@ -20,6 +20,16 @@ const (
 	LoglinePage
 )
 
+func (p Page) Loads() bool {
+	noLoadPages := []Page{LoglinePage}
+	for _, noLoadPage := range noLoadPages {
+		if noLoadPage == p {
+			return false
+		}
+	}
+	return true
+}
+
 func (p Page) String() string {
 	switch p {
 	case Unset:
@@ -37,7 +47,7 @@ func (p Page) String() string {
 }
 
 func (p Page) LoadingString() string {
-	return fmt.Sprintf("loading %s...", p.String())
+	return fmt.Sprintf("Loading %s...", p.String())
 }
 
 func (p Page) ReloadingString() string {

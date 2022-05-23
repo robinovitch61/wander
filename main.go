@@ -87,11 +87,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// TODO LEO: make actions during loading safe in the future
-		if m.currentPageLoading() {
-			return m, nil
-		}
-
 		if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
@@ -108,8 +103,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					nextPage := m.currentPage.Forward()
 					if nextPage != m.currentPage {
 						m.setPage(nextPage)
-						m.getCurrentPageModel().SetLoading(true)
-						return m, m.getCurrentPageLoadCmd()
+						return m, m.getCurrentPageCmd()
 					}
 				}
 
@@ -118,14 +112,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
 						m.setPage(prevPage)
-						m.getCurrentPageModel().SetLoading(true)
-						return m, m.getCurrentPageLoadCmd()
+						return m, m.getCurrentPageCmd()
 					}
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Reload):
-				m.getCurrentPageModel().SetLoading(true)
-				return m, m.getCurrentPageLoadCmd()
+				if m.currentPage.Loads() {
+					m.getCurrentPageModel().SetLoading(true)
+					return m, m.getCurrentPageCmd()
+				}
 			}
 		}
 
@@ -135,14 +130,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.logType != nomad.StdOut {
 					m.logType = nomad.StdOut
 					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.ViewportContentStyle)
-					return m, m.getCurrentPageLoadCmd()
+					m.getCurrentPageModel().SetLoading(true)
+					return m, m.getCurrentPageCmd()
 				}
 
 			case key.Matches(msg, keymap.KeyMap.StdErr):
 				if m.logType != nomad.StdErr {
 					m.logType = nomad.StdErr
-					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle.Copy().Inherit(style.StdErr), style.StdErr)
-					return m, m.getCurrentPageLoadCmd()
+					stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
+					m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
+					m.getCurrentPageModel().SetLoading(true)
+					return m, m.getCurrentPageCmd()
 				}
 			}
 		}
@@ -169,7 +167,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		if !m.initialized {
 			m.initialize()
-			cmds = append(cmds, m.getCurrentPageLoadCmd())
+			cmds = append(cmds, m.getCurrentPageCmd())
 		} else {
 			m.setPageWindowSize()
 		}
@@ -209,20 +207,28 @@ func (m model) View() string {
 
 func (m *model) initialize() {
 	pageHeight := m.getPageHeight()
-	m.jobsPage = page.New(m.width, pageHeight, "Jobs", "loading jobs...")
-	m.allocationsPage = page.New(m.width, pageHeight, "Allocations", "")
-	m.logsPage = page.New(m.width, pageHeight, "Logs", "")
-	m.loglinePage = page.New(m.width, pageHeight, "Log Line", "")
+	m.jobsPage = page.New(m.width, pageHeight, "Jobs", nomad.JobsPage.LoadingString())
+	m.allocationsPage = page.New(m.width, pageHeight, "Allocations", nomad.AllocationsPage.LoadingString())
+	m.logsPage = page.New(m.width, pageHeight, "Logs", nomad.LogsPage.LoadingString())
+	m.loglinePage = page.New(m.width, pageHeight, "Log Line", nomad.LoglinePage.LoadingString())
 	m.initialized = true
 }
 
 func (m *model) setPageWindowSize() {
-	m.getCurrentPageModel().SetWindowSize(m.width, m.getPageHeight())
+	m.jobsPage.SetWindowSize(m.width, m.getPageHeight())
+	m.allocationsPage.SetWindowSize(m.width, m.getPageHeight())
+	m.logsPage.SetWindowSize(m.width, m.getPageHeight())
+	m.loglinePage.SetWindowSize(m.width, m.getPageHeight())
 }
 
 func (m *model) setPage(page nomad.Page) {
 	m.currentPage = page
 	m.header.KeyHelp = nomad.GetPageKeyHelp(page)
+	if page.Loads() {
+		m.getCurrentPageModel().SetLoading(true)
+	} else {
+		m.getCurrentPageModel().SetLoading(false)
+	}
 }
 
 func (m *model) getCurrentPageModel() *page.Model {
@@ -240,7 +246,7 @@ func (m *model) getCurrentPageModel() *page.Model {
 	}
 }
 
-func (m model) getCurrentPageLoadCmd() tea.Cmd {
+func (m *model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
 		return nomad.FetchJobs(m.nomadUrl, m.nomadToken)

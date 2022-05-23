@@ -79,7 +79,7 @@ type allocationRowEntry struct {
 func FetchAllocations(url, token, jobID string) tea.Cmd {
 	return func() tea.Msg {
 		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
-		body, err := Get(fullPath, token, nil)
+		body, err := get(fullPath, token, nil)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}

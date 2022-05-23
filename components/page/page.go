@@ -88,6 +88,9 @@ func (m Model) View() string {
 	content := fmt.Sprintf(m.loadingString)
 	if !m.loading {
 		content = m.viewport.View()
+		dev.Debug("NOT LOADING")
+	} else {
+		dev.Debug("LOADING")
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
 }
@@ -113,8 +116,9 @@ func (m *Model) SetViewportStyle(headerStyle, contentStyle lipgloss.Style) {
 	m.viewport.ContentStyle = contentStyle
 }
 
-func (m *Model) SetLoading(loading bool) {
-	m.loading = loading
+func (m *Model) SetLoading(isLoading bool) {
+	dev.Debug(fmt.Sprintf("SET LOADING %t", isLoading))
+	m.loading = isLoading
 }
 
 func (m Model) Loading() bool {
