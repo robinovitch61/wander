@@ -77,12 +77,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// always exit if desired, or don't respond if loading
+		// always exit if desired, or don't respond if editing filter or saving
 		if key.Matches(msg, keymap.KeyMap.Exit) {
-			if addingQToFilter := m.currentPageFilterFocused() && msg.String() == "q"; !addingQToFilter {
+			addingQToFilter := m.currentPageFilterFocused()
+			saving := m.currentPageViewportSaving()
+			typingQWhileFilteringOrSaving := (addingQToFilter || saving) && msg.String() == "q"
+			if !typingQWhileFilteringOrSaving {
 				return m, tea.Quit
 			}
-		} else if m.currentPageLoading() {
+		}
+
+		// TODO LEO: make actions during loading safe in the future
+		if m.currentPageLoading() {
+			dev.Debug("LOADING")
 			return m, nil
 		}
 
@@ -108,11 +115,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
-				prevPage := m.currentPage.Backward()
-				if prevPage != m.currentPage {
-					m.setPage(prevPage)
-					m.getCurrentPageModel().SetLoading(true)
-					return m, m.getCurrentPageLoadCmd()
+				if !m.currentPageFilterApplied() {
+					prevPage := m.currentPage.Backward()
+					if prevPage != m.currentPage {
+						m.setPage(prevPage)
+						m.getCurrentPageModel().SetLoading(true)
+						return m, m.getCurrentPageLoadCmd()
+					}
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Reload):
@@ -150,11 +159,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.PageLoadedMsg:
 		dev.Debug(msg.Page.String())
-		m.currentPage = msg.Page
-		pageModel := m.getCurrentPageModel()
-		pageModel.SetHeader(msg.TableHeader)
-		pageModel.SetAllPageData(msg.AllPageData)
-		pageModel.SetLoading(false)
+		m.setPage(msg.Page)
+		dev.Debug("PAGE")
+		m.getCurrentPageModel().SetHeader(msg.TableHeader)
+		dev.Debug("HEADER")
+		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
+		dev.Debug("DATA")
+		m.getCurrentPageModel().SetLoading(false)
+		dev.Debug("LOADING")
+		dev.Debug(fmt.Sprintf("%t", m.getCurrentPageModel().Loading()))
 	}
 
 	currentPageModel := m.getCurrentPageModel()
@@ -256,6 +269,10 @@ func (m model) currentPageLoading() bool {
 
 func (m model) currentPageFilterFocused() bool {
 	return m.getCurrentPageModel().FilterFocused()
+}
+
+func (m model) currentPageFilterApplied() bool {
+	return m.getCurrentPageModel().FilterApplied()
 }
 
 func (m model) currentPageViewportSaving() bool {

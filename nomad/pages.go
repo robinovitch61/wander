@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"wander/components/page"
 	"wander/components/viewport"
+	"wander/dev"
 	"wander/keymap"
 	"wander/style"
 )
@@ -83,7 +84,9 @@ func GetPageKeyHelp(currentPage Page) string {
 	keyHelper.Styles.ShortDesc = style.KeyHelpDescription
 	viewportKeyMap := viewport.GetKeyMap()
 
+	dev.Debug("HERE")
 	alwaysShown := []key.Binding{keymap.KeyMap.Exit, viewportKeyMap.Save}
+
 	if currentPage != LoglinePage {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Reload)
 	}
@@ -98,12 +101,17 @@ func GetPageKeyHelp(currentPage Page) string {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Back)
 	}
 
-	firstRow := keyHelper.ShortHelpView(alwaysShown)
+	dev.Debug("firstRow")
+	// firstRow := keyHelper.ShortHelpView(alwaysShown)
+	firstRow := "HI"
 
-	viewportKm := viewport.GetKeyMap()
-	viewportAlwaysShown := []key.Binding{viewportKm.Down, viewportKm.Up, viewportKm.PageDown, viewportKm.PageUp}
-	secondRow := keyHelper.ShortHelpView(viewportAlwaysShown)
+	dev.Debug("HERE")
+	// viewportAlwaysShown := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp}
+	dev.Debug("secondRow")
+	// secondRow := keyHelper.ShortHelpView(viewportAlwaysShown)
+	secondRow := "THERE"
 
 	final := firstRow + "\n" + secondRow
+	dev.Debug("final")
 	return final
 }

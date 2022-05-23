@@ -55,15 +55,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				m.filter.Blur()
-
-			case key.Matches(msg, keymap.KeyMap.Back):
-				m.clearFilter()
 			}
 		} else {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Filter):
 				m.filter.Focus()
 				return m, nil
+
+			case key.Matches(msg, keymap.KeyMap.Back):
+				m.clearFilter()
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
@@ -120,6 +120,10 @@ func (m *Model) SetAllPageData(allPageData []Row) {
 
 func (m Model) FilterFocused() bool {
 	return m.filter.Focused()
+}
+
+func (m Model) FilterApplied() bool {
+	return len(m.filter.Filter) > 0
 }
 
 func (m Model) ViewportSaving() bool {
