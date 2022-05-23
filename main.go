@@ -275,7 +275,9 @@ func (m model) getCurrentPageLoadCmd() tea.Cmd {
 	case pages.Logs:
 		return logs.FetchLogs(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
 	case pages.Logline:
-		return logs.FetchLogline(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
+		return func() tea.Cmd {
+			return message.PageLoadMsg{Page: pages.Logline, TableHeader: []string{}, AllPageData: Prett}
+		}
 	default:
 		panic("page load command not found")
 	}
