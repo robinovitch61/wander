@@ -38,9 +38,9 @@ func createTableConfig(numCols int) tableConfig {
 	return tableConfig{table, tableString}
 }
 
-func GetRenderedTableAsString(columnTitles []string, data [][]string) Table {
-	table := createTableConfig(len(columnTitles))
-	table.writer.SetHeader(columnTitles)
+func GetRenderedTableAsString(columns []string, data [][]string) Table {
+	table := createTableConfig(len(columns))
+	table.writer.SetHeader(columns)
 	table.writer.AppendBulk(data)
 	table.writer.Render()
 	allRows := strings.Split(table.string.String(), "\n")

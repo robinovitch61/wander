@@ -25,6 +25,7 @@ type SaveStatusMsg struct {
 
 type Model struct {
 	// CursorRow is the row index of the cursor.
+	// TODO LEO: Make this private so no one ever sets it directly (only uses SetCursorRow)
 	CursorRow int
 
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
@@ -54,7 +55,7 @@ type Model struct {
 	xOffset int
 
 	header        []string
-	lines         []string
+	content       []string
 	maxLineLength int
 }
 
@@ -72,7 +73,7 @@ func New(width, height int) (m Model) {
 	m.keyMap = GetKeyMap()
 	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
-	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
+	m.HeaderStyle = style.ViewportHeaderStyle
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
 	m.FooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))
@@ -99,7 +100,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			case key.Matches(msg, m.keyMap.ConfirmSave):
 				var content string
-				for _, line := range append(m.header, m.lines...) {
+				for _, line := range append(m.header, m.content...) {
 					content += strings.TrimRight(line, " ") + "\n"
 				}
 				cmds = append(cmds, saveCommand(m.saveDialog.Value(), content))
@@ -220,7 +221,7 @@ func (m Model) View() string {
 				addLineToViewString(m.ContentStyle.Render(visiblePartOfLine), false)
 			}
 		} else {
-			// this splitting and rejoining of styled lines is expensive and causes increased flickering,
+			// this splitting and rejoining of styled content is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
 			styledHighlight := m.HighlightStyle.Render(m.Highlight)
 			lineStyle := m.ContentStyle
@@ -259,26 +260,25 @@ func (m *Model) SetSize(width, height int) {
 	m.fixState()
 }
 
-func (m *Model) SetHeaderAndContent(header, content string) {
-	newHeader := strings.Split(normalizeLineEndings(header), "\n")
-	lines := strings.Split(normalizeLineEndings(content), "\n")
+func (m *Model) SetHeader(header []string) {
+	m.header = header
+	m.updateMaxLineLength()
+	m.fixState()
+}
 
-	maxLineLength := 0
-	for _, line := range append(newHeader, lines...) {
-		if lineLength := len(strings.TrimRight(line, " ")); lineLength > maxLineLength {
-			maxLineLength = lineLength
-		}
-	}
-
-	if len(newHeader) == 1 && newHeader[0] == "" {
-		m.header = []string{}
-	} else {
-		m.header = newHeader
-	}
-	m.lines = lines
-	m.maxLineLength = maxLineLength
+func (m *Model) SetContent(content []string) {
+	m.content = content
+	m.updateMaxLineLength()
 	m.setContentHeight()
 	m.fixState()
+}
+
+func (m *Model) updateMaxLineLength() {
+	for _, line := range append(m.header, m.content...) {
+		if lineLength := len(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
+			m.maxLineLength = lineLength
+		}
+	}
 }
 
 // SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
@@ -314,9 +314,9 @@ func (m Model) getSaveDialogPlaceholder() string {
 	return constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
 }
 
-func normalizeLineEndings(s string) string {
-	return strings.ReplaceAll(s, "\r\n", "\n")
-}
+// func normalizeLineEndings(s string) string {
+// 	return strings.ReplaceAll(s, "\r\n", "\n")
+// }
 
 // fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
 func (m *Model) fixCursorRow() {
@@ -343,9 +343,9 @@ func (m *Model) setContentHeight() {
 	m.contentHeight = max(0, m.height-len(m.header)-footerHeight)
 }
 
-// maxLinesIdx returns the maximum index of the model's lines
+// maxLinesIdx returns the maximum index of the model's content
 func (m *Model) maxLinesIdx() int {
-	return len(m.lines) - 1
+	return len(m.content) - 1
 }
 
 // lastVisibleLineIdx returns the maximum visible line index
@@ -358,12 +358,12 @@ func (m Model) maxYOffset() int {
 	if m.maxLinesIdx() < m.contentHeight {
 		return 0
 	}
-	return len(m.lines) - m.contentHeight
+	return len(m.content) - m.contentHeight
 }
 
 // maxCursorRow returns the maximum CursorRow
 func (m Model) maxCursorRow() int {
-	return len(m.lines) - 1
+	return len(m.content) - 1
 }
 
 // setYOffset sets the yOffset with bounds.
@@ -375,32 +375,32 @@ func (m *Model) setYOffset(n int) {
 	}
 }
 
-// visibleLines retrieves the visible lines based on the yOffset
+// visibleLines retrieves the visible content based on the yOffset
 func (m Model) visibleLines() []string {
 	start := m.yOffset
 	end := start + m.contentHeight
 	if end > m.maxLinesIdx() {
-		return m.lines[start:]
+		return m.content[start:]
 	}
-	return m.lines[start:end]
+	return m.content[start:end]
 }
 
-// cursorRowDown moves the CursorRow down by the given number of lines.
+// cursorRowDown moves the CursorRow down by the given number of content.
 func (m *Model) cursorRowDown(n int) {
 	m.SetCursorRow(m.CursorRow + n)
 }
 
-// cursorRowUp moves the CursorRow up by the given number of lines.
+// cursorRowUp moves the CursorRow up by the given number of content.
 func (m *Model) cursorRowUp(n int) {
 	m.SetCursorRow(m.CursorRow - n)
 }
 
-// viewDown moves the view down by the given number of lines.
+// viewDown moves the view down by the given number of content.
 func (m *Model) viewDown(n int) {
 	m.setYOffset(m.yOffset + n)
 }
 
-// viewUp moves the view up by the given number of lines.
+// viewUp moves the view up by the given number of content.
 func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
@@ -446,7 +446,7 @@ func (m Model) getFooter() (string, int) {
 		numerator = m.yOffset + len(m.visibleLines())
 	}
 
-	if numLines := len(m.lines); numLines > m.height-len(m.header) {
+	if numLines := len(m.content); numLines > m.height-len(m.header) {
 		percentScrolled := percent(numerator, numLines)
 		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
 		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))

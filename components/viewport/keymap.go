@@ -24,11 +24,11 @@ func GetKeyMap() viewportKeyMap {
 	return viewportKeyMap{
 		PageDown: key.NewBinding(
 			key.WithKeys("pgdown", spacebar, "f"),
-			key.WithHelp("f/pgdn", "page down"),
+			key.WithHelp("f/pgdn", "pgdn"),
 		),
 		PageUp: key.NewBinding(
 			key.WithKeys("pgup", "b"),
-			key.WithHelp("b/pgup", "page up"),
+			key.WithHelp("b/pgup", "pgup"),
 		),
 		HalfPageUp: key.NewBinding(
 			key.WithKeys("u", "ctrl+u"),
@@ -63,8 +63,8 @@ func GetKeyMap() viewportKeyMap {
 			key.WithHelp("G", "go to bottom"),
 		),
 		Save: key.NewBinding(
-			key.WithKeys("s"),
-			key.WithHelp("s", "save"),
+			key.WithKeys("ctrl+s"),
+			key.WithHelp("ctrl+s", "save"),
 		),
 		CancelSave: key.NewBinding(
 			key.WithKeys("esc"),
