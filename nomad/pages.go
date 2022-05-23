@@ -101,6 +101,12 @@ func GetPageKeyHelp(currentPage Page) string {
 		keymap.KeyMap.Back.SetHelp(keymap.KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Back)
 	}
+
+	if currentPage == LogsPage {
+		alwaysShown = append(alwaysShown, keymap.KeyMap.StdOut)
+		alwaysShown = append(alwaysShown, keymap.KeyMap.StdErr)
+	}
+
 	firstRow := getShortHelp(alwaysShown)
 
 	viewportKeyMap := viewport.GetKeyMap()

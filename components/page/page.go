@@ -19,6 +19,7 @@ type Model struct {
 	filter        filter.Model
 	loadingString string
 	loading       bool
+	ViewportStyle lipgloss.Style
 }
 
 func New(
@@ -105,6 +106,11 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 
 func (m *Model) SetHeader(header []string) {
 	m.viewport.SetHeader(header)
+}
+
+func (m *Model) SetViewportStyle(headerStyle, contentStyle lipgloss.Style) {
+	m.viewport.HeaderStyle = headerStyle
+	m.viewport.ContentStyle = contentStyle
 }
 
 func (m *Model) SetLoading(loading bool) {

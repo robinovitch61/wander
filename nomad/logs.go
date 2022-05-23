@@ -19,9 +19,9 @@ const (
 func (p LogType) String() string {
 	switch p {
 	case StdOut:
-		return "Stdout LogsPage"
+		return "Stdout Logs"
 	case StdErr:
-		return "Stderr LogsPage"
+		return "Stderr Logs"
 	}
 	return "Unknown"
 }

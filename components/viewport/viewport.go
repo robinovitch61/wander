@@ -72,7 +72,7 @@ func New(width, height int) (m Model) {
 	m.keyMap = GetKeyMap()
 	m.cursorEnabled = true
 	m.mouseWheelEnabled = false
-	m.HeaderStyle = lipgloss.NewStyle().Bold(true)
+	m.HeaderStyle = style.ViewportHeaderStyle
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
 	m.FooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))

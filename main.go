@@ -129,6 +129,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		if m.currentPage == nomad.LogsPage {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.StdOut):
+				if m.logType != nomad.StdOut {
+					m.logType = nomad.StdOut
+					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.ViewportContentStyle)
+					return m, m.getCurrentPageLoadCmd()
+				}
+
+			case key.Matches(msg, keymap.KeyMap.StdErr):
+				if m.logType != nomad.StdErr {
+					m.logType = nomad.StdErr
+					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle.Copy().Inherit(style.StdErr), style.StdErr)
+					return m, m.getCurrentPageLoadCmd()
+				}
+			}
+		}
+
 	case message.ErrMsg:
 		m.err = msg
 		return m, nil
