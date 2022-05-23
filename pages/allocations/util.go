@@ -7,21 +7,17 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"wander/components/page"
 	"wander/dev"
 	"wander/formatter"
 	"wander/message"
 	"wander/nomad"
+	"wander/pages"
 )
 
-type allocationsData struct {
-	allData, filteredData []allocationRowEntry
-}
-
-type nomadAllocationMsg []allocationRowEntry
-
-// AllocationResponseEntry is returned from GET /v1/job/:job_id/allocations
+// allocationResponseEntry is returned from GET /v1/job/:job_id/allocations
 // https://www.nomadproject.io/api-docs/jobs#list-job-allocations
-type AllocationResponseEntry struct {
+type allocationResponseEntry struct {
 	ID                 string `json:"ID"`
 	EvalID             string `json:"EvalID"`
 	Name               string `json:"Name"`
@@ -77,14 +73,10 @@ type AllocationResponseEntry struct {
 	ModifyTime  int64 `json:"ModifyTime"`
 }
 
-// allocationRowEntry is an item extracted from AllocationResponseEntry
+// allocationRowEntry is an item extracted from allocationResponseEntry
 type allocationRowEntry struct {
 	ID, TaskGroup, Name, TaskName, State string
 	StartedAt, FinishedAt                time.Time
-}
-
-func (e allocationRowEntry) MatchesFilter(filter string) bool {
-	return strings.Contains(e.TaskName, filter)
 }
 
 func FetchAllocations(url, token, jobID string) tea.Cmd {
@@ -96,7 +88,7 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		var allocationResponse []AllocationResponseEntry
+		var allocationResponse []allocationResponseEntry
 		if err := json.Unmarshal(body, &allocationResponse); err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -128,26 +120,43 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 			return firstTask.TaskName < secondTask.TaskName
 		})
 
-		return nomadAllocationMsg(allocationRowEntries)
+		tableHeader, allPageData := allocationsAsTable(allocationRowEntries)
+		return message.PageLoadMsg{Page: pages.Allocations, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 
-func allocationsAsTable(allocations []allocationRowEntry) formatter.Table {
+func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row) {
 	var allocationResponseRows [][]string
-	for _, alloc := range allocations {
+	var keys []string
+	for _, row := range allocations {
 		allocationResponseRows = append(allocationResponseRows, []string{
-			formatter.ShortAllocID(alloc.ID),
-			alloc.TaskGroup,
-			alloc.Name,
-			alloc.TaskName,
-			alloc.State,
-			formatter.FormatTime(alloc.StartedAt),
-			formatter.FormatTime(alloc.FinishedAt),
+			formatter.ShortAllocID(row.ID),
+			row.TaskGroup,
+			row.Name,
+			row.TaskName,
+			row.State,
+			formatter.FormatTime(row.StartedAt),
+			formatter.FormatTime(row.FinishedAt),
 		})
+		keys = append(keys, toAllocationsKey(row))
 	}
 
-	return formatter.GetRenderedTableAsString(
-		[]string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished"},
-		allocationResponseRows,
-	)
+	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished"}
+	table := formatter.GetRenderedTableAsString(columns, allocationResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
+}
+
+func toAllocationsKey(allocationRowEntry allocationRowEntry) string {
+	return allocationRowEntry.ID + " " + allocationRowEntry.TaskName
+}
+
+func AllocIDAndTaskNameFromKey(key string) (string, string) {
+	split := strings.Split(key, " ")
+	return split[0], split[1]
 }

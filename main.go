@@ -32,7 +32,7 @@ type model struct {
 	jobsPage    page.Model
 	// jobsData        []jobs.jobResponseEntry
 	allocationsPage page.Model
-	// allocationsData []allocations.AllocationResponseEntry
+	// allocationsData []allocations.allocationResponseEntry
 	logsPage page.Model
 	// logsData        []logs.LogRow
 	loglinePage page.Model
@@ -96,19 +96,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch {
 		case key.Matches(msg, keymap.KeyMap.Forward):
-			switch m.currentPage {
-			case pages.Jobs:
-				if selectedPageRow, err := m.jobsPage.GetSelectedPageRow(); err == nil {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				switch m.currentPage {
+				case pages.Jobs:
 					m.jobID = jobs.JobIDFromKey(selectedPageRow.Key)
-					m.currentPage = pages.Allocations
-					m.allocationsPage.Loading = true
-					return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID)
+				case pages.Allocations:
+					m.allocID, m.taskName = allocations.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+				default:
+					panic("IMPLEMENT ME")
 				}
-			default:
-				panic("IMPLEMENT ME")
+
+				m.currentPage = m.currentPage.Forward()
+				m.getCurrentPageModel().SetLoading(true)
+				return m, m.getCurrentPageLoadCmd()
 			}
-		default:
-			panic("IMPLEMENT ME")
 		}
 
 	case message.ErrMsg:
@@ -136,15 +137,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		if !m.initialized {
 			m.initialize()
-			cmds = append(cmds, jobs.FetchJobs(m.nomadUrl, m.nomadToken))
+			cmds = append(cmds, m.getCurrentPageLoadCmd())
 		} else {
 			m.setPageWindowSize()
 		}
 
-	case jobs.NomadJobsMsg:
-		m.currentPage = pages.Jobs
-		m.jobsPage.SetHeader(msg.TableHeader)
-		m.jobsPage.SetAllPageData(msg.AllPageData)
+	case message.PageLoadMsg:
+		m.currentPage = msg.Page
+		pageModel := m.getCurrentPageModel()
+		pageModel.SetHeader(msg.TableHeader)
+		pageModel.SetAllPageData(msg.AllPageData)
+		pageModel.SetLoading(false)
 
 		// // this is how subcomponents currently tell main model to update the parent state
 		// case pages.ChangePageMsg:
@@ -246,7 +249,7 @@ func (m *model) setPageWindowSize() {
 	m.getCurrentPageModel().SetWindowSize(m.width, m.getPageHeight())
 }
 
-func (m model) getCurrentPageModel() *page.Model {
+func (m *model) getCurrentPageModel() *page.Model {
 	switch m.currentPage {
 	case pages.Jobs:
 		return &m.jobsPage
@@ -261,12 +264,23 @@ func (m model) getCurrentPageModel() *page.Model {
 	}
 }
 
+func (m model) getCurrentPageLoadCmd() tea.Cmd {
+	switch m.currentPage {
+	case pages.Jobs:
+		return jobs.FetchJobs(m.nomadUrl, m.nomadToken)
+	case pages.Allocations:
+		return allocations.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID)
+	default:
+		panic("page not found")
+	}
+}
+
 func (m model) getPageHeight() int {
 	return m.height - m.header.ViewHeight()
 }
 
 func (m model) currentPageLoading() bool {
-	return m.getCurrentPageModel().Loading
+	return m.getCurrentPageModel().Loading()
 }
 
 func (m model) currentPageFilterFocused() bool {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"wander/components/filter"
 	"wander/components/viewport"
+	"wander/dev"
 	"wander/keymap"
 )
 
@@ -17,7 +18,7 @@ type Model struct {
 	viewport      viewport.Model
 	filter        filter.Model
 	loadingString string
-	Loading       bool
+	loading       bool
 }
 
 func New(
@@ -32,7 +33,7 @@ func New(
 		viewport:      pageViewport,
 		filter:        pageFilter,
 		loadingString: loadingString,
-		Loading:       true,
+		loading:       true,
 	}
 	return model
 }
@@ -83,7 +84,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	content := fmt.Sprintf(m.loadingString)
-	if !m.Loading {
+	if !m.loading {
 		content = m.viewport.View()
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
@@ -101,8 +102,18 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 	return Row{}, fmt.Errorf("bad thing")
 }
 
-func (m Model) SetHeader(header []string) {
+func (m *Model) SetHeader(header []string) {
 	m.viewport.SetHeader(header)
+	dev.Debug("SET HEADER")
+	dev.Debug(strings.Join(header, "\n"))
+}
+
+func (m *Model) SetLoading(loading bool) {
+	m.loading = loading
+}
+
+func (m Model) Loading() bool {
+	return m.loading
 }
 
 func (m *Model) SetAllPageData(allPageData []Row) {

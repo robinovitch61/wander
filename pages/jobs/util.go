@@ -10,12 +10,8 @@ import (
 	"wander/formatter"
 	"wander/message"
 	"wander/nomad"
+	"wander/pages"
 )
-
-type NomadJobsMsg struct {
-	TableHeader []string
-	AllPageData []page.Row
-}
 
 type jobResponseEntry struct {
 	ID                string      `json:"ID"`
@@ -84,8 +80,7 @@ func FetchJobs(url, token string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
-
-		return NomadJobsMsg{TableHeader: tableHeader, AllPageData: allPageData}
+		return message.PageLoadMsg{Page: pages.Jobs, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 
