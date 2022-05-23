@@ -10,7 +10,7 @@ const (
 	NomadUrlEnvVariable   = "NOMAD_ADDR"
 )
 
-var Logo = strings.Join([]string{
+var LogoString = strings.Join([]string{
 	"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
 	"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
 }, "\n")

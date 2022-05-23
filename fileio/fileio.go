@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"wander/dev"
 	"wander/formatter"
 )
 
@@ -55,7 +54,6 @@ func SaveToFile(saveDialogValue, fileContent string) (string, error) {
 	if exists, fileExistsErr := fileOrDirectoryExists(pathWithFileName); fileExistsErr == nil {
 		if exists {
 			extension := filepath.Ext(pathWithFileName)
-			dev.Debug(fmt.Sprintf("EXTENSION %s", extension))
 			now := formatter.FormatTime(time.Now())
 			if extension == "" {
 				pathWithFileName += "_" + now

@@ -1,4 +1,4 @@
-package jobs
+package nomad
 
 import (
 	"encoding/json"
@@ -6,10 +6,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"sort"
 	"strconv"
-	"strings"
+	"wander/components/page"
 	"wander/formatter"
 	"wander/message"
-	"wander/nomad"
 )
 
 type jobResponseEntry struct {
@@ -53,17 +52,13 @@ type jobResponseEntry struct {
 	SubmitTime     int64 `json:"SubmitTime"`
 }
 
-func (e jobResponseEntry) MatchesFilter(filter string) bool {
-	return strings.Contains(e.ID, filter)
-}
-
 func FetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
 		params := map[string]string{
 			"namespace": "*",
 		}
 		fullPath := fmt.Sprintf("%s%s", url, "/v1/jobs")
-		body, err := nomad.Get(fullPath, token, params)
+		body, err := get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -82,12 +77,14 @@ func FetchJobs(url, token string) tea.Cmd {
 			return jobResponse[x].Name < jobResponse[y].Name
 		})
 
-		return nomadJobsMsg(jobResponse)
+		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
+		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 
-func jobResponsesAsTable(jobResponse []jobResponseEntry) formatter.Table {
+func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) {
 	var jobResponseRows [][]string
+	var keys []string
 	for _, row := range jobResponse {
 		jobResponseRows = append(jobResponseRows, []string{
 			row.ID,
@@ -97,10 +94,24 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) formatter.Table {
 			row.Status,
 			formatter.FormatTimeNs(row.SubmitTime),
 		})
+		keys = append(keys, toJobsKey(row))
 	}
 
-	return formatter.GetRenderedTableAsString(
-		[]string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"},
-		jobResponseRows,
-	)
+	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"}
+	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
+}
+
+func toJobsKey(jobResponseEntry jobResponseEntry) string {
+	return jobResponseEntry.ID
+}
+
+func JobIDFromKey(key string) string {
+	return key
 }
