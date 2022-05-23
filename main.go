@@ -167,22 +167,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	currentPageModel := m.getCurrentPageModel()
 	*currentPageModel, cmd = currentPageModel.Update(msg)
 	cmds = append(cmds, cmd)
-	// switch m.currentPage {
-	// case nomad.JobsPage:
-	// 	m.jobsPage, cmd = m.jobsPage.Update(msg)
-	// 	cmds = append(cmds, cmd)
-	// case nomad.AllocationsPage:
-	// 	m.allocationsPage, cmd = m.allocationsPage.Update(msg)
-	// 	cmds = append(cmds, cmd)
-	// case nomad.LogsPage:
-	// 	m.logsPage, cmd = m.logsPage.Update(msg)
-	// 	cmds = append(cmds, cmd)
-	// case nomad.LoglinePage:
-	// 	m.loglinePage, cmd = m.loglinePage.Update(msg)
-	// 	cmds = append(cmds, cmd)
-	// default:
-	// 	panic("page not found")
-	// }
 
 	return m, tea.Batch(cmds...)
 }
