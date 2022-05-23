@@ -141,7 +141,7 @@ func (m *Model) clearFilter() {
 func (m *Model) updateJobViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	// m.updateFilteredJobData()
-	// table := JobResponsesAsTable(m.jobsData.filteredData)
+	// table := jobResponsesAsTable(m.jobsData.filteredData)
 	// m.viewport.SetHeaderAndContent(
 	// 	strings.Join(table.HeaderRows, "\n"),
 	// 	strings.Join(table.ContentRows, "\n"),

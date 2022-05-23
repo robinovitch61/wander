@@ -18,7 +18,6 @@ import (
 	"wander/pages"
 	"wander/pages/allocations"
 	"wander/pages/jobs"
-	"wander/pages/logline"
 	"wander/pages/logs"
 	"wander/style"
 )
@@ -31,22 +30,22 @@ type model struct {
 	header      header.Model
 	currentPage pages.Page
 	jobsPage    page.Model
-	// jobsData        []jobs.JobResponseEntry
+	// jobsData        []jobs.jobResponseEntry
 	allocationsPage page.Model
-	allocationsData []allocations.AllocationResponseEntry
-	logsPage        page.Model
-	logsData        []logs.LogRow
-	loglinePage     page.Model
-	loglineData     []logline.LoglineRow
-	jobID           string
-	allocID         string
-	taskName        string
-	logType         logs.LogType
-	width, height   int
-	initialized     bool
-	toastMessage    string
-	showToast       bool
-	err             error
+	// allocationsData []allocations.AllocationResponseEntry
+	logsPage page.Model
+	// logsData        []logs.LogRow
+	loglinePage page.Model
+	// loglineData     []logline.LoglineRow
+	jobID         string
+	allocID       string
+	taskName      string
+	logType       logs.LogType
+	width, height int
+	initialized   bool
+	toastMessage  string
+	showToast     bool
+	err           error
 }
 
 func initialModel() model {
@@ -100,11 +99,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.currentPage {
 			case pages.Jobs:
 				if selectedPageRow, err := m.jobsPage.GetSelectedPageRow(); err == nil {
-					jobID := selectedPageRow.Key
-					m.jobID = jobID
+					m.jobID = jobs.JobIDFromKey(selectedPageRow.Key)
 					m.currentPage = pages.Allocations
 					m.allocationsPage.Loading = true
-					return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
+					return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID)
 				}
 			default:
 				panic("IMPLEMENT ME")
@@ -145,10 +143,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case jobs.NomadJobsMsg:
 		m.currentPage = pages.Jobs
-		// m.jobsData = msg
-		tableHeader, jobsPageData := jobs.JobResponsesAsTable(msg)
-		m.jobsPage.SetHeader(tableHeader)
-		m.jobsPage.SetAllPageData(jobsPageData)
+		m.jobsPage.SetHeader(msg.TableHeader)
+		m.jobsPage.SetAllPageData(msg.AllPageData)
 
 		// // this is how subcomponents currently tell main model to update the parent state
 		// case pages.ChangePageMsg:

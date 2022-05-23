@@ -6,18 +6,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"sort"
 	"strconv"
-	"strings"
 	"wander/components/page"
 	"wander/formatter"
 	"wander/message"
 	"wander/nomad"
 )
 
-var Columns = []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"}
+type NomadJobsMsg struct {
+	TableHeader []string
+	AllPageData []page.Row
+}
 
-type NomadJobsMsg []JobResponseEntry
-
-type JobResponseEntry struct {
+type jobResponseEntry struct {
 	ID                string      `json:"ID"`
 	ParentID          string      `json:"ParentID"`
 	Name              string      `json:"Name"`
@@ -58,10 +58,6 @@ type JobResponseEntry struct {
 	SubmitTime     int64 `json:"SubmitTime"`
 }
 
-func (e JobResponseEntry) MatchesFilter(filter string) bool {
-	return strings.Contains(e.ID, filter)
-}
-
 func FetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
 		params := map[string]string{
@@ -73,7 +69,7 @@ func FetchJobs(url, token string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		var jobResponse []JobResponseEntry
+		var jobResponse []jobResponseEntry
 		if err := json.Unmarshal(body, &jobResponse); err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -87,11 +83,13 @@ func FetchJobs(url, token string) tea.Cmd {
 			return jobResponse[x].Name < jobResponse[y].Name
 		})
 
-		return NomadJobsMsg(jobResponse)
+		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
+
+		return NomadJobsMsg{TableHeader: tableHeader, AllPageData: allPageData}
 	}
 }
 
-func JobResponsesAsTable(jobResponse []JobResponseEntry) ([]string, []page.Row) {
+func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) {
 	var jobResponseRows [][]string
 	var keys []string
 	for _, row := range jobResponse {
@@ -103,10 +101,11 @@ func JobResponsesAsTable(jobResponse []JobResponseEntry) ([]string, []page.Row) 
 			row.Status,
 			formatter.FormatTimeNs(row.SubmitTime),
 		})
-		keys = append(keys, row.ID)
+		keys = append(keys, toJobsKey(row))
 	}
 
-	table := formatter.GetRenderedTableAsString(Columns, jobResponseRows)
+	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"}
+	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {
@@ -114,4 +113,12 @@ func JobResponsesAsTable(jobResponse []JobResponseEntry) ([]string, []page.Row) 
 	}
 
 	return table.HeaderRows, rows
+}
+
+func toJobsKey(jobResponseEntry jobResponseEntry) string {
+	return jobResponseEntry.ID
+}
+
+func JobIDFromKey(key string) string {
+	return key
 }
