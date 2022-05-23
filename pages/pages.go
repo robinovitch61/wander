@@ -32,7 +32,7 @@ func (p Page) String() string {
 }
 
 func (p Page) LoadingString() string {
-	return fmt.Sprintf("Loading %s...", p.String())
+	return fmt.Sprintf("loading %s...", p.String())
 }
 
 func (p Page) ReloadingString() string {

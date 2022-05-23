@@ -5,7 +5,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"strings"
 	"wander/components/filter"
 	"wander/components/viewport"
 	"wander/dev"
@@ -113,7 +112,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := fmt.Sprintf("Loading allocations for %s...", m.jobID)
+	content := fmt.Sprintf("loading allocations for %s...", m.jobID)
 	if !m.Loading {
 		content = m.viewport.View()
 	}
@@ -152,10 +151,10 @@ func (m *Model) updateFilteredAllocationData() {
 func (m *Model) updateAllocationViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredAllocationData()
-	table := allocationsAsTable(m.allocationsData.filteredData)
-	m.viewport.SetHeaderAndContent(
-		strings.Join(table.HeaderRows, "\n"),
-		strings.Join(table.ContentRows, "\n"),
-	)
+	// table := allocationsAsTable(m.allocationsData.filteredData)
+	// m.viewport.SetHeaderAndContent(
+	// 	strings.Join(table.HeaderRows, "\n"),
+	// 	strings.Join(table.ContentRows, "\n"),
+	// )
 	m.viewport.SetCursorRow(0)
 }

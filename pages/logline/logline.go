@@ -125,7 +125,7 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateFilteredLogData() {
-	var filteredLogData []loglineRow
+	var filteredLogData []LoglineRow
 	for _, entry := range m.loglineData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
 			filteredLogData = append(filteredLogData, entry)
@@ -137,8 +137,8 @@ func (m *Model) updateFilteredLogData() {
 func (m *Model) updateLoglineViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredLogData()
-	content := logsAsString(m.loglineData.filteredData)
-	m.viewport.SetHeaderAndContent("", content)
+	// content := logsAsString(m.loglineData.filteredData)
+	// m.viewport.SetHeaderAndContent("", content)
 	m.viewport.SetCursorRow(0)
 }
 
@@ -148,15 +148,15 @@ func prettyPrint(b []byte) ([]byte, error) {
 	return out.Bytes(), err
 }
 
-func splitLogline(logline string) []loglineRow {
+func splitLogline(logline string) []LoglineRow {
 	pretty, err := prettyPrint([]byte(logline))
 	if err != nil {
-		return []loglineRow{loglineRow(logline)}
+		return []LoglineRow{LoglineRow(logline)}
 	}
 
-	var splitLoglines []loglineRow
+	var splitLoglines []LoglineRow
 	for _, row := range bytes.Split(pretty, []byte("\n")) {
-		splitLoglines = append(splitLoglines, loglineRow(row))
+		splitLoglines = append(splitLoglines, LoglineRow(row))
 	}
 
 	return splitLoglines

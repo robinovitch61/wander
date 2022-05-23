@@ -120,7 +120,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := fmt.Sprintf("Loading %s logs for %s...", m.LastSelectedLogType.ShortString(), m.taskName)
+	content := fmt.Sprintf("loading %s logs for %s...", m.LastSelectedLogType.ShortString(), m.taskName)
 	if !m.Loading {
 		if m.LastSelectedLogType == StdOut {
 			m.viewport.ContentStyle = style.StdOut
@@ -162,7 +162,7 @@ func (m *Model) setLogType(logType LogType) {
 }
 
 func (m *Model) updateFilteredLogData() {
-	var filteredLogData []logRow
+	var filteredLogData []LogRow
 	for _, entry := range m.logsData.allData {
 		if entry.MatchesFilter(m.filter.Filter) {
 			filteredLogData = append(filteredLogData, entry)

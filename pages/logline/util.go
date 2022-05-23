@@ -5,16 +5,16 @@ import (
 )
 
 type loglineData struct {
-	allData, filteredData []loglineRow
+	allData, filteredData []LoglineRow
 }
 
-type loglineRow string
+type LoglineRow string
 
-func (e loglineRow) MatchesFilter(filter string) bool {
+func (e LoglineRow) MatchesFilter(filter string) bool {
 	return strings.Contains(string(e), filter)
 }
 
-func logsAsString(logs []loglineRow) string {
+func logsAsString(logs []LoglineRow) string {
 	// is there a better way to do this in Go? Seems silly
 	var logRows []string
 	for _, row := range logs {

@@ -19,9 +19,9 @@ type allocationsData struct {
 
 type nomadAllocationMsg []allocationRowEntry
 
-// allocationResponseEntry is returned from GET /v1/job/:job_id/allocations
+// AllocationResponseEntry is returned from GET /v1/job/:job_id/allocations
 // https://www.nomadproject.io/api-docs/jobs#list-job-allocations
-type allocationResponseEntry struct {
+type AllocationResponseEntry struct {
 	ID                 string `json:"ID"`
 	EvalID             string `json:"EvalID"`
 	Name               string `json:"Name"`
@@ -77,7 +77,7 @@ type allocationResponseEntry struct {
 	ModifyTime  int64 `json:"ModifyTime"`
 }
 
-// allocationRowEntry is an item extracted from allocationResponseEntry
+// allocationRowEntry is an item extracted from AllocationResponseEntry
 type allocationRowEntry struct {
 	ID, TaskGroup, Name, TaskName, State string
 	StartedAt, FinishedAt                time.Time
@@ -96,7 +96,7 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		var allocationResponse []allocationResponseEntry
+		var allocationResponse []AllocationResponseEntry
 		if err := json.Unmarshal(body, &allocationResponse); err != nil {
 			return message.ErrMsg{Err: err}
 		}

@@ -12,11 +12,10 @@ import (
 )
 
 type Model struct {
-	pageData      pageData
 	width, height int
+	pageData      Data
 	viewport      viewport.Model
 	filter        filter.Model
-	filterPrefix  string
 	loadingString string
 	Loading       bool
 }
@@ -26,10 +25,11 @@ func New(
 	filterPrefix, loadingString string,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
+	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
 	model := Model{
 		width:         width,
 		height:        height,
-		viewport:      viewport.New(width, height-pageFilter.ViewHeight()),
+		viewport:      pageViewport,
 		filter:        pageFilter,
 		loadingString: loadingString,
 		Loading:       true,
@@ -94,10 +94,24 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.viewport.SetSize(width, height-m.filter.ViewHeight())
 }
 
-func (m *Model) SetPageData(pageData pageData) {
-	m.pageData = pageData
-	m.viewport.SetHeader(pageData.HeaderRows())
-	m.viewport.SetContent(pageData.ContentRows())
+func (m Model) GetSelectedPageRow() (Row, error) {
+	if filtered := m.pageData.Filtered; len(filtered) > 0 && m.viewport.CursorRow < len(filtered) {
+		return filtered[m.viewport.CursorRow], nil
+	}
+	return Row{}, fmt.Errorf("bad thing")
+}
+
+func (m Model) SetHeader(header []string) {
+	m.viewport.SetHeader(header)
+}
+
+func (m *Model) SetAllPageData(allPageData []Row) {
+	m.pageData.All = allPageData
+	m.updateViewport()
+}
+
+func (m Model) FilterFocused() bool {
+	return m.filter.Focused()
 }
 
 func (m *Model) clearFilter() {
@@ -105,19 +119,19 @@ func (m *Model) clearFilter() {
 	m.updateViewport()
 }
 
-func (m *Model) updateFilteredData() {
-	var filteredData []string
-	for _, entry := range m.pageData.allData {
-		if strings.Contains(entry, m.filter.Filter) {
-			filteredData = append(filteredData, entry)
-		}
-	}
-	m.pageData.filteredData = filteredData
-}
-
 func (m *Model) updateViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredData()
-	m.viewport.SetContent(m.pageData.filteredData)
+	m.viewport.SetContent(RowsToStrings(m.pageData.Filtered))
 	m.viewport.SetCursorRow(0)
+}
+
+func (m *Model) updateFilteredData() {
+	var filteredData []Row
+	for _, entry := range m.pageData.All {
+		if strings.Contains(entry.Row, m.filter.Filter) {
+			filteredData = append(filteredData, entry)
+		}
+	}
+	m.pageData.Filtered = filteredData
 }

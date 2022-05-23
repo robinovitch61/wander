@@ -13,9 +13,9 @@ import (
 )
 
 type Model struct {
-	initialized       bool
-	url, token        string
-	jobsData          jobsData
+	initialized bool
+	url, token  string
+	// jobsData          jobsData
 	width, height     int
 	viewport          viewport.Model
 	filter            filter.Model
@@ -58,7 +58,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case NomadJobsMsg:
-		m.jobsData.allData = msg
+		// m.jobsData.allData = msg
 		m.updateJobViewport()
 		m.Loading = false
 
@@ -80,11 +80,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case key.Matches(msg, keymap.KeyMap.Reload):
 				return m, pages.ToJobsPageCmd
 
-			case key.Matches(msg, keymap.KeyMap.Forward):
-				if len(m.jobsData.filteredData) > 0 {
-					m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
-					return m, pages.ToAllocationsPageCmd
-				}
+			// case key.Matches(msg, keymap.KeyMap.Forward):
+			// 	if len(m.jobsData.filteredData) > 0 {
+			// 		m.LastSelectedJobID = m.jobsData.filteredData[m.viewport.CursorRow].ID
+			// 		return m, pages.ToAllocationsPageCmd
+			// 	}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
 				m.clearFilter()
@@ -107,7 +107,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := "Loading jobs..."
+	content := "loading jobs..."
 	if !m.Loading {
 		content = m.viewport.View()
 	}
@@ -128,19 +128,19 @@ func (m *Model) clearFilter() {
 	m.updateJobViewport()
 }
 
-func (m *Model) updateFilteredJobData() {
-	var filteredJobData []JobResponseEntry
-	for _, entry := range m.jobsData.allData {
-		if entry.MatchesFilter(m.filter.Filter) {
-			filteredJobData = append(filteredJobData, entry)
-		}
-	}
-	m.jobsData.filteredData = filteredJobData
-}
+// func (m *Model) updateFilteredJobData() {
+// 	var filteredJobData []JobResponseEntry
+// 	for _, entry := range m.jobsData.allData {
+// 		if entry.MatchesFilter(m.filter.Filter) {
+// 			filteredJobData = append(filteredJobData, entry)
+// 		}
+// 	}
+// 	m.jobsData.filteredData = filteredJobData
+// }
 
 func (m *Model) updateJobViewport() {
 	m.viewport.Highlight = m.filter.Filter
-	m.updateFilteredJobData()
+	// m.updateFilteredJobData()
 	// table := JobResponsesAsTable(m.jobsData.filteredData)
 	// m.viewport.SetHeaderAndContent(
 	// 	strings.Join(table.HeaderRows, "\n"),

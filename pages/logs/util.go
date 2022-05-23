@@ -10,17 +10,17 @@ import (
 )
 
 type logsData struct {
-	allData, filteredData []logRow
+	allData, filteredData []LogRow
 }
 
 type nomadLogsMsg struct {
 	LogType LogType
-	Data    []logRow
+	Data    []LogRow
 }
 
-type logRow string
+type LogRow string
 
-func (e logRow) MatchesFilter(filter string) bool {
+func (e LogRow) MatchesFilter(filter string) bool {
 	return strings.Contains(string(e), filter)
 }
 
@@ -74,15 +74,15 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		var logRows []logRow
+		var logRows []LogRow
 		for _, log := range strings.Split(string(body), "\n") {
-			logRows = append(logRows, logRow(log))
+			logRows = append(logRows, LogRow(log))
 		}
 		return nomadLogsMsg{LogType: logType, Data: logRows}
 	}
 }
 
-func logsAsTable(logs []logRow, logType LogType) formatter.Table {
+func logsAsTable(logs []LogRow, logType LogType) formatter.Table {
 	var logRows [][]string
 	for _, row := range logs {
 		if stripped := strings.TrimSpace(string(row)); stripped != "" {

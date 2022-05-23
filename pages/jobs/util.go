@@ -7,14 +7,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"wander/components/page"
 	"wander/formatter"
 	"wander/message"
 	"wander/nomad"
 )
 
-type jobsData struct {
-	allData, filteredData []JobResponseEntry
-}
+var Columns = []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"}
 
 type NomadJobsMsg []JobResponseEntry
 
@@ -92,8 +91,9 @@ func FetchJobs(url, token string) tea.Cmd {
 	}
 }
 
-func JobResponsesAsTable(jobResponse []JobResponseEntry) formatter.Table {
+func JobResponsesAsTable(jobResponse []JobResponseEntry) ([]string, []page.Row) {
 	var jobResponseRows [][]string
+	var keys []string
 	for _, row := range jobResponse {
 		jobResponseRows = append(jobResponseRows, []string{
 			row.ID,
@@ -103,10 +103,15 @@ func JobResponsesAsTable(jobResponse []JobResponseEntry) formatter.Table {
 			row.Status,
 			formatter.FormatTimeNs(row.SubmitTime),
 		})
+		keys = append(keys, row.ID)
 	}
 
-	return formatter.GetRenderedTableAsString(
-		[]string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"},
-		jobResponseRows,
-	)
+	table := formatter.GetRenderedTableAsString(Columns, jobResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
 }

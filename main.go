@@ -16,7 +16,9 @@ import (
 	"wander/keymap"
 	"wander/message"
 	"wander/pages"
+	"wander/pages/allocations"
 	"wander/pages/jobs"
+	"wander/pages/logline"
 	"wander/pages/logs"
 	"wander/style"
 )
@@ -24,23 +26,27 @@ import (
 type toastTimeoutMsg struct{}
 
 type model struct {
-	nomadToken       string
-	nomadUrl         string
-	currentPage      *page.Model
-	jobsPage         page.Model
-	allocationsPage  page.Model
-	logsPage         page.Model
-	loglinePage      page.Model
-	selectedJobID    string
-	selectedAllocID  string
-	selectedTaskName string
-	selectedLogType  logs.LogType
-	header           header.Model
-	width, height    int
-	initialized      bool
-	toastMessage     string
-	showToast        bool
-	err              error
+	nomadUrl    string
+	nomadToken  string
+	header      header.Model
+	currentPage pages.Page
+	jobsPage    page.Model
+	// jobsData        []jobs.JobResponseEntry
+	allocationsPage page.Model
+	allocationsData []allocations.AllocationResponseEntry
+	logsPage        page.Model
+	logsData        []logs.LogRow
+	loglinePage     page.Model
+	loglineData     []logline.LoglineRow
+	jobID           string
+	allocID         string
+	taskName        string
+	logType         logs.LogType
+	width, height   int
+	initialized     bool
+	toastMessage    string
+	showToast       bool
+	err             error
 }
 
 func initialModel() model {
@@ -56,34 +62,14 @@ func initialModel() model {
 		os.Exit(1)
 	}
 
-<<<<<<< HEAD
 	firstPage := pages.Jobs
-||||||| parent of 20ee616 (Broken)
-	logo := []string{
-		"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
-		"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
-	}
-	logoString := strings.Join(logo, "\n")
-	firstPage := pages.Jobs
-=======
 	initialHeader := header.New(constants.LogoString, nomadUrl, "")
->>>>>>> 20ee616 (Broken)
+
 	return model{
-<<<<<<< HEAD
-		nomadToken:  nomadToken,
 		nomadUrl:    nomadUrl,
-		currentPage: firstPage,
-		header:      header.New(constants.Logo, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
-||||||| parent of 20ee616 (Broken)
 		nomadToken:  nomadToken,
-		nomadUrl:    nomadUrl,
+		header:      initialHeader,
 		currentPage: firstPage,
-		header:      header.New(logoString, nomadUrl, keymap.GetPageKeyHelp(firstPage)),
-=======
-		nomadToken: nomadToken,
-		nomadUrl:   nomadUrl,
-		header:     initialHeader,
->>>>>>> 20ee616 (Broken)
 	}
 }
 
@@ -100,18 +86,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keymap.KeyMap.Exit):
-			dev.Debug("HERE")
-			dev.Debug(msg.String())
-			if !(m.currentPageFilterFocused() && msg.String() == "q") {
+		// always exit if desired, or don't respond if loading
+		if key.Matches(msg, keymap.KeyMap.Exit) {
+			if addingQToFilter := m.currentPageFilterFocused() && msg.String() == "q"; !addingQToFilter {
 				return m, tea.Quit
 			}
+		} else if m.currentPageLoading() {
+			return m, nil
+		}
 
-		default:
-			if m.currentPage.Loading {
-				return m, nil
+		switch {
+		case key.Matches(msg, keymap.KeyMap.Forward):
+			switch m.currentPage {
+			case pages.Jobs:
+				if selectedPageRow, err := m.jobsPage.GetSelectedPageRow(); err == nil {
+					jobID := selectedPageRow.Key
+					m.jobID = jobID
+					m.currentPage = pages.Allocations
+					m.allocationsPage.Loading = true
+					return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
+				}
+			default:
+				panic("IMPLEMENT ME")
 			}
+		default:
+			panic("IMPLEMENT ME")
 		}
 
 	case message.ErrMsg:
@@ -123,7 +122,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case viewport.SaveStatusMsg:
-		dev.Debug(msg.SuccessMessage)
 		if msg.Err != "" {
 			m.toastMessage = style.ErrorToast.Width(m.width).Render(fmt.Sprintf("Error: %s", msg.Err))
 		} else {
@@ -137,35 +135,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tea.WindowSizeMsg:
-		m.setWindowSize(msg.Width, msg.Height)
-		pageHeight := m.getPageHeight()
-
+		m.width, m.height = msg.Width, msg.Height
 		if !m.initialized {
-			m.jobsPage = page.New(msg.Width, pageHeight, "Jobs", "Loading jobs...")
-			m.allocationsPage = page.New(msg.Width, pageHeight, "Allocations", "")
-			m.logsPage = page.New(msg.Width, pageHeight, "Logs", "")
-			m.loglinePage = page.New(msg.Width, pageHeight, "Log Line", "")
-
-			m.currentPage = &m.jobsPage
-			m.initialized = true
+			m.initialize()
 			cmds = append(cmds, jobs.FetchJobs(m.nomadUrl, m.nomadToken))
 		} else {
-<<<<<<< HEAD
-			m.jobsPage.SetWindowSize(msg.Width, pageHeight)
-			m.allocationsPage.SetWindowSize(msg.Width, pageHeight)
-			m.logsPage.SetWindowSize(msg.Width, pageHeight)
-			m.loglinePage.SetWindowSize(msg.Width, pageHeight)
-||||||| parent of 20ee616 (Broken)
-			m.getCurrentPageModel().SetWindowSize(msg.Width, pageHeight)
-=======
-			m.currentPage.SetWindowSize(msg.Width, pageHeight)
->>>>>>> 20ee616 (Broken)
+			m.setPageWindowSize()
 		}
 
 	case jobs.NomadJobsMsg:
-		m.currentPage = &m.jobsPage
-		m.currentPage.SetPageData(jobTable.HeaderRows, jobTable.ContentRows)
-		m.currentPage.Loading = false
+		m.currentPage = pages.Jobs
+		// m.jobsData = msg
+		tableHeader, jobsPageData := jobs.JobResponsesAsTable(msg)
+		m.jobsPage.SetHeader(tableHeader)
+		m.jobsPage.SetAllPageData(jobsPageData)
 
 		// // this is how subcomponents currently tell main model to update the parent state
 		// case pages.ChangePageMsg:
@@ -174,13 +157,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		//
 		// 	switch newPage {
 		// 	case pages.Jobs:
-		// 		m.jobsPage.Loading = true
+		// 		m.jobsPage.loading = true
 		// 		return m, jobs.FetchJobs(m.nomadUrl, m.nomadToken)
 		//
 		// 	case pages.Allocations:
 		// 		jobID := m.jobsPage.LastSelectedJobID
 		// 		m.allocationsPage.SetJobID(jobID)
-		// 		m.allocationsPage.Loading = true
+		// 		m.allocationsPage.loading = true
 		// 		return m, allocations.FetchAllocations(m.nomadUrl, m.nomadToken, jobID)
 		//
 		// 	case pages.Logs:
@@ -188,7 +171,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 		m.logsPage.ResetXOffset()
 		// 		allocID, taskName := m.allocationsPage.LastSelectedAllocID, m.allocationsPage.LastSelectedTaskName
 		// 		m.logsPage.SetAllocationData(allocID, taskName)
-		// 		m.logsPage.Loading = true
+		// 		m.logsPage.loading = true
 		// 		return m, logs.FetchLogs(
 		// 			m.nomadUrl,
 		// 			m.nomadToken,
@@ -204,8 +187,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	}
 	}
 
-	*m.currentPage, cmd = m.currentPage.Update(msg)
-	cmds = append(cmds, cmd)
+	switch m.currentPage {
+	case pages.Jobs:
+		m.jobsPage, cmd = m.jobsPage.Update(msg)
+		cmds = append(cmds, cmd)
+	case pages.Allocations:
+		m.allocationsPage, cmd = m.allocationsPage.Update(msg)
+		cmds = append(cmds, cmd)
+	case pages.Logs:
+		m.logsPage, cmd = m.logsPage.Update(msg)
+		cmds = append(cmds, cmd)
+	case pages.Logline:
+		m.loglinePage, cmd = m.loglinePage.Update(msg)
+		cmds = append(cmds, cmd)
+	default:
+		panic("page not found")
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -217,7 +214,6 @@ func (m model) View() string {
 		return ""
 	}
 
-<<<<<<< HEAD
 	pageView := ""
 	switch m.currentPage {
 	case pages.Jobs:
@@ -229,11 +225,6 @@ func (m model) View() string {
 	case pages.Logline:
 		pageView = m.loglinePage.View()
 	}
-||||||| parent of 20ee616 (Broken)
-	pageView := m.getCurrentPageModel().View()
-=======
-	pageView := m.currentPage.View()
->>>>>>> 20ee616 (Broken)
 
 	pageView = m.header.View() + "\n" + pageView
 
@@ -246,46 +237,44 @@ func (m model) View() string {
 	return pageView
 }
 
+func (m *model) initialize() {
+	pageHeight := m.getPageHeight()
+	m.jobsPage = page.New(m.width, pageHeight, "Jobs", "loading jobs...")
+	m.allocationsPage = page.New(m.width, pageHeight, "Allocations", "")
+	m.logsPage = page.New(m.width, pageHeight, "Logs", "")
+	m.loglinePage = page.New(m.width, pageHeight, "Log Line", "")
+	m.initialized = true
+}
 
-// func (m *model) setPage(p pages.Page) {
-// 	m.currentPage = p
-// 	// m.setHeaderKeyHelp()
-// }
+func (m *model) setPageWindowSize() {
+	m.getCurrentPageModel().SetWindowSize(m.width, m.getPageHeight())
+}
 
-func (m *model) setWindowSize(width, height int) {
-	m.width, m.height = width, height
+func (m model) getCurrentPageModel() *page.Model {
+	switch m.currentPage {
+	case pages.Jobs:
+		return &m.jobsPage
+	case pages.Allocations:
+		return &m.allocationsPage
+	case pages.Logs:
+		return &m.logsPage
+	case pages.Logline:
+		return &m.loglinePage
+	default:
+		panic("page not found")
+	}
 }
 
 func (m model) getPageHeight() int {
 	return m.height - m.header.ViewHeight()
 }
 
-// func (m model) currentPageLoading() bool {
-// 	switch m.currentPage {
-// 	case pages.Jobs:
-// 		return m.jobsPage.Loading
-// 	case pages.Allocations:
-// 		return m.allocationsPage.Loading
-// 	case pages.Logs:
-// 		return m.logsPage.Loading
-// 	case pages.Logline:
-// 		return false
-// 	}
-// 	return true
-// }
+func (m model) currentPageLoading() bool {
+	return m.getCurrentPageModel().Loading
+}
 
 func (m model) currentPageFilterFocused() bool {
-	switch m.currentPage {
-	case pages.Jobs:
-		return m.jobsPage.FilterFocused()
-	case pages.Allocations:
-		return m.allocationsPage.FilterFocused()
-	case pages.Logs:
-		return m.logsPage.FilterFocused()
-	case pages.Logline:
-		return m.loglinePage.FilterFocused()
-	}
-	return true
+	return m.getCurrentPageModel().FilterFocused()
 }
 
 func main() {

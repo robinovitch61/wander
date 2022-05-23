@@ -1,18 +1,21 @@
 package page
 
-import (
-	"strings"
-	"wander/formatter"
-)
-
-type pageData struct {
-	allData, filteredData []string
+type Row struct {
+	Key, Row string
 }
 
-func dataAsTable(data []string, columnTitles []string) formatter.Table {
-	var splitData [][]string
-	for _, row := range data {
-		splitData = append(splitData, strings.Fields(row))
+func (r Row) String() string {
+	return r.Row
+}
+
+func RowsToStrings(rows []Row) []string {
+	var strs []string
+	for _, row := range rows {
+		strs = append(strs, row.String())
 	}
-	return formatter.GetRenderedTableAsString(columnTitles, splitData)
+	return strs
+}
+
+type Data struct {
+	All, Filtered []Row
 }
