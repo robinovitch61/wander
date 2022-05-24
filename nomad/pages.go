@@ -16,6 +16,7 @@ type Page int8
 const (
 	Unset Page = iota
 	JobsPage
+	JobSpecPage
 	AllocationsPage
 	LogsPage
 	LoglinePage
@@ -37,6 +38,8 @@ func (p Page) String() string {
 		return "undefined"
 	case JobsPage:
 		return "jobs"
+	case JobSpecPage:
+		return "job spec"
 	case AllocationsPage:
 		return "allocations"
 	case LogsPage:
@@ -65,6 +68,8 @@ func (p Page) Forward() Page {
 
 func (p Page) Backward() Page {
 	switch p {
+	case JobSpecPage:
+		return JobsPage
 	case AllocationsPage:
 		return JobsPage
 	case LogsPage:
@@ -79,8 +84,10 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
 	switch p {
 	case JobsPage:
 		return "Jobs"
+	case JobSpecPage:
+		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
 	case AllocationsPage:
-		return fmt.Sprintf("Allocations for %s", jobID)
+		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
 	case LogsPage:
 		return fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case LoglinePage:
@@ -124,7 +131,9 @@ func GetPageKeyHelp(currentPage Page) string {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Back)
 	}
 
-	if currentPage == LogsPage {
+	if currentPage == JobsPage {
+		alwaysShown = append(alwaysShown, keymap.KeyMap.Spec)
+	} else if currentPage == LogsPage {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.StdOut)
 		alwaysShown = append(alwaysShown, keymap.KeyMap.StdErr)
 	}

@@ -244,7 +244,7 @@ func (m Model) View() string {
 		}
 		addLineToViewString(footerString, true)
 	}
-	trimmedViewLines := strings.TrimSpace(viewString)
+	trimmedViewLines := strings.Trim(viewString, "\n")
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 	return renderedViewLines
 }
@@ -377,7 +377,7 @@ func (m *Model) setYOffset(n int) {
 
 // visibleLines retrieves the visible content based on the yOffset
 func (m Model) visibleLines() []string {
-	start := m.yOffset
+	start := min(len(m.content), m.yOffset)
 	end := start + m.contentHeight
 	if end > m.maxLinesIdx() {
 		return m.content[start:]

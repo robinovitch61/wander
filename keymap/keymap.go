@@ -12,6 +12,7 @@ type keyMap struct {
 	Filter  key.Binding
 	StdOut  key.Binding
 	StdErr  key.Binding
+	Spec    key.Binding
 }
 
 var KeyMap = keyMap{
@@ -42,5 +43,9 @@ var KeyMap = keyMap{
 	StdErr: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "stderr"),
+	),
+	Spec: key.NewBinding(
+		key.WithKeys("p"),
+		key.WithHelp("p", "view spec"),
 	),
 }
