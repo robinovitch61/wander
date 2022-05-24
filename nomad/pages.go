@@ -18,6 +18,7 @@ const (
 	JobsPage
 	JobSpecPage
 	AllocationsPage
+	AllocSpecPage
 	LogsPage
 	LoglinePage
 )
@@ -42,6 +43,8 @@ func (p Page) String() string {
 		return "job spec"
 	case AllocationsPage:
 		return "allocations"
+	case AllocSpecPage:
+		return "allocation spec"
 	case LogsPage:
 		return "logs"
 	case LoglinePage:
@@ -72,6 +75,8 @@ func (p Page) Backward() Page {
 		return JobsPage
 	case AllocationsPage:
 		return JobsPage
+	case AllocSpecPage:
+		return AllocationsPage
 	case LogsPage:
 		return AllocationsPage
 	case LoglinePage:
@@ -88,6 +93,8 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
 	case AllocationsPage:
 		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
+	case AllocSpecPage:
+		return fmt.Sprintf("Allocation Spec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case LogsPage:
 		return fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case LoglinePage:
@@ -131,7 +138,7 @@ func GetPageKeyHelp(currentPage Page) string {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Back)
 	}
 
-	if currentPage == JobsPage {
+	if currentPage == JobsPage || currentPage == AllocationsPage {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
 		alwaysShown = append(alwaysShown, keymap.KeyMap.StdOut)
