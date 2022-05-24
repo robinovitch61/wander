@@ -25,9 +25,11 @@ type Model struct {
 func New(
 	width, height int,
 	filterPrefix, loadingString string,
+	cursorEnabled bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
+	pageViewport.SetCursorEnabled(cursorEnabled)
 	model := Model{
 		width:         width,
 		height:        height,
@@ -54,6 +56,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if key.Matches(msg, keymap.KeyMap.Back) {
+			m.clearFilter()
+		}
+
 		if m.filter.Focused() {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
@@ -64,9 +70,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case key.Matches(msg, keymap.KeyMap.Filter):
 				m.filter.Focus()
 				return m, nil
-
-			case key.Matches(msg, keymap.KeyMap.Back):
-				m.clearFilter()
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
@@ -88,9 +91,6 @@ func (m Model) View() string {
 	content := fmt.Sprintf(m.loadingString)
 	if !m.loading {
 		content = m.viewport.View()
-		dev.Debug("NOT LOADING")
-	} else {
-		dev.Debug("LOADING")
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
 }
@@ -110,7 +110,6 @@ func (m *Model) SetViewportStyle(headerStyle, contentStyle lipgloss.Style) {
 }
 
 func (m *Model) SetLoading(isLoading bool) {
-	dev.Debug(fmt.Sprintf("SET LOADING %t", isLoading))
 	m.loading = isLoading
 }
 

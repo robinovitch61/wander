@@ -25,7 +25,9 @@ type model struct {
 	header          header.Model
 	currentPage     nomad.Page
 	jobsPage        page.Model
+	jobSpecPage     page.Model
 	allocationsPage page.Model
+	allocSpecPage   page.Model
 	logsPage        page.Model
 	loglinePage     page.Model
 	jobID           string
@@ -122,25 +124,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.getCurrentPageCmd()
 				}
 			}
-		}
 
-		if m.currentPage == nomad.LogsPage {
-			switch {
-			case key.Matches(msg, keymap.KeyMap.StdOut):
-				if m.logType != nomad.StdOut {
-					m.logType = nomad.StdOut
-					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
-					m.getCurrentPageModel().SetLoading(true)
-					return m, m.getCurrentPageCmd()
+			if key.Matches(msg, keymap.KeyMap.Spec) {
+				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+					switch m.currentPage {
+					case nomad.JobsPage:
+						m.jobID = nomad.JobIDFromKey(selectedPageRow.Key)
+						m.setPage(nomad.JobSpecPage)
+						return m, m.getCurrentPageCmd()
+					case nomad.AllocationsPage:
+						m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+						m.setPage(nomad.AllocSpecPage)
+						return m, m.getCurrentPageCmd()
+					}
 				}
+			}
 
-			case key.Matches(msg, keymap.KeyMap.StdErr):
-				if m.logType != nomad.StdErr {
-					m.logType = nomad.StdErr
-					stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
-					m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
-					m.getCurrentPageModel().SetLoading(true)
-					return m, m.getCurrentPageCmd()
+			if m.currentPage == nomad.LogsPage {
+				switch {
+				case key.Matches(msg, keymap.KeyMap.StdOut):
+					if m.logType != nomad.StdOut {
+						m.logType = nomad.StdOut
+						m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
+						m.getCurrentPageModel().SetLoading(true)
+						return m, m.getCurrentPageCmd()
+					}
+
+				case key.Matches(msg, keymap.KeyMap.StdErr):
+					if m.logType != nomad.StdErr {
+						m.logType = nomad.StdErr
+						stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
+						m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
+						m.getCurrentPageModel().SetLoading(true)
+						return m, m.getCurrentPageCmd()
+					}
 				}
 			}
 		}
@@ -209,16 +226,20 @@ func (m model) View() string {
 
 func (m *model) initialize() {
 	pageHeight := m.getPageHeight()
-	m.jobsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString())
-	m.allocationsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString())
-	m.logsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString())
-	m.loglinePage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString())
+	m.jobsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString(), true)
+	m.jobSpecPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false)
+	m.allocationsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true)
+	m.allocSpecPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false)
+	m.logsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString(), true)
+	m.loglinePage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString(), false)
 	m.initialized = true
 }
 
 func (m *model) setPageWindowSize() {
 	m.jobsPage.SetWindowSize(m.width, m.getPageHeight())
+	m.jobSpecPage.SetWindowSize(m.width, m.getPageHeight())
 	m.allocationsPage.SetWindowSize(m.width, m.getPageHeight())
+	m.allocSpecPage.SetWindowSize(m.width, m.getPageHeight())
 	m.logsPage.SetWindowSize(m.width, m.getPageHeight())
 	m.loglinePage.SetWindowSize(m.width, m.getPageHeight())
 }
@@ -238,8 +259,12 @@ func (m *model) getCurrentPageModel() *page.Model {
 	switch m.currentPage {
 	case nomad.JobsPage:
 		return &m.jobsPage
+	case nomad.JobSpecPage:
+		return &m.jobSpecPage
 	case nomad.AllocationsPage:
 		return &m.allocationsPage
+	case nomad.AllocSpecPage:
+		return &m.allocSpecPage
 	case nomad.LogsPage:
 		return &m.logsPage
 	case nomad.LoglinePage:
@@ -253,8 +278,12 @@ func (m *model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
 		return nomad.FetchJobs(m.nomadUrl, m.nomadToken)
+	case nomad.JobSpecPage:
+		return nomad.FetchJobSpec(m.nomadUrl, m.nomadToken, m.jobID)
 	case nomad.AllocationsPage:
 		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID)
+	case nomad.AllocSpecPage:
+		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
 	case nomad.LogsPage:
 		return nomad.FetchLogs(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
 	case nomad.LoglinePage:
