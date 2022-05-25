@@ -1,5 +1,9 @@
 # wander
 
+<p align="center"><strong>Click image to view GIF demo</strong></p>
+
+[![wander](./img/wander.jpg)](https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif)
+
 Wander is a terminal application for [Nomad by HashiCorp](https://www.nomadproject.io/).
 
 It currently supports viewing jobs, allocations, tasks, and logs across a Nomad cluster.
