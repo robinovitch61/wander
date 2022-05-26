@@ -201,27 +201,32 @@ func (m Model) View() string {
 	viewportWithoutFooterHeight := m.height - footerHeight
 
 	addLineToViewString := func(line string, isFooter bool) {
-		for _, subLine := range strings.Split(line, "\n") {
-			if isFooter || lineCount < viewportWithoutFooterHeight {
-				viewString += subLine + "\n"
-				lineCount += 1
-			}
+		if isFooter || lineCount < viewportWithoutFooterHeight {
+			viewString += line + "\n"
+			lineCount += 1
 		}
 	}
 
 	for _, headerLine := range m.header {
-		addLineToViewString(m.HeaderStyle.Render(m.getParsedLine(headerLine)), false)
+		for _, line := range m.getParsedLines(headerLine) {
+			addLineToViewString(m.HeaderStyle.Render(line), false)
+		}
 	}
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
-		parsedLine := m.getParsedLine(line)
+		parsedLines := m.getParsedLines(line)
+		// for _, l := range parsedLines {
+		// dev.Debug(l)
+		// }
 
 		if nothingHighlighted {
-			if isSelected {
-				addLineToViewString(m.CursorRowStyle.Render(parsedLine), false)
-			} else {
-				addLineToViewString(m.ContentStyle.Render(parsedLine), false)
+			for _, line := range parsedLines {
+				if isSelected {
+					addLineToViewString(m.CursorRowStyle.Render(line), false)
+				} else {
+					addLineToViewString(m.ContentStyle.Render(line), false)
+				}
 			}
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
@@ -231,12 +236,14 @@ func (m Model) View() string {
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
-			lineChunks := strings.Split(parsedLine, m.Highlight)
-			var styledChunks []string
-			for _, chunk := range lineChunks {
-				styledChunks = append(styledChunks, lineStyle.Render(chunk))
+			for _, line := range parsedLines {
+				lineChunks := strings.Split(line, m.Highlight)
+				var styledChunks []string
+				for _, chunk := range lineChunks {
+					styledChunks = append(styledChunks, lineStyle.Render(chunk))
+				}
+				addLineToViewString(strings.Join(styledChunks, styledHighlight), false)
 			}
-			addLineToViewString(strings.Join(styledChunks, styledHighlight), false)
 		}
 	}
 
@@ -258,6 +265,11 @@ func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 
 func (m *Model) SetWrapText(wrapText bool) {
 	m.wrapText = wrapText
+}
+
+func (m *Model) ToggleWrapText() {
+	m.wrapText = !m.wrapText
+	m.SetXOffset(0)
 }
 
 // SetSize sets the viewport's width and height, including header.
@@ -447,27 +459,30 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	return line
 }
 
-func (m Model) getWrappedLine(line string) string {
-	if len(line) < m.width {
-		return line
+func (m Model) getWrappedLines(line string) []string {
+	if utf8.RuneCountInString(line) < m.width {
+		return []string{line}
 	}
 
-	wrappedLine := ""
-	for pos, b := range []byte(line) {
-		wrappedLine += string(b)
-		if pos%m.width == 0 {
-			wrappedLine += "\n"
+	var lines []string
+	l := ""
+	dev.Debug(line)
+	for pos, b := range []rune(line) {
+		l += string(b)
+		if pos != 0 && (pos+1)%m.width == 0 {
+			lines = append(lines, l)
+			l = ""
 		}
 	}
-
-	return wrappedLine
+	lines = append(lines, l)
+	return lines
 }
 
-func (m Model) getParsedLine(line string) string {
+func (m Model) getParsedLines(line string) []string {
 	if m.wrapText {
-		return m.getWrappedLine(line)
+		return m.getWrappedLines(line)
 	} else {
-		return m.getVisiblePartOfLine(line)
+		return []string{m.getVisiblePartOfLine(line)}
 	}
 }
 
