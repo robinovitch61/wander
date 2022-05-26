@@ -201,10 +201,11 @@ func (m Model) View() string {
 	viewportWithoutFooterHeight := m.height - footerHeight
 
 	addLineToViewString := func(line string, isFooter bool) {
-		if isFooter || lineCount < viewportWithoutFooterHeight {
-			linesInLine := lipgloss.Height(line)
-			viewString += line + "\n"
-			lineCount += linesInLine
+		for _, subLine := range strings.Split(line, "\n") {
+			if isFooter || lineCount < viewportWithoutFooterHeight {
+				viewString += subLine + "\n"
+				lineCount += 1
+			}
 		}
 	}
 
