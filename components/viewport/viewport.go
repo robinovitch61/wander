@@ -24,9 +24,8 @@ type SaveStatusMsg struct {
 }
 
 type Model struct {
-	// CursorRow is the row index of the cursor.
-	// TODO LEO: Make this private so no one ever sets it directly (only uses SetCursorRow)
-	CursorRow int
+	// cursorRow is the row index of the cursor.
+	cursorRow int
 
 	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
 	Highlight string
@@ -158,9 +157,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			case key.Matches(msg, m.keyMap.Top):
 				if m.cursorEnabled {
-					m.cursorRowUp(m.yOffset + m.CursorRow)
+					m.cursorRowUp(m.yOffset + m.cursorRow)
 				} else {
-					m.viewUp(m.yOffset + m.CursorRow)
+					m.viewUp(m.yOffset + m.cursorRow)
 				}
 
 			case key.Matches(msg, m.keyMap.Bottom):
@@ -211,7 +210,7 @@ func (m Model) View() string {
 	}
 
 	for idx, line := range m.visibleLines() {
-		isSelected := m.cursorEnabled && m.yOffset+idx == m.CursorRow
+		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
 		visiblePartOfLine := m.getVisiblePartOfLine(line)
 
 		if nothingHighlighted {
@@ -281,23 +280,27 @@ func (m *Model) updateMaxLineLength() {
 	}
 }
 
-// SetCursorRow sets the CursorRow with bounds. Adjusts yOffset as necessary.
+// SetCursorRow sets the cursorRow with bounds. Adjusts yOffset as necessary.
 func (m *Model) SetCursorRow(n int) {
 	if m.contentHeight == 0 {
 		return
 	}
 
 	if maxSelection := m.maxCursorRow(); n > maxSelection {
-		m.CursorRow = maxSelection
+		m.cursorRow = maxSelection
 	} else {
-		m.CursorRow = max(0, n)
+		m.cursorRow = max(0, n)
 	}
 
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.CursorRow > lastVisibleLineIdx {
-		m.viewDown(m.CursorRow - lastVisibleLineIdx)
-	} else if m.CursorRow < m.yOffset {
-		m.viewUp(m.yOffset - m.CursorRow)
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.cursorRow > lastVisibleLineIdx {
+		m.viewDown(m.cursorRow - lastVisibleLineIdx)
+	} else if m.cursorRow < m.yOffset {
+		m.viewUp(m.yOffset - m.cursorRow)
 	}
+}
+
+func (m Model) CursorRow() int {
+	return m.cursorRow
 }
 
 func (m Model) Saving() bool {
@@ -320,7 +323,7 @@ func (m Model) getSaveDialogPlaceholder() string {
 
 // fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
 func (m *Model) fixCursorRow() {
-	if m.CursorRow > m.lastVisibleLineIdx() {
+	if m.cursorRow > m.lastVisibleLineIdx() {
 		m.SetCursorRow(m.lastVisibleLineIdx())
 	}
 }
@@ -332,7 +335,7 @@ func (m *Model) fixYOffset() {
 	}
 }
 
-// fixState fixes CursorRow and yOffset
+// fixState fixes cursorRow and yOffset
 func (m *Model) fixState() {
 	m.fixYOffset()
 	m.fixCursorRow()
@@ -361,7 +364,7 @@ func (m Model) maxYOffset() int {
 	return len(m.content) - m.contentHeight
 }
 
-// maxCursorRow returns the maximum CursorRow
+// maxCursorRow returns the maximum cursorRow
 func (m Model) maxCursorRow() int {
 	return len(m.content) - 1
 }
@@ -385,14 +388,14 @@ func (m Model) visibleLines() []string {
 	return m.content[start:end]
 }
 
-// cursorRowDown moves the CursorRow down by the given number of content.
+// cursorRowDown moves the cursorRow down by the given number of content.
 func (m *Model) cursorRowDown(n int) {
-	m.SetCursorRow(m.CursorRow + n)
+	m.SetCursorRow(m.cursorRow + n)
 }
 
-// cursorRowUp moves the CursorRow up by the given number of content.
+// cursorRowUp moves the cursorRow up by the given number of content.
 func (m *Model) cursorRowUp(n int) {
-	m.SetCursorRow(m.CursorRow - n)
+	m.SetCursorRow(m.cursorRow - n)
 }
 
 // viewDown moves the view down by the given number of content.
@@ -434,7 +437,7 @@ func (m Model) getVisiblePartOfLine(line string) string {
 }
 
 func (m Model) getFooter() (string, int) {
-	numerator := m.CursorRow + 1
+	numerator := m.cursorRow + 1
 
 	if m.saveDialog.Focused() {
 		return m.saveDialog.View(), 1
