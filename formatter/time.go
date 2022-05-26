@@ -18,11 +18,16 @@ func FormatTime(t time.Time) string {
 	if t.IsZero() {
 		return "-"
 	}
-	return t.Format("2006-01-02T15:04:05")
+	local, err := time.LoadLocation("Local")
+	if err != nil {
+		return "-"
+	}
+	tLocal := t.In(local)
+	return tLocal.Format("2006-01-02T15:04:05")
 }
 
 func FormatTimeNs(t int64) string {
-	tm := time.Unix(0, t)
+	tm := time.Unix(0, t).UTC()
 	return FormatTime(tm)
 }
 

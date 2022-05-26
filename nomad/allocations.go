@@ -98,8 +98,8 @@ func FetchAllocations(url, token, jobID string) tea.Cmd {
 					Name:       alloc.Name,
 					TaskName:   taskName,
 					State:      task.State,
-					StartedAt:  task.StartedAt,
-					FinishedAt: task.FinishedAt,
+					StartedAt:  task.StartedAt.UTC(),
+					FinishedAt: task.FinishedAt.UTC(),
 				})
 			}
 		}
