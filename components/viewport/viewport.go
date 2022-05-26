@@ -214,13 +214,13 @@ func (m Model) View() string {
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
-		visiblePartOfLine := m.getParsedLine(line)
+		parsedLine := m.getParsedLine(line)
 
 		if nothingHighlighted {
 			if isSelected {
-				addLineToViewString(m.CursorRowStyle.Render(visiblePartOfLine), false)
+				addLineToViewString(m.CursorRowStyle.Render(parsedLine), false)
 			} else {
-				addLineToViewString(m.ContentStyle.Render(visiblePartOfLine), false)
+				addLineToViewString(m.ContentStyle.Render(parsedLine), false)
 			}
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
@@ -230,7 +230,7 @@ func (m Model) View() string {
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
-			lineChunks := strings.Split(visiblePartOfLine, m.Highlight)
+			lineChunks := strings.Split(parsedLine, m.Highlight)
 			var styledChunks []string
 			for _, chunk := range lineChunks {
 				styledChunks = append(styledChunks, lineStyle.Render(chunk))
@@ -321,7 +321,10 @@ func (m *Model) setWidthAndHeight(width, height int) {
 
 func (m Model) getSaveDialogPlaceholder() string {
 	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
-	return constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
+	padding = max(0, padding)
+	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
+	dev.Debug(fmt.Sprintf("padding %d len %d width %d", padding, len(placeholder), m.width))
+	return placeholder[:min(len(placeholder), m.width)]
 }
 
 // func normalizeLineEndings(s string) string {
@@ -471,7 +474,7 @@ func (m Model) getFooter() (string, int) {
 	numerator := m.cursorRow + 1
 
 	if m.saveDialog.Focused() {
-		return m.saveDialog.View(), 1
+		return lipgloss.NewStyle().MaxWidth(m.width).Render(m.saveDialog.View()), 1
 	}
 
 	// if cursor is disabled, percentage should show from the bottom of the visible content
@@ -483,7 +486,9 @@ func (m Model) getFooter() (string, int) {
 	if numLines := len(m.content); numLines > m.height-len(m.header) {
 		percentScrolled := percent(numerator, numLines)
 		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
-		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))
+		renderedFooterString := m.FooterStyle.Copy().MaxWidth(m.width).Render(footerString)
+		footerHeight := lipgloss.Height(renderedFooterString)
+		return renderedFooterString, footerHeight
 	}
 	return "", 0
 }
