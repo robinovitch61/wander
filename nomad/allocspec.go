@@ -16,7 +16,7 @@ func FetchAllocSpec(url, token, allocID string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		pretty := formatter.PrettyJsonStringAsLines(string(body))
+		pretty := formatter.PrettyJsonStringAsLines(string(body), true)
 
 		var allocSpecPageData []page.Row
 		for _, row := range pretty {

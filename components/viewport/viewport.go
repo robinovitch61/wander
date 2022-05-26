@@ -42,6 +42,7 @@ type Model struct {
 	contentHeight int // excludes header height, should always be internal
 	keyMap        viewportKeyMap
 	cursorEnabled bool
+	wrapText      bool
 	saveDialog    textinput.Model
 
 	// Currently, causes flickering if enabled.
@@ -71,6 +72,7 @@ func New(width, height int) (m Model) {
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
 	m.cursorEnabled = true
+	m.wrapText = false
 	m.mouseWheelEnabled = false
 	m.HeaderStyle = style.ViewportHeaderStyle
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
@@ -206,12 +208,12 @@ func (m Model) View() string {
 	}
 
 	for _, headerLine := range m.header {
-		addLineToViewString(m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)), false)
+		addLineToViewString(m.HeaderStyle.Render(m.getParsedLine(headerLine)), false)
 	}
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
-		visiblePartOfLine := m.getVisiblePartOfLine(line)
+		visiblePartOfLine := m.getParsedLine(line)
 
 		if nothingHighlighted {
 			if isSelected {
@@ -250,6 +252,10 @@ func (m Model) View() string {
 
 func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 	m.cursorEnabled = cursorEnabled
+}
+
+func (m *Model) SetWrapText(wrapText bool) {
+	m.wrapText = wrapText
 }
 
 // SetSize sets the viewport's width and height, including header.
@@ -434,6 +440,31 @@ func (m Model) getVisiblePartOfLine(line string) string {
 		line = lineContinuationIndicator + line[min(len(line), lenLineContinuationIndicator):]
 	}
 	return line
+}
+
+func (m Model) getWrappedLine(line string) string {
+	return line
+	if len(line) < m.width {
+		return line
+	}
+
+	wrappedLine := ""
+	// count := 0
+	// for idx := m.width; idx < len(line); idx += m.width {
+	// lineChunk := line[0:m.width-1] + "\n"
+	wrappedLine += line
+	// count += 1
+	// }
+	return wrappedLine
+}
+
+func (m Model) getParsedLine(line string) string {
+	return m.getVisiblePartOfLine(line)
+	if m.wrapText {
+		return m.getWrappedLine(line)
+	} else {
+		return m.getVisiblePartOfLine(line)
+	}
 }
 
 func (m Model) getFooter() (string, int) {

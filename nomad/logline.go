@@ -9,7 +9,7 @@ import (
 func FetchLogLine(logline string) tea.Cmd {
 	return func() tea.Msg {
 		// nothing actually async happens here, but this fits the PageLoadedMsg pattern
-		pretty := formatter.PrettyJsonStringAsLines(logline)
+		pretty := formatter.PrettyJsonStringAsLines(logline, true)
 
 		var loglinePageData []page.Row
 		for _, row := range pretty {
