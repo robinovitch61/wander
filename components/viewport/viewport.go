@@ -39,9 +39,10 @@ type Model struct {
 
 	width         int
 	height        int
-	contentHeight int // excludes header height, should always be internal
+	contentHeight int
 	keyMap        viewportKeyMap
 	cursorEnabled bool
+	wrapText      bool
 	saveDialog    textinput.Model
 
 	// Currently, causes flickering if enabled.
@@ -71,6 +72,7 @@ func New(width, height int) (m Model) {
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
 	m.cursorEnabled = true
+	m.wrapText = false
 	m.mouseWheelEnabled = false
 	m.HeaderStyle = style.ViewportHeaderStyle
 	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
@@ -196,28 +198,32 @@ func (m Model) View() string {
 	nothingHighlighted := len(m.Highlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
-	viewportWithoutFooterHeight := m.height - footerHeight
+	viewportHeightWithoutFooter := m.height - footerHeight
 
-	addLineToViewString := func(line string, isFooter bool) {
-		if isFooter || lineCount < viewportWithoutFooterHeight {
+	addLineToViewString := func(line string) {
+		if lineCount < viewportHeightWithoutFooter {
 			viewString += line + "\n"
 			lineCount += 1
 		}
 	}
 
 	for _, headerLine := range m.header {
-		addLineToViewString(m.HeaderStyle.Render(m.getVisiblePartOfLine(headerLine)), false)
+		for _, line := range m.lineToViewLines(headerLine) {
+			addLineToViewString(m.HeaderStyle.Render(line))
+		}
 	}
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
-		visiblePartOfLine := m.getVisiblePartOfLine(line)
+		parsedLines := m.lineToViewLines(line)
 
 		if nothingHighlighted {
-			if isSelected {
-				addLineToViewString(m.CursorRowStyle.Render(visiblePartOfLine), false)
-			} else {
-				addLineToViewString(m.ContentStyle.Render(visiblePartOfLine), false)
+			for _, line := range parsedLines {
+				if isSelected {
+					addLineToViewString(m.CursorRowStyle.Render(line))
+				} else {
+					addLineToViewString(m.ContentStyle.Render(line))
+				}
 			}
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
@@ -227,21 +233,24 @@ func (m Model) View() string {
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
-			lineChunks := strings.Split(visiblePartOfLine, m.Highlight)
-			var styledChunks []string
-			for _, chunk := range lineChunks {
-				styledChunks = append(styledChunks, lineStyle.Render(chunk))
+			for _, line := range parsedLines {
+				lineChunks := strings.Split(line, m.Highlight)
+				var styledChunks []string
+				for _, chunk := range lineChunks {
+					styledChunks = append(styledChunks, lineStyle.Render(chunk))
+				}
+				addLineToViewString(strings.Join(styledChunks, styledHighlight))
 			}
-			addLineToViewString(strings.Join(styledChunks, styledHighlight), false)
 		}
 	}
 
 	if footerHeight > 0 {
 		// pad so footer shows up at bottom
-		for lineCount < viewportWithoutFooterHeight {
-			addLineToViewString("", true)
+		for lineCount < viewportHeightWithoutFooter {
+			viewString += "\n"
+			lineCount += 1
 		}
-		addLineToViewString(footerString, true)
+		viewString += footerString
 	}
 	trimmedViewLines := strings.Trim(viewString, "\n")
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
@@ -250,6 +259,16 @@ func (m Model) View() string {
 
 func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 	m.cursorEnabled = cursorEnabled
+}
+
+func (m *Model) SetWrapText(wrapText bool) {
+	// TODO LEO: currently can't wrap text with cursor enabled due to mismatch between contentHeight and what
+	// View() actually returns
+	if m.cursorEnabled {
+		m.wrapText = false
+	} else {
+		m.wrapText = wrapText
+	}
 }
 
 // SetSize sets the viewport's width and height, including header.
@@ -314,7 +333,9 @@ func (m *Model) setWidthAndHeight(width, height int) {
 
 func (m Model) getSaveDialogPlaceholder() string {
 	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
-	return constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
+	padding = max(0, padding)
+	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
+	return placeholder[:min(len(placeholder), m.width)]
 }
 
 // func normalizeLineEndings(s string) string {
@@ -343,7 +364,8 @@ func (m *Model) fixState() {
 
 func (m *Model) setContentHeight() {
 	_, footerHeight := m.getFooter()
-	m.contentHeight = max(0, m.height-len(m.header)-footerHeight)
+	contentHeight := m.height - len(m.header) - footerHeight
+	m.contentHeight = max(0, contentHeight)
 }
 
 // maxLinesIdx returns the maximum index of the model's content
@@ -436,11 +458,37 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	return line
 }
 
+func (m Model) getWrappedLines(line string) []string {
+	if utf8.RuneCountInString(line) < m.width {
+		return []string{line}
+	}
+
+	var lines []string
+	l := ""
+	for pos, b := range []rune(line) {
+		l += string(b)
+		if pos != 0 && (pos+1)%m.width == 0 {
+			lines = append(lines, l)
+			l = ""
+		}
+	}
+	lines = append(lines, l)
+	return lines
+}
+
+func (m Model) lineToViewLines(line string) []string {
+	if m.wrapText {
+		return m.getWrappedLines(line)
+	} else {
+		return []string{m.getVisiblePartOfLine(line)}
+	}
+}
+
 func (m Model) getFooter() (string, int) {
 	numerator := m.cursorRow + 1
 
 	if m.saveDialog.Focused() {
-		return m.saveDialog.View(), 1
+		return lipgloss.NewStyle().MaxWidth(m.width).Render(m.saveDialog.View()), 1
 	}
 
 	// if cursor is disabled, percentage should show from the bottom of the visible content
@@ -452,7 +500,9 @@ func (m Model) getFooter() (string, int) {
 	if numLines := len(m.content); numLines > m.height-len(m.header) {
 		percentScrolled := percent(numerator, numLines)
 		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
-		return m.FooterStyle.Render(footerString), len(strings.Split(footerString, "\n"))
+		renderedFooterString := m.FooterStyle.Copy().MaxWidth(m.width).Render(footerString)
+		footerHeight := lipgloss.Height(renderedFooterString)
+		return renderedFooterString, footerHeight
 	}
 	return "", 0
 }
