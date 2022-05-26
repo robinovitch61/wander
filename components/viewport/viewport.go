@@ -208,14 +208,14 @@ func (m Model) View() string {
 	}
 
 	for _, headerLine := range m.header {
-		for _, line := range m.getParsedLines(headerLine) {
+		for _, line := range m.lineToViewLines(headerLine) {
 			addLineToViewString(m.HeaderStyle.Render(line), false)
 		}
 	}
 
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
-		parsedLines := m.getParsedLines(line)
+		parsedLines := m.lineToViewLines(line)
 
 		if nothingHighlighted {
 			for _, line := range parsedLines {
@@ -475,7 +475,7 @@ func (m Model) getWrappedLines(line string) []string {
 	return lines
 }
 
-func (m Model) getParsedLines(line string) []string {
+func (m Model) lineToViewLines(line string) []string {
 	if m.wrapText {
 		return m.getWrappedLines(line)
 	} else {
