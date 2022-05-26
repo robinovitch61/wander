@@ -334,7 +334,6 @@ func (m Model) getSaveDialogPlaceholder() string {
 	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
 	padding = max(0, padding)
 	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
-	dev.Debug(fmt.Sprintf("padding %d len %d width %d", padding, len(placeholder), m.width))
 	return placeholder[:min(len(placeholder), m.width)]
 }
 
