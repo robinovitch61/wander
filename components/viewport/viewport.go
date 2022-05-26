@@ -405,18 +405,18 @@ func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
 
-func (m *Model) setXOffset(n int) {
+func (m *Model) SetXOffset(n int) {
 	m.xOffset = max(0, n)
 }
 
 // viewLeft moves the view left the given number of columns.
 func (m *Model) viewLeft(n int) {
-	m.setXOffset(m.xOffset - n)
+	m.SetXOffset(m.xOffset - n)
 }
 
 // viewRight moves the view right the given number of columns.
 func (m *Model) viewRight(n int) {
-	m.setXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
+	m.SetXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
