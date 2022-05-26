@@ -16,7 +16,7 @@ func FetchJobSpec(url, token, jobID string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		pretty := formatter.PrettyJsonStringAsLines(string(body), true)
+		pretty := formatter.PrettyJsonStringAsLines(string(body))
 
 		var jobSpecPageData []page.Row
 		for _, row := range pretty {

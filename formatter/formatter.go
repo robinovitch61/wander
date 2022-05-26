@@ -3,7 +3,6 @@ package formatter
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/TylerBrock/colorjson"
 	"github.com/olekukonko/tablewriter"
 	"strings"
 	"time"
@@ -15,34 +14,10 @@ func prettyPrint(b []byte) ([]byte, error) {
 	return out.Bytes(), err
 }
 
-func colorJSON(b []byte) ([]byte, error) {
-	var obj map[string]interface{}
-	err := json.Unmarshal(b, &obj)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	f := colorjson.NewFormatter()
-	f.Indent = 2
-
-	colored, marshallErr := f.Marshal(obj)
-	if marshallErr != nil {
-		return []byte{}, marshallErr
-	}
-	return colored, nil
-}
-
-func PrettyJsonStringAsLines(logline string, color bool) []string {
+func PrettyJsonStringAsLines(logline string) []string {
 	pretty, err := prettyPrint([]byte(logline))
 	if err != nil {
 		return []string{logline}
-	}
-
-	if color {
-		pretty, err = colorJSON(pretty)
-		if err != nil {
-			return []string{logline}
-		}
 	}
 
 	var splitLines []string
