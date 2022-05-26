@@ -194,6 +194,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.getCurrentPageModel().SetHeader(msg.TableHeader)
 		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
 		m.getCurrentPageModel().SetLoading(false)
+		m.getCurrentPageModel().SetViewportXOffset(0)
 		if m.currentPage == nomad.LogsPage {
 			m.logsPage.SetViewportCursorToBottom()
 		}

@@ -126,6 +126,10 @@ func (m *Model) SetViewportCursorToBottom() {
 	m.viewport.SetCursorRow(len(m.pageData.Filtered) - 1)
 }
 
+func (m *Model) SetViewportXOffset(n int) {
+	m.viewport.SetXOffset(n)
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
