@@ -198,10 +198,10 @@ func (m Model) View() string {
 	nothingHighlighted := len(m.Highlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
-	viewportWithoutFooterHeight := m.height - footerHeight
+	viewportHeightWithoutFooter := m.height - footerHeight
 
 	addLineToViewString := func(line string) {
-		if lineCount < viewportWithoutFooterHeight {
+		if lineCount < viewportHeightWithoutFooter {
 			viewString += line + "\n"
 			lineCount += 1
 		}
@@ -246,7 +246,7 @@ func (m Model) View() string {
 
 	if footerHeight > 0 {
 		// pad so footer shows up at bottom
-		for lineCount < viewportWithoutFooterHeight {
+		for lineCount < viewportHeightWithoutFooter {
 			viewString += "\n"
 			lineCount += 1
 		}
