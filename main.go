@@ -89,11 +89,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		if key.Matches(msg, keymap.KeyMap.Wrap) {
-			m.getCurrentPageModel().ToggleViewportWrapText()
-			return m, nil
-		}
-
 		if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):

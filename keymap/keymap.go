@@ -13,7 +13,6 @@ type keyMap struct {
 	StdOut  key.Binding
 	StdErr  key.Binding
 	Spec    key.Binding
-	Wrap    key.Binding
 }
 
 var KeyMap = keyMap{
@@ -48,9 +47,5 @@ var KeyMap = keyMap{
 	Spec: key.NewBinding(
 		key.WithKeys("p"),
 		key.WithHelp("p", "view spec"),
-	),
-	Wrap: key.NewBinding(
-		key.WithKeys("ctrl+w"),
-		key.WithHelp("ctrl+w", "wrap"),
 	),
 }

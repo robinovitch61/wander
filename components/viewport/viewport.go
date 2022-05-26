@@ -39,7 +39,7 @@ type Model struct {
 
 	width         int
 	height        int
-	contentHeight int // excludes header height, should always be internal
+	contentHeight int
 	keyMap        viewportKeyMap
 	cursorEnabled bool
 	wrapText      bool
@@ -216,9 +216,6 @@ func (m Model) View() string {
 	for idx, line := range m.visibleLines() {
 		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
 		parsedLines := m.getParsedLines(line)
-		// for _, l := range parsedLines {
-		// dev.Debug(l)
-		// }
 
 		if nothingHighlighted {
 			for _, line := range parsedLines {
@@ -264,12 +261,13 @@ func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 }
 
 func (m *Model) SetWrapText(wrapText bool) {
-	m.wrapText = wrapText
-}
-
-func (m *Model) ToggleWrapText() {
-	m.wrapText = !m.wrapText
-	m.SetXOffset(0)
+	// TODO LEO: currently can't wrap text with cursor enabled due to mismatch between contentHeight and what
+	// View() actually returns
+	if m.cursorEnabled {
+		m.wrapText = false
+	} else {
+		m.wrapText = wrapText
+	}
 }
 
 // SetSize sets the viewport's width and height, including header.
@@ -366,7 +364,8 @@ func (m *Model) fixState() {
 
 func (m *Model) setContentHeight() {
 	_, footerHeight := m.getFooter()
-	m.contentHeight = max(0, m.height-len(m.header)-footerHeight)
+	contentHeight := m.height - len(m.header) - footerHeight
+	m.contentHeight = max(0, contentHeight)
 }
 
 // maxLinesIdx returns the maximum index of the model's content
@@ -466,7 +465,6 @@ func (m Model) getWrappedLines(line string) []string {
 
 	var lines []string
 	l := ""
-	dev.Debug(line)
 	for pos, b := range []rune(line) {
 		l += string(b)
 		if pos != 0 && (pos+1)%m.width == 0 {

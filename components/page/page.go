@@ -131,10 +131,6 @@ func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
 }
 
-func (m *Model) ToggleViewportWrapText() {
-	m.viewport.ToggleWrapText()
-}
-
 func (m Model) Loading() bool {
 	return m.loading
 }
