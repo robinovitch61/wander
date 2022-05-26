@@ -405,30 +405,30 @@ func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
 
-func (m *Model) SetXOffset(n int) {
+func (m *Model) setXOffset(n int) {
 	m.xOffset = max(0, n)
 }
 
 // viewLeft moves the view left the given number of columns.
 func (m *Model) viewLeft(n int) {
-	m.SetXOffset(m.xOffset - n)
+	m.setXOffset(m.xOffset - n)
 }
 
 // viewRight moves the view right the given number of columns.
 func (m *Model) viewRight(n int) {
-	m.SetXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
+	m.setXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
 	rightTrimmedLineLength := len(strings.TrimRight(line, " "))
-	if len(line) > m.width {
-		line = line[m.xOffset:min(len(line), m.xOffset+m.width)]
-		if m.xOffset+m.width < rightTrimmedLineLength {
-			line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
-		}
-		if m.xOffset > 0 {
-			line = lineContinuationIndicator + line[lenLineContinuationIndicator:]
-		}
+	end := min(len(line), m.xOffset+m.width)
+	start := min(end, m.xOffset)
+	line = line[start:end]
+	if m.xOffset+m.width < rightTrimmedLineLength {
+		line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
+	}
+	if m.xOffset > 0 {
+		line = lineContinuationIndicator + line[min(len(line), lenLineContinuationIndicator):]
 	}
 	return line
 }
