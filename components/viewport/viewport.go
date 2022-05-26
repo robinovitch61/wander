@@ -200,8 +200,8 @@ func (m Model) View() string {
 	lineCount := 0
 	viewportWithoutFooterHeight := m.height - footerHeight
 
-	addLineToViewString := func(line string, isFooter bool) {
-		if isFooter || lineCount < viewportWithoutFooterHeight {
+	addLineToViewString := func(line string) {
+		if lineCount < viewportWithoutFooterHeight {
 			viewString += line + "\n"
 			lineCount += 1
 		}
@@ -209,7 +209,7 @@ func (m Model) View() string {
 
 	for _, headerLine := range m.header {
 		for _, line := range m.lineToViewLines(headerLine) {
-			addLineToViewString(m.HeaderStyle.Render(line), false)
+			addLineToViewString(m.HeaderStyle.Render(line))
 		}
 	}
 
@@ -220,9 +220,9 @@ func (m Model) View() string {
 		if nothingHighlighted {
 			for _, line := range parsedLines {
 				if isSelected {
-					addLineToViewString(m.CursorRowStyle.Render(line), false)
+					addLineToViewString(m.CursorRowStyle.Render(line))
 				} else {
-					addLineToViewString(m.ContentStyle.Render(line), false)
+					addLineToViewString(m.ContentStyle.Render(line))
 				}
 			}
 		} else {
@@ -239,7 +239,7 @@ func (m Model) View() string {
 				for _, chunk := range lineChunks {
 					styledChunks = append(styledChunks, lineStyle.Render(chunk))
 				}
-				addLineToViewString(strings.Join(styledChunks, styledHighlight), false)
+				addLineToViewString(strings.Join(styledChunks, styledHighlight))
 			}
 		}
 	}
@@ -247,9 +247,10 @@ func (m Model) View() string {
 	if footerHeight > 0 {
 		// pad so footer shows up at bottom
 		for lineCount < viewportWithoutFooterHeight {
-			addLineToViewString("", true)
+			viewString += "\n"
+			lineCount += 1
 		}
-		addLineToViewString(footerString, true)
+		viewString += footerString
 	}
 	trimmedViewLines := strings.Trim(viewString, "\n")
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
