@@ -443,23 +443,22 @@ func (m Model) getVisiblePartOfLine(line string) string {
 }
 
 func (m Model) getWrappedLine(line string) string {
-	return line
 	if len(line) < m.width {
 		return line
 	}
 
 	wrappedLine := ""
-	// count := 0
-	// for idx := m.width; idx < len(line); idx += m.width {
-	// lineChunk := line[0:m.width-1] + "\n"
-	wrappedLine += line
-	// count += 1
-	// }
+	for pos, b := range []byte(line) {
+		wrappedLine += string(b)
+		if pos%m.width == 0 {
+			wrappedLine += "\n"
+		}
+	}
+
 	return wrappedLine
 }
 
 func (m Model) getParsedLine(line string) string {
-	return m.getVisiblePartOfLine(line)
 	if m.wrapText {
 		return m.getWrappedLine(line)
 	} else {
