@@ -27,6 +27,7 @@ type model struct {
 	allocSpecPage   page.Model
 	logsPage        page.Model
 	loglinePage     page.Model
+	execPage        page.Model
 
 	jobID        string
 	jobNamespace string
@@ -138,7 +139,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			if m.currentPage == nomad.LogsPage {
+			if m.currentPage == nomad.AllocationsPage && key.Matches(msg, keymap.KeyMap.Exec) {
+				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+					m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+					m.setPage(nomad.ExecPage)
+					return m, m.getCurrentPageCmd()
+				}
+			} else if m.currentPage == nomad.LogsPage {
 				switch {
 				case key.Matches(msg, keymap.KeyMap.StdOut):
 					if m.logType != nomad.StdOut {
@@ -205,12 +212,13 @@ func (m model) View() string {
 
 func (m *model) initialize() {
 	pageHeight := m.getPageHeight()
-	m.jobsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString(), true, false)
-	m.jobSpecPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false, true)
-	m.allocationsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false)
-	m.allocSpecPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false, true)
-	m.logsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString(), true, false)
-	m.loglinePage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString(), false, true)
+	m.jobsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString(), true, false, false)
+	m.jobSpecPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false, true, false)
+	m.allocationsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false, false)
+	m.allocSpecPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false, true, false)
+	m.logsPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString(), true, false, false)
+	m.loglinePage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString(), false, true, false)
+	m.execPage = page.New(m.width, pageHeight, m.getFilterPrefix(nomad.ExecPage), nomad.ExecPage.LoadingString(), false, true, true)
 	m.initialized = true
 }
 
@@ -221,6 +229,7 @@ func (m *model) setPageWindowSize() {
 	m.allocSpecPage.SetWindowSize(m.width, m.getPageHeight())
 	m.logsPage.SetWindowSize(m.width, m.getPageHeight())
 	m.loglinePage.SetWindowSize(m.width, m.getPageHeight())
+	m.execPage.SetWindowSize(m.width, m.getPageHeight())
 }
 
 func (m *model) setPage(page nomad.Page) {
@@ -248,6 +257,8 @@ func (m *model) getCurrentPageModel() *page.Model {
 		return &m.logsPage
 	case nomad.LoglinePage:
 		return &m.loglinePage
+	case nomad.ExecPage:
+		return &m.execPage
 	default:
 		panic("current page model not found")
 	}
@@ -267,6 +278,8 @@ func (m *model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchLogs(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
 	case nomad.LoglinePage:
 		return nomad.FetchLogLine(m.logline)
+	case nomad.ExecPage:
+		return nomad.FetchExecSession(m.nomadUrl, m.nomadToken, m.allocID, m.taskName)
 	default:
 		panic("page load command not found")
 	}

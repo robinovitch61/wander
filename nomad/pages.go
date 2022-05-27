@@ -3,6 +3,7 @@ package nomad
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/gorilla/websocket"
 	"strings"
 	"wander/components/page"
 	"wander/components/viewport"
@@ -21,6 +22,7 @@ const (
 	AllocSpecPage
 	LogsPage
 	LoglinePage
+	ExecPage
 )
 
 func (p Page) Loads() bool {
@@ -49,6 +51,8 @@ func (p Page) String() string {
 		return "logs"
 	case LoglinePage:
 		return "log"
+	case ExecPage:
+		return "session"
 	}
 	return "unknown"
 }
@@ -81,6 +85,8 @@ func (p Page) Backward() Page {
 		return AllocationsPage
 	case LoglinePage:
 		return LogsPage
+	case ExecPage:
+		return AllocationsPage
 	}
 	return p
 }
@@ -99,6 +105,8 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
 		return fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case LoglinePage:
 		return fmt.Sprintf("Log Line for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+	case ExecPage:
+		return fmt.Sprintf("Session for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	default:
 		panic("page not found")
 	}
@@ -108,6 +116,7 @@ type PageLoadedMsg struct {
 	Page        Page
 	TableHeader []string
 	AllPageData []page.Row
+	Websocket   *websocket.Conn
 }
 
 type ChangePageMsg struct{ NewPage Page }

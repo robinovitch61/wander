@@ -20,12 +20,13 @@ type Model struct {
 	filter        filter.Model
 	loadingString string
 	loading       bool
+	isTerminal    bool
 }
 
 func New(
 	width, height int,
 	filterPrefix, loadingString string,
-	cursorEnabled, wrapText bool,
+	cursorEnabled, wrapText, isTerminal bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
@@ -38,6 +39,7 @@ func New(
 		filter:        pageFilter,
 		loadingString: loadingString,
 		loading:       true,
+		isTerminal:    isTerminal,
 	}
 	return model
 }
@@ -97,11 +99,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	blocks := []string{m.filter.View()}
 	content := fmt.Sprintf(m.loadingString)
 	if !m.loading {
 		content = m.viewport.View()
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
+	blocks = append(blocks, content)
+	if m.isTerminal {
+		blocks = append(blocks, "> ")
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, blocks...)
 }
 
 func (m *Model) SetWindowSize(width, height int) {
