@@ -24,7 +24,7 @@ func FetchExecSession(host, token, allocID, taskName string) tea.Cmd {
 			// "token":        token,
 		}
 
-		ws, err := getWebsocketConnection(host, path, token, params)
+		ws, err := getWebSocketConnection(host, path, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -33,7 +33,7 @@ func FetchExecSession(host, token, allocID, taskName string) tea.Cmd {
 			Page:        ExecPage,
 			TableHeader: []string{},
 			AllPageData: []page.Row{},
-			Websocket:   ws,
+			WebSocket:   ws,
 		}
 	}
 }

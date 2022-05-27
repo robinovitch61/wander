@@ -6,12 +6,14 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/gorilla/websocket"
 	"strings"
 	"wander/components/filter"
 	"wander/components/toast"
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
+	"wander/message"
 )
 
 type Model struct {
@@ -24,6 +26,7 @@ type Model struct {
 	isTerminal        bool
 	prompt            textinput.Model
 	promptInitialized bool
+	websocket         *websocket.Conn
 }
 
 func New(
@@ -93,7 +96,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			shellCmd := m.prompt.Value()
 			m.prompt.Reset()
 			dev.Debug(shellCmd)
-			// TODO LEO: return cmd here that does the websocket async
+			return m, message.SendExec(shellCmd, m.websocket)
 		}
 
 		if key.Matches(msg, keymap.KeyMap.Back) {
@@ -179,6 +182,10 @@ func (m *Model) ExitTerminal() {
 	if m.isTerminal {
 		m.promptInitialized = false
 	}
+}
+
+func (m *Model) SetWebSocket(ws *websocket.Conn) {
+	m.websocket = ws
 }
 
 func (m Model) Loading() bool {

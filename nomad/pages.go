@@ -126,7 +126,11 @@ type PageLoadedMsg struct {
 	Page        Page
 	TableHeader []string
 	AllPageData []page.Row
-	Websocket   *websocket.Conn
+	WebSocket   *websocket.Conn
+}
+
+type AppendToPageMsg struct {
+	PageDataToAppend []page.Row
 }
 
 type ChangePageMsg struct{ NewPage Page }

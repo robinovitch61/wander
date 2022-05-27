@@ -185,12 +185,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.PageLoadedMsg:
 		m.setPage(msg.Page)
-		m.getCurrentPageModel().SetHeader(msg.TableHeader)
-		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
-		m.getCurrentPageModel().SetLoading(false)
-		m.getCurrentPageModel().SetViewportXOffset(0)
+		currentPageModel := m.getCurrentPageModel()
+		currentPageModel.SetHeader(msg.TableHeader)
+		currentPageModel.SetAllPageData(msg.AllPageData)
+		currentPageModel.SetLoading(false)
+		currentPageModel.SetViewportXOffset(0)
 		if m.currentPage == nomad.LogsPage {
 			m.logsPage.SetViewportCursorToBottom()
+		}
+		if currentPageModel.IsTerminal() {
+			currentPageModel.SetWebSocket(msg.WebSocket)
 		}
 	}
 

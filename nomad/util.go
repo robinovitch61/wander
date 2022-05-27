@@ -35,7 +35,7 @@ func get(fullPath, token string, params map[string]string) ([]byte, error) {
 	return body, nil
 }
 
-func getWebsocketConnection(host, path, token string, params map[string]string) (*websocket.Conn, error) {
+func getWebSocketConnection(host, path, token string, params map[string]string) (*websocket.Conn, error) {
 	urlParams := url.Values{}
 	for k, v := range params {
 		urlParams.Add(k, v)
