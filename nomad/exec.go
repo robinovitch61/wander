@@ -30,7 +30,7 @@ func FetchExecSession(host, token, allocID, taskName string) tea.Cmd {
 		}
 
 		return PageLoadedMsg{
-			Page:        AllocSpecPage,
+			Page:        ExecPage,
 			TableHeader: []string{},
 			AllPageData: []page.Row{},
 			Websocket:   ws,

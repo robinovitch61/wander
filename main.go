@@ -78,17 +78,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// always exit if desired, or don't respond if editing filter or saving
+		addingQToFilter := m.currentPageFilterFocused()
+		saving := m.currentPageViewportSaving()
+		inTerminal := m.currentPageIsTerminal()
+		editingText := addingQToFilter || saving || inTerminal
+
 		if key.Matches(msg, keymap.KeyMap.Exit) {
-			addingQToFilter := m.currentPageFilterFocused()
-			saving := m.currentPageViewportSaving()
-			typingQWhileFilteringOrSaving := (addingQToFilter || saving) && msg.String() == "q"
-			if !typingQWhileFilteringOrSaving {
+			noQuit := editingText && msg.String() == "q"
+			if !noQuit {
 				return m, tea.Quit
 			}
 		}
 
-		if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
+		if !editingText || inTerminal {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
@@ -109,16 +111,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
-				if !m.currentPageFilterApplied() {
+				if !m.currentPageFilterApplied() && !saving {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
+						m.getCurrentPageModel().ExitTerminal()
 						m.setPage(prevPage)
 						return m, m.getCurrentPageCmd()
 					}
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Reload):
-				if m.currentPage.Loads() {
+				if m.currentPage.Loads() && !inTerminal {
 					m.getCurrentPageModel().SetLoading(true)
 					return m, m.getCurrentPageCmd()
 				}
@@ -303,6 +306,10 @@ func (m model) currentPageFilterApplied() bool {
 
 func (m model) currentPageViewportSaving() bool {
 	return m.getCurrentPageModel().ViewportSaving()
+}
+
+func (m model) currentPageIsTerminal() bool {
+	return m.getCurrentPageModel().IsTerminal()
 }
 
 func (m model) getFilterPrefix(page nomad.Page) string {

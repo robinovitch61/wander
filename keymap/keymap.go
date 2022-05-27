@@ -19,7 +19,7 @@ type keyMap struct {
 var KeyMap = keyMap{
 	Exit: key.NewBinding(
 		key.WithKeys("q", "ctrl+c"),
-		key.WithHelp("q", "exit"),
+		key.WithHelp("q/ctrl+c", "exit"),
 	),
 	Forward: key.NewBinding(
 		key.WithKeys("enter"),
