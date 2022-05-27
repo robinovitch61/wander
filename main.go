@@ -12,7 +12,7 @@ import (
 	"wander/dev"
 	"wander/keymap"
 	"wander/message"
-	"wander/nomad"
+	nomad "wander/nomad"
 	"wander/style"
 )
 
@@ -144,7 +144,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			if m.currentPage == nomad.AllocationsPage && key.Matches(msg, keymap.KeyMap.Exec) {
+			if key.Matches(msg, keymap.KeyMap.Exec) && m.currentPage == nomad.AllocationsPage {
 				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 					m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
 					m.setPage(nomad.ExecPage)
@@ -194,9 +194,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		currentPageModel.SetViewportXOffset(0)
 		if m.currentPage == nomad.LogsPage {
 			m.logsPage.SetViewportCursorToBottom()
-		}
-		if currentPageModel.IsTerminal() {
-			m.terminalWs = msg.WebSocket
 		}
 	}
 
@@ -288,7 +285,8 @@ func (m *model) getCurrentPageCmd() tea.Cmd {
 	case nomad.LoglinePage:
 		return nomad.FetchLogLine(m.logline)
 	case nomad.ExecPage:
-		return nomad.FetchExecSession(m.nomadUrl, m.nomadToken, m.allocID, m.taskName)
+		// don't actually fetch the websocket right away, as it needs an initial command
+		return func() tea.Msg { return nomad.PageLoadedMsg{Page: nomad.ExecPage} }
 	default:
 		panic("page load command not found")
 	}

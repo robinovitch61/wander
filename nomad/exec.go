@@ -3,37 +3,36 @@ package nomad
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gorilla/websocket"
 	"strings"
-	"wander/components/page"
-	"wander/dev"
 	"wander/message"
 )
 
-func FetchExecSession(host, token, allocID, taskName string) tea.Cmd {
+type WebSocketConnectedMsg struct {
+	Conn *websocket.Conn
+}
+
+func InitiateWebSocketConnection(host, token, allocID, taskName, command string) tea.Cmd {
 	return func() tea.Msg {
 		// strip off any other protocol in the host
+		secure := false
+		if strings.Contains(host, "https://") {
+			secure = true
+		}
+
 		host = strings.Split(host, "://")[1]
-		dev.Debug("HOST")
-		dev.Debug(host)
 
 		path := fmt.Sprintf("/v1/client/allocation/%s/exec", allocID)
 		params := map[string]string{
-			"command": "[\"echo\", \"hi\"]",
+			"command": command,
 			"task":    taskName,
-			// "ws_handshake": "true",
-			// "token":        token,
 		}
 
-		ws, err := getWebSocketConnection(host, path, token, params)
+		ws, err := getWebSocketConnection(secure, host, path, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
-		return PageLoadedMsg{
-			Page:        ExecPage,
-			TableHeader: []string{},
-			AllPageData: []page.Row{},
-			WebSocket:   ws,
-		}
+		return WebSocketConnectedMsg{Conn: ws}
 	}
 }

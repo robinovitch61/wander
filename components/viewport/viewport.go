@@ -271,6 +271,9 @@ func (m Model) View() string {
 		viewString += footerString
 	}
 	trimmedViewLines := strings.Trim(viewString, "\n")
+	if trimmedViewLines == "" {
+		return ""
+	}
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 
 	if m.showToast {

@@ -35,14 +35,19 @@ func get(fullPath, token string, params map[string]string) ([]byte, error) {
 	return body, nil
 }
 
-func getWebSocketConnection(host, path, token string, params map[string]string) (*websocket.Conn, error) {
+func getWebSocketConnection(secure bool, host, path, token string, params map[string]string) (*websocket.Conn, error) {
 	urlParams := url.Values{}
 	for k, v := range params {
 		urlParams.Add(k, v)
 	}
 
+	scheme := "ws"
+	if secure {
+		scheme = "wss"
+	}
+
 	u := url.URL{
-		Scheme:   "wss",
+		Scheme:   scheme,
 		Host:     host,
 		Path:     path,
 		RawQuery: urlParams.Encode(),

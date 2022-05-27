@@ -137,7 +137,9 @@ func (m Model) View() string {
 	if !m.loading {
 		content = m.viewport.View()
 	}
-	blocks = append(blocks, content)
+	if content != "" {
+		blocks = append(blocks, content)
+	}
 	if m.isTerminal && !m.loading {
 		blocks = append(blocks, m.prompt.View())
 	}

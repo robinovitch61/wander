@@ -3,7 +3,6 @@ package nomad
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/gorilla/websocket"
 	"strings"
 	"wander/components/page"
 	"wander/components/viewport"
@@ -26,7 +25,7 @@ const (
 )
 
 func (p Page) Loads() bool {
-	noLoadPages := []Page{LoglinePage}
+	noLoadPages := []Page{LoglinePage, ExecPage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
 			return false
@@ -126,7 +125,6 @@ type PageLoadedMsg struct {
 	Page        Page
 	TableHeader []string
 	AllPageData []page.Row
-	WebSocket   *websocket.Conn
 }
 
 type AppendToPageMsg struct {
