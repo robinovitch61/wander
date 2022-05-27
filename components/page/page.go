@@ -13,16 +13,16 @@ import (
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
-	"wander/message"
 )
 
 type Model struct {
-	width, height     int
-	pageData          data
-	viewport          viewport.Model
-	filter            filter.Model
-	loadingString     string
-	loading           bool
+	width, height int
+	pageData      data
+	viewport      viewport.Model
+	filter        filter.Model
+	loadingString string
+	loading       bool
+
 	isTerminal        bool
 	prompt            textinput.Model
 	promptInitialized bool
@@ -96,7 +96,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			shellCmd := m.prompt.Value()
 			m.prompt.Reset()
 			dev.Debug(shellCmd)
-			return m, message.SendExec(shellCmd, m.websocket)
+			// TODO LEO: This should send a "TerminalEnterCmd" back up to main or the like
+			// return m, message.SendExec(shellCmd, m.websocket)
 		}
 
 		if key.Matches(msg, keymap.KeyMap.Back) {
@@ -182,10 +183,6 @@ func (m *Model) ExitTerminal() {
 	if m.isTerminal {
 		m.promptInitialized = false
 	}
-}
-
-func (m *Model) SetWebSocket(ws *websocket.Conn) {
-	m.websocket = ws
 }
 
 func (m Model) Loading() bool {

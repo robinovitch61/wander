@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gorilla/websocket"
 	"os"
 	"wander/components/header"
 	"wander/components/page"
@@ -35,6 +36,7 @@ type model struct {
 	taskName     string
 	logline      string
 	logType      nomad.LogType
+	terminalWs   *websocket.Conn
 
 	width, height int
 	initialized   bool
@@ -194,7 +196,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.logsPage.SetViewportCursorToBottom()
 		}
 		if currentPageModel.IsTerminal() {
-			currentPageModel.SetWebSocket(msg.WebSocket)
+			m.terminalWs = msg.WebSocket
 		}
 	}
 
