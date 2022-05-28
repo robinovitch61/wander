@@ -366,10 +366,6 @@ func (m Model) getSaveDialogPlaceholder() string {
 	return placeholder[:min(len(placeholder), m.width)]
 }
 
-// func normalizeLineEndings(s string) string {
-// 	return strings.ReplaceAll(s, "\r\n", "\n")
-// }
-
 // fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
 func (m *Model) fixCursorRow() {
 	if m.cursorRow > m.lastVisibleLineIdx() {

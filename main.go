@@ -209,7 +209,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.ExecWebSocketConnectedMsg:
 		dev.Debug("CONNECTED")
 		m.execWebSocket = msg.WebSocketConnection
-		// cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 
 	case nomad.ExecWebSocketResponseMsg:
 		dev.Debug("WS RESPONSE")

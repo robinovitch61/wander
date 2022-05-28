@@ -2,12 +2,11 @@ package nomad
 
 import (
 	b64 "encoding/base64"
+	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
 	"strings"
-	"time"
-	"wander/dev"
 	"wander/formatter"
 	"wander/message"
 )
@@ -34,6 +33,7 @@ func InitiateExecWebSocketConnection(host, token, allocID, taskName, command str
 		params := map[string]string{
 			"command": jsonCommand,
 			"task":    taskName,
+			"tty":     "true",
 		}
 
 		ws, err := getWebSocketConnection(secure, host, path, token, params)
@@ -51,70 +51,107 @@ type ExecWebSocketResponseMsg struct {
 
 func ReadExecWebSocketNextMessage(ws *websocket.Conn) tea.Cmd {
 	return func() tea.Msg {
-		// TODO LEO: don't think we actually want this timeout as it cancels all future reads
-		// setTimeoutErr := ws.SetReadDeadline(time.Now().Add(3 * time.Second))
-		// if setTimeoutErr != nil {
-		// 	return message.ErrMsg{Err: setTimeoutErr}
-		// }
-
-		dev.Debug("READING WS")
-		msgType, content, err := ws.ReadMessage()
-		dev.Debug(fmt.Sprintf("READ MESSAGE type %d content %s err %e", msgType, content, err))
-
+		stdout, stderr, err := readNext(ws)
 		if err != nil {
-			// timeouts can occur when there's just no response, like sending "/bin/sh" as a first command
-			if !strings.Contains(err.Error(), "i/o timeout") {
-				return message.ErrMsg{Err: err}
-			} else {
-				dev.Debug("RESET")
-				setTimeoutErr := ws.SetReadDeadline(time.Time{})
-				if setTimeoutErr != nil {
-					return message.ErrMsg{Err: setTimeoutErr}
-				}
-			}
+			return message.ErrMsg{Err: err}
 		}
-
-		// TODO LEO: parse response here, handle output, decode the base64 and return real msg
-		return ExecWebSocketResponseMsg{StdOut: "hi"}
+		return ExecWebSocketResponseMsg{StdOut: stdout, StdErr: stderr}
 	}
 }
 
 func SendAndReadExecWebSocketMessage(ws *websocket.Conn, shellCmd string) tea.Cmd {
 	return func() tea.Msg {
 		var err error
-		dev.Debug(fmt.Sprintf("SENDING %s", shellCmd))
-		// jsonCmd, err := formatter.JsonEncodedTokenArray(shellCmd)
-		// if err != nil {
-		// 	return message.ErrMsg{Err: err}
-		// }
-		encodedCmd := b64.StdEncoding.EncodeToString([]byte(shellCmd))
+		var stdout, stderr string
+		var so, se string
+		for _, char := range shellCmd + "\n" {
+			// send char
+			err = send(ws, string(char))
+			if err != nil {
+				return message.ErrMsg{Err: err}
+			}
 
-		toSend := fmt.Sprintf(`{"stdin": {"data": %s}}`, encodedCmd)
-
-		err = ws.WriteMessage(1, []byte(toSend))
+			so, se, err = readNext(ws)
+			if err != nil {
+				return message.ErrMsg{Err: err}
+			}
+			stdout += so
+			stderr += se
+		}
+		so, se, err = readNext(ws)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
-		dev.Debug("SENT")
-
-		// TODO LEO: don't think we actually want this timeout as it cancels all future reads
-		// setTimeoutErr := ws.SetReadDeadline(time.Now().Add(3 * time.Second))
-		// if setTimeoutErr != nil {
-		// 	return message.ErrMsg{Err: setTimeoutErr}
-		// }
-
-		dev.Debug("READING WS")
-		msgType, content, err := ws.ReadMessage()
-		dev.Debug(fmt.Sprintf("READ MESSAGE type %d content %s err %e", msgType, content, err))
-
-		if err != nil {
-			// timeouts can occur when there's just no response, like sending "/bin/sh" as a first command
-			if !strings.Contains(err.Error(), "i/o timeout") {
-				return message.ErrMsg{Err: err}
-			}
-		}
-
-		// TODO LEO: parse response here, handle output, decode the base64 and return real msg
-		return ExecWebSocketResponseMsg{StdOut: "hi"}
+		stdout += so
+		stderr += se
+		return ExecWebSocketResponseMsg{StdOut: stdout, StdErr: stderr}
 	}
+}
+
+type exitJSON struct {
+	ExitCode int `json:"exit_code"`
+}
+
+type execResponseDataJSON struct {
+	Data   string   `json:"data"`
+	Close  bool     `json:"close"`
+	Result exitJSON `json:"result"`
+}
+
+type execResponseJSON struct {
+	StdOut execResponseDataJSON `json:"stdout"`
+	StdErr execResponseDataJSON `json:"stderr"`
+	Exited bool                 `json:"exited"`
+}
+
+func send(ws *websocket.Conn, r string) error {
+	encoded := b64.StdEncoding.EncodeToString([]byte(r))
+	toSend := fmt.Sprintf(`{"stdin":{"data":"%s"}}`, encoded)
+	return ws.WriteMessage(1, []byte(toSend))
+}
+
+func readNext(ws *websocket.Conn) (string, string, error) {
+	var stdout, stderr string
+
+	msgType, content, err := ws.ReadMessage()
+	if err != nil {
+		return "", "", err
+	}
+
+	stdout, stderr, err = parseWebSocketMessage(msgType, content)
+	if err != nil {
+		return "", "", err
+	}
+
+	return stdout, stderr, nil
+}
+
+func parseWebSocketMessage(msgType int, content []byte) (string, string, error) {
+	var err error
+
+	response := execResponseJSON{}
+	err = json.Unmarshal(content, &response)
+	if err != nil {
+		return "", "", err
+	}
+
+	var stdout, stderr string
+	switch {
+	case response.StdOut != execResponseDataJSON{}:
+		if stdOutData := response.StdOut.Data; stdOutData != "" {
+			decoded, err := b64.StdEncoding.DecodeString(stdOutData)
+			if err != nil {
+				return "", "", err
+			}
+			stdout += string(decoded)
+		}
+	default:
+		panic(fmt.Sprintf("Unhandled websocket response: %s", content))
+	}
+
+	return normalizeLineEndings(stdout), normalizeLineEndings(stderr), nil
+}
+
+func normalizeLineEndings(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
 }
