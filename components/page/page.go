@@ -173,6 +173,11 @@ func (m *Model) SetAllPageData(allPageData []Row) {
 	m.updateViewport()
 }
 
+func (m *Model) AppendToViewport(content string) {
+	m.viewport.Append(content)
+	m.updateViewport()
+}
+
 func (m *Model) SetFilterPrefix(prefix string) {
 	m.filter.SetPrefix(prefix)
 }
