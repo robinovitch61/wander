@@ -173,8 +173,8 @@ func (m *Model) SetAllPageData(allPageData []Row) {
 	m.updateViewport()
 }
 
-func (m *Model) AppendPageData(content string) {
-	m.SetAllPageData(append(m.pageData.All, Row{Row: content}))
+func (m *Model) AppendPageData(rows []Row) {
+	m.SetAllPageData(append(m.pageData.All, rows...))
 	m.updateViewport()
 	newHeight := m.height
 	if shownPageHeight := len(m.pageData.Filtered); shownPageHeight < newHeight {

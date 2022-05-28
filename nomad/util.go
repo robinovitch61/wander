@@ -59,6 +59,5 @@ func getWebSocketConnection(secure bool, host, path, token string, params map[st
 	dev.Debug(u.String())
 	c, resp, err := websocket.DefaultDialer.Dial(u.String(), header)
 	dev.Debug(fmt.Sprintf("STATUS CODE %d", resp.StatusCode))
-
 	return c, err
 }

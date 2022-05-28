@@ -116,6 +116,7 @@ func send(ws *websocket.Conn, r string) error {
 }
 
 func readNext(ws *websocket.Conn) parsedWebSocketMessage {
+	// TODO LEO: with large responses, multiple messages per stdin :/
 	msgType, content, err := ws.ReadMessage()
 	if err != nil {
 		return parsedWebSocketMessage{Err: err}

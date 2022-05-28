@@ -214,7 +214,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.ExecWebSocketResponseMsg:
 		dev.Debug("WS RESPONSE")
 		dev.Debug(msg.StdOut)
-		m.getCurrentPageModel().AppendPageData(msg.StdOut)
+		var newPageData []page.Row
+		stdOutRows := strings.Split(msg.StdOut, "\n")
+		stdErrRows := strings.Split(msg.StdErr, "\n")
+		for _, row := range append(stdOutRows, stdErrRows...) {
+			if strings.TrimSpace(row) != "" {
+				newPageData = append(newPageData, page.Row{Row: row})
+			}
+		}
+		m.getCurrentPageModel().AppendPageData(newPageData)
 	}
 
 	currentPageModel := m.getCurrentPageModel()
