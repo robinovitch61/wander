@@ -214,7 +214,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.ExecWebSocketResponseMsg:
 		dev.Debug("WS RESPONSE")
 		dev.Debug(msg.StdOut)
-		m.getCurrentPageModel().AppendToViewport(msg.StdOut)
+		m.getCurrentPageModel().AppendPageData(msg.StdOut)
 	}
 
 	currentPageModel := m.getCurrentPageModel()

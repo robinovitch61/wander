@@ -346,11 +346,6 @@ func (m *Model) SetCursorRow(n int) {
 	}
 }
 
-func (m *Model) Append(s string) {
-	m.SetContent(append(m.content, s))
-	m.SetSize(m.width, min(m.height, len(m.content)))
-}
-
 func (m Model) CursorRow() int {
 	return m.cursorRow
 }

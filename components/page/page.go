@@ -173,9 +173,14 @@ func (m *Model) SetAllPageData(allPageData []Row) {
 	m.updateViewport()
 }
 
-func (m *Model) AppendToViewport(content string) {
-	m.viewport.Append(content)
+func (m *Model) AppendPageData(content string) {
+	m.SetAllPageData(append(m.pageData.All, Row{Row: content}))
 	m.updateViewport()
+	newHeight := m.height
+	if shownPageHeight := len(m.pageData.Filtered); shownPageHeight < newHeight {
+		newHeight = shownPageHeight
+	}
+	m.viewport.SetSize(m.width, newHeight)
 }
 
 func (m *Model) SetFilterPrefix(prefix string) {
