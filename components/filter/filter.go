@@ -48,7 +48,7 @@ func New(prefix string) Model {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	dev.Debug(fmt.Sprintf("filter %T", msg))
+	dev.DebugMsg("filter", msg)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.focus {

@@ -86,7 +86,7 @@ func New(width, height int) (m Model) {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	dev.Debug(fmt.Sprintf("viewport %T", msg))
+	dev.DebugMsg("viewport", msg)
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd

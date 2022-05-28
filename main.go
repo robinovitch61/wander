@@ -30,13 +30,13 @@ type model struct {
 	loglinePage     page.Model
 	execPage        page.Model
 
-	jobID        string
-	jobNamespace string
-	allocID      string
-	taskName     string
-	logline      string
-	logType      nomad.LogType
-	terminalWs   *websocket.Conn
+	jobID         string
+	jobNamespace  string
+	allocID       string
+	taskName      string
+	logline       string
+	logType       nomad.LogType
+	execWebSocket *websocket.Conn
 
 	width, height int
 	initialized   bool
@@ -72,7 +72,7 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	dev.Debug(fmt.Sprintf("main %T", msg))
+	dev.DebugMsg("main", msg)
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -195,6 +195,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.currentPage == nomad.LogsPage {
 			m.logsPage.SetViewportCursorToBottom()
 		}
+
+	case page.TerminalEnterMsg:
+		dev.Debug(msg.Cmd)
+		if msg.Init {
+			dev.Debug("INIT")
+			return m, nomad.InitiateExecWebSocketConnection(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Cmd)
+		} else {
+			dev.Debug("SESSION")
+			cmds = append(cmds, nomad.SendAndReadExecWebSocketMessage(m.execWebSocket, msg.Cmd))
+		}
+
+	case nomad.ExecWebSocketConnectedMsg:
+		dev.Debug("CONNECTED")
+		m.execWebSocket = msg.WebSocketConnection
+		// cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+
+	case nomad.ExecWebSocketResponseMsg:
+		dev.Debug("WS RESPONSE")
+		dev.Debug(msg.StdOut)
 	}
 
 	currentPageModel := m.getCurrentPageModel()

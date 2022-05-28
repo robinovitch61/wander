@@ -1,5 +1,10 @@
 package page
 
+type TerminalEnterMsg struct {
+	Cmd  string
+	Init bool
+}
+
 type Row struct {
 	Key, Row string
 }

@@ -9,7 +9,6 @@ import (
 
 var debugSet = os.Getenv("WANDER_DEBUG")
 
-// dev
 func Debug(msg string) {
 	if debugSet != "" {
 		f, err := tea.LogToFile("wander.log", "")
@@ -19,5 +18,13 @@ func Debug(msg string) {
 		}
 		log.Printf("%q", msg)
 		defer f.Close()
+	}
+}
+
+func DebugMsg(source string, msg tea.Msg) {
+	msgTypeString := fmt.Sprintf("%T", msg)
+	// too many of these
+	if msgTypeString != "textinput.blinkMsg" {
+		Debug(source + " " + msgTypeString)
 	}
 }

@@ -18,3 +18,5 @@ var LogoString = strings.Join([]string{
 const ToastDuration = time.Second * 5
 
 const SaveDialogPlaceholder = "Output file name (path optional)"
+
+const ExecInitialPlaceholder = "Enter command to initiate session"
