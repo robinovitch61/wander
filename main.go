@@ -31,6 +31,7 @@ type model struct {
 	logsPage        page.Model
 	loglinePage     page.Model
 	jobID           string
+	jobNamespace    string
 	allocID         string
 	taskName        string
 	logline         string
@@ -95,7 +96,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 					switch m.currentPage {
 					case nomad.JobsPage:
-						m.jobID = nomad.JobIDFromKey(selectedPageRow.Key)
+						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 					case nomad.AllocationsPage:
 						m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
 					case nomad.LogsPage:
@@ -129,7 +130,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 					switch m.currentPage {
 					case nomad.JobsPage:
-						m.jobID = nomad.JobIDFromKey(selectedPageRow.Key)
+						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 						m.setPage(nomad.JobSpecPage)
 						return m, m.getCurrentPageCmd()
 					case nomad.AllocationsPage:
@@ -282,7 +283,7 @@ func (m *model) getCurrentPageCmd() tea.Cmd {
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.nomadUrl, m.nomadToken, m.jobID)
 	case nomad.AllocationsPage:
-		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID)
+		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
 	case nomad.LogsPage:
