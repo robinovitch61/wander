@@ -137,7 +137,7 @@ func (m Model) Loading() bool {
 
 func (m Model) GetSelectedPageRow() (Row, error) {
 	cursorRow := m.viewport.CursorRow()
-	if filtered := m.pageData.Filtered; len(filtered) > 0 && cursorRow < len(filtered) {
+	if filtered := m.pageData.Filtered; len(filtered) > 0 && cursorRow >= 0 && cursorRow < len(filtered) {
 		return filtered[cursorRow], nil
 	}
 	return Row{}, fmt.Errorf("bad thing")
