@@ -281,7 +281,7 @@ func (m *model) getCurrentPageCmd() tea.Cmd {
 	case nomad.JobsPage:
 		return nomad.FetchJobs(m.nomadUrl, m.nomadToken)
 	case nomad.JobSpecPage:
-		return nomad.FetchJobSpec(m.nomadUrl, m.nomadToken, m.jobID)
+		return nomad.FetchJobSpec(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.AllocationsPage:
 		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.AllocSpecPage:
