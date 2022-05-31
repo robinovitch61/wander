@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"sort"
 	"strconv"
+	"strings"
 	"wander/components/page"
 	"wander/formatter"
 	"wander/message"
@@ -109,9 +110,11 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) 
 }
 
 func toJobsKey(jobResponseEntry jobResponseEntry) string {
-	return jobResponseEntry.ID
+	return jobResponseEntry.ID + " " + jobResponseEntry.Namespace
 }
 
-func JobIDFromKey(key string) string {
-	return key
+func JobIDAndNamespaceFromKey(key string) (string, string) {
+	split := strings.Split(key, " ")
+	return split[0], split[1]
+
 }
