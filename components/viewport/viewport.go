@@ -346,6 +346,11 @@ func (m *Model) SetCursorRow(n int) {
 	}
 }
 
+func (m *Model) ScrollToBottom() {
+	m.cursorRowDown(len(m.content))
+	m.viewDown(len(m.content))
+}
+
 func (m Model) CursorRow() int {
 	return m.cursorRow
 }

@@ -114,7 +114,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		} else {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Filter):
-				if !m.isTerminal {
+				if !m.prompt.Focused() {
 					m.filter.Focus()
 					return m, nil
 				}
@@ -176,11 +176,19 @@ func (m *Model) SetAllPageData(allPageData []Row) {
 func (m *Model) AppendPageData(rows []Row) {
 	m.SetAllPageData(append(m.pageData.All, rows...))
 	m.updateViewport()
-	newHeight := m.height
-	if shownPageHeight := len(m.pageData.Filtered); shownPageHeight < newHeight {
-		newHeight = shownPageHeight
+	maxHeight := m.height - m.filter.ViewHeight()
+	if m.isTerminal {
+		maxHeight -= lipgloss.Height(m.prompt.View())
 	}
-	m.viewport.SetSize(m.width, newHeight)
+	dev.Debug(fmt.Sprintf("height %d", m.height))
+	dev.Debug(fmt.Sprintf("maxHeight %d", maxHeight))
+	dev.Debug(fmt.Sprintf("len(m.pageData.All) %d", len(m.pageData.All)))
+	if shownPageHeight := len(m.pageData.All); shownPageHeight < maxHeight {
+		m.viewport.SetSize(m.width, shownPageHeight)
+	} else {
+		m.viewport.SetSize(m.width, maxHeight)
+	}
+	m.viewport.ScrollToBottom()
 }
 
 func (m *Model) SetFilterPrefix(prefix string) {
@@ -198,6 +206,14 @@ func (m *Model) SetViewportXOffset(n int) {
 func (m *Model) ExitTerminal() {
 	if m.isTerminal {
 		m.promptInitialized = false
+	}
+}
+
+func (m *Model) TogglePromptFocus() {
+	if m.prompt.Focused() {
+		m.prompt.Blur()
+	} else {
+		m.prompt.Focus()
 	}
 }
 
@@ -229,6 +245,10 @@ func (m Model) IsTerminal() bool {
 	return m.isTerminal
 }
 
+func (m Model) PromptFocused() bool {
+	return m.prompt.Focused()
+}
+
 func (m *Model) clearFilter() {
 	m.filter.BlurAndClear()
 	m.updateViewport()
@@ -238,7 +258,7 @@ func (m *Model) updateViewport() {
 	m.viewport.Highlight = m.filter.Filter
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
-	m.viewport.SetCursorRow(0)
+	// m.viewport.SetCursorRow(0)
 }
 
 func (m *Model) updateFilteredData() {

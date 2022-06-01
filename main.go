@@ -95,7 +95,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !editingText || inTerminal {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
-				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				if m.currentPageIsTerminal() && !m.getCurrentPageModel().PromptFocused() {
+					m.getCurrentPageModel().TogglePromptFocus()
+				} else if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 					switch m.currentPage {
 					case nomad.JobsPage:
 						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
@@ -113,7 +115,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Back):
-				if !m.currentPageFilterApplied() && !saving {
+				if m.err != nil {
+					m.err = nil
+					m.setPage(nomad.JobsPage)
+					// TODO LEO: app can still be in bad state here, e.g. websocket could be closed and placeholder ""
+					return m, m.getCurrentPageCmd()
+				} else if m.currentPageIsTerminal() && m.getCurrentPageModel().PromptFocused() {
+					m.getCurrentPageModel().TogglePromptFocus()
+				} else if !m.currentPageFilterApplied() && !saving {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
 						m.getCurrentPageModel().ExitTerminal()
@@ -199,7 +208,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case page.TerminalEnterMsg:
 		dev.Debug(msg.Cmd)
 		if msg.Init {
-			dev.Debug("INIT")
 			return m, nomad.InitiateExecWebSocketConnection(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Cmd)
 		} else {
 			dev.Debug("SESSION")
@@ -212,17 +220,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 
 	case nomad.ExecWebSocketResponseMsg:
-		dev.Debug("WS RESPONSE")
-		dev.Debug(msg.StdOut)
-		var newPageData []page.Row
-		stdOutRows := strings.Split(msg.StdOut, "\n")
-		stdErrRows := strings.Split(msg.StdErr, "\n")
-		for _, row := range append(stdOutRows, stdErrRows...) {
-			if strings.TrimSpace(row) != "" {
-				newPageData = append(newPageData, page.Row{Row: row})
+		if msg.Close {
+			dev.Debug("CLOSE")
+			m.getCurrentPageModel().ExitTerminal()
+		} else {
+			dev.Debug("WS RESPONSE")
+			dev.Debug(msg.StdOut)
+			var newPageData []page.Row
+			stdOutRows := strings.Split(msg.StdOut, "\n")
+			stdErrRows := strings.Split(msg.StdErr, "\n")
+			for _, row := range append(stdOutRows, stdErrRows...) {
+				if strings.TrimSpace(row) != "" {
+					newPageData = append(newPageData, page.Row{Row: row})
+				}
 			}
+			m.getCurrentPageModel().AppendPageData(newPageData)
+			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		}
-		m.getCurrentPageModel().AppendPageData(newPageData)
 	}
 
 	currentPageModel := m.getCurrentPageModel()
@@ -234,7 +248,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("Error: %v", m.err)
+		return fmt.Sprintf("Error: %v"+"\n"+"Esc to restart", m.err)
 	} else if !m.initialized {
 		return ""
 	}
