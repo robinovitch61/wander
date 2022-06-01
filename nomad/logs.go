@@ -63,7 +63,7 @@ func logsAsTable(logs []string, logType LogType) ([]string, []page.Row) {
 	var keys []string
 	for _, row := range logs {
 		if stripped := strings.TrimSpace(row); stripped != "" {
-			logRows = append(logRows, []string{stripped})
+			logRows = append(logRows, []string{row})
 		}
 		keys = append(keys, "")
 	}
