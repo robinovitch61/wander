@@ -236,35 +236,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var newPageData []page.Row
 			stdOutRows := strings.Split(msg.StdOut, "\n")
 			stdErrRows := strings.Split(msg.StdErr, "\n")
-			// dev.Debug("HERE")
-			// _, err := ansi.Cleanse("\x1b[H\x1b[JMem: 52467544K used, 78287336K free, 157932K shrd, 5593792K buff, 31659564K cac")
-			// if err != nil {
-			// 	return m, func() tea.Msg { return message.ErrMsg{Err: err} }
-			// }
-			// dev.Debug("THERE")
 			for _, row := range append(stdOutRows, stdErrRows...) {
 				dev.Debug(row)
 				row = stripansi.Strip(row)
-				// clean, err := ansi.Cleanse(row)
-				// if err != nil {
-				// 	return m, func() tea.Msg { return message.ErrMsg{Err: err} }
-				// }
-				// if strings.TrimSpace(clean) != "" {
-				// 	newPageData = append(newPageData, page.Row{Row: clean})
-				// }
 				if strings.TrimSpace(row) != "" {
 					newPageData = append(newPageData, page.Row{Row: row})
 				}
 			}
-			// for _, row := range append(stdOutRows, stdErrRows...) {
-			// 	io.Copy(m.execPTY, strings.NewReader(row))
-			// }
-			// reader := bufio.NewReader(m.execPTY)
-			// for row, _, err := reader.ReadLine(); err == nil; row, _, err = reader.ReadLine() {
-			// 	if strings.TrimSpace(string(row)) != "" {
-			// 		newPageData = append(newPageData, page.Row{Row: string(row)})
-			// 	}
-			// }
 			m.getCurrentPageModel().AppendPageData(newPageData)
 			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		}
