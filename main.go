@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
+	"github.com/acarl005/stripansi"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
 	"os"
+	"strings"
 	"wander/components/header"
 	"wander/components/page"
 	"wander/constants"
 	"wander/dev"
 	"wander/keymap"
 	"wander/message"
-	nomad "wander/nomad"
+	"wander/nomad"
 	"wander/style"
 )
 
@@ -37,6 +39,7 @@ type model struct {
 	logline       string
 	logType       nomad.LogType
 	execWebSocket *websocket.Conn
+	execPTY       *os.File
 
 	width, height int
 	initialized   bool
@@ -125,7 +128,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if !m.currentPageFilterApplied() && !saving {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
-						m.getCurrentPageModel().ExitTerminal()
+						m.getCurrentPageModel().ResetPrompt()
 						m.setPage(prevPage)
 						return m, m.getCurrentPageCmd()
 					}
@@ -208,6 +211,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case page.TerminalEnterMsg:
 		dev.Debug(msg.Cmd)
 		if msg.Init {
+			// var err error
+			// m.execPTY, err = pty.Start(exec.Command(msg.Cmd))
+			// if err != nil {
+			// 	return m, func() tea.Msg { return message.ErrMsg{Err: err} }
+			// }
 			return m, nomad.InitiateExecWebSocketConnection(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Cmd)
 		} else {
 			dev.Debug("SESSION")
@@ -222,18 +230,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.ExecWebSocketResponseMsg:
 		if msg.Close {
 			dev.Debug("CLOSE")
-			m.getCurrentPageModel().ExitTerminal()
+			m.getCurrentPageModel().ResetPrompt()
 		} else {
 			dev.Debug("WS RESPONSE")
-			dev.Debug(msg.StdOut)
 			var newPageData []page.Row
 			stdOutRows := strings.Split(msg.StdOut, "\n")
 			stdErrRows := strings.Split(msg.StdErr, "\n")
+			// dev.Debug("HERE")
+			// _, err := ansi.Cleanse("\x1b[H\x1b[JMem: 52467544K used, 78287336K free, 157932K shrd, 5593792K buff, 31659564K cac")
+			// if err != nil {
+			// 	return m, func() tea.Msg { return message.ErrMsg{Err: err} }
+			// }
+			// dev.Debug("THERE")
 			for _, row := range append(stdOutRows, stdErrRows...) {
+				dev.Debug(row)
+				row = stripansi.Strip(row)
+				// clean, err := ansi.Cleanse(row)
+				// if err != nil {
+				// 	return m, func() tea.Msg { return message.ErrMsg{Err: err} }
+				// }
+				// if strings.TrimSpace(clean) != "" {
+				// 	newPageData = append(newPageData, page.Row{Row: clean})
+				// }
 				if strings.TrimSpace(row) != "" {
 					newPageData = append(newPageData, page.Row{Row: row})
 				}
 			}
+			// for _, row := range append(stdOutRows, stdErrRows...) {
+			// 	io.Copy(m.execPTY, strings.NewReader(row))
+			// }
+			// reader := bufio.NewReader(m.execPTY)
+			// for row, _, err := reader.ReadLine(); err == nil; row, _, err = reader.ReadLine() {
+			// 	if strings.TrimSpace(string(row)) != "" {
+			// 		newPageData = append(newPageData, page.Row{Row: string(row)})
+			// 	}
+			// }
 			m.getCurrentPageModel().AppendPageData(newPageData)
 			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		}

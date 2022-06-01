@@ -77,7 +77,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	if m.viewport.Saving() {
+	if m.ViewportSaving() {
 		m.prompt.Blur()
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
@@ -106,7 +106,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.clearFilter()
 		}
 
-		if m.filter.Focused() {
+		if m.FilterFocused() {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
 				m.filter.Blur()
@@ -114,14 +114,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		} else {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Filter):
-				if !m.prompt.Focused() {
+				if !m.PromptFocused() {
 					m.filter.Focus()
 					return m, nil
 				}
 			}
 
-			m.viewport, cmd = m.viewport.Update(msg)
-			cmds = append(cmds, cmd)
+			if !m.PromptFocused() {
+				m.viewport, cmd = m.viewport.Update(msg)
+				cmds = append(cmds, cmd)
+			}
 		}
 
 		prevFilter := m.filter.Filter
@@ -203,7 +205,7 @@ func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
 }
 
-func (m *Model) ExitTerminal() {
+func (m *Model) ResetPrompt() {
 	if m.isTerminal {
 		m.promptInitialized = false
 	}
