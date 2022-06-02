@@ -126,6 +126,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if m.currentPageIsTerminal() && m.getCurrentPageModel().PromptFocused() {
 					m.getCurrentPageModel().TogglePromptFocus()
 				} else if !m.currentPageFilterApplied() && !saving {
+					if m.currentPage == nomad.ExecPage {
+						err := m.execWebSocket.Close()
+						if err != nil {
+							m.err = err
+							return m, nil
+						}
+					}
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
 						m.getCurrentPageModel().ResetPrompt()

@@ -133,6 +133,9 @@ func readNext(ws *websocket.Conn) parsedWebSocketMessage {
 	// TODO LEO: with large responses, multiple messages per stdin :/
 	msgType, content, err := ws.ReadMessage()
 	if err != nil {
+		if strings.Contains(err.Error(), "use of closed network connection") {
+			return parsedWebSocketMessage{Close: true}
+		}
 		return parsedWebSocketMessage{Err: err}
 	}
 	return parseWebSocketMessage(msgType, content)
