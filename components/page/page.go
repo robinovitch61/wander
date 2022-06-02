@@ -19,7 +19,6 @@ type Model struct {
 	filter        filter.Model
 	loadingString string
 	loading       bool
-	ViewportStyle lipgloss.Style
 }
 
 func New(

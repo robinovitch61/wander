@@ -56,15 +56,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case tea.KeyBackspace:
 				if len(m.Filter) > 0 {
 					if msg.Alt {
-						m.SetFilter("")
+						m.setFilter("")
 					} else {
-						m.SetFilter(m.Filter[:len(m.Filter)-1])
+						m.setFilter(m.Filter[:len(m.Filter)-1])
 					}
 				}
 			case tea.KeyRunes:
 				// without this check, matches M+Backspace as \x18\u007f, etc.
 				if len(msg.String()) == 1 {
-					m.SetFilter(m.Filter + msg.String())
+					m.setFilter(m.Filter + msg.String())
 				}
 			}
 		}
@@ -81,7 +81,7 @@ func (m Model) View() string {
 	case m.focus:
 		filterString = "type to filter"
 	default:
-		filterString = "<'/' to filter>"
+		filterString = "'/' to filter"
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, m.PrefixStyle.Render(m.prefix), m.formatFilterString(filterString))
 }
@@ -92,10 +92,6 @@ func (m Model) ViewHeight() int {
 
 func (m *Model) SetPrefix(prefix string) {
 	m.prefix = prefix
-}
-
-func (m *Model) SetFilter(filter string) {
-	m.Filter = filter
 }
 
 func (m Model) Focused() bool {
@@ -113,6 +109,10 @@ func (m *Model) Blur() {
 func (m *Model) BlurAndClear() {
 	m.Blur()
 	m.Filter = ""
+}
+
+func (m *Model) setFilter(filter string) {
+	m.Filter = filter
 }
 
 func (m Model) formatFilterString(s string) string {

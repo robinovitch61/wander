@@ -3,9 +3,12 @@ package formatter
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/olekukonko/tablewriter"
+	"math"
 	"strings"
 	"time"
+	"wander/dev"
 )
 
 func prettyPrint(b []byte) ([]byte, error) {
@@ -95,4 +98,43 @@ func FormatTime(t time.Time) string {
 func FormatTimeNs(t int64) string {
 	tm := time.Unix(0, t).UTC()
 	return FormatTime(tm)
+}
+
+func pluralize(s string, q float64) string {
+	if q > 1 {
+		dev.Debug(fmt.Sprintf("%f %f", q, math.Round(q)))
+		return s + "s"
+	}
+	return s
+}
+
+func FormatTimeNsSinceNow(t int64) string {
+	tm := time.Unix(0, t).UTC()
+	since := time.Now().Sub(tm)
+	if secs := since.Seconds(); secs > 0 && secs < 60 {
+		val := math.Floor(secs)
+		out := fmt.Sprintf("%.0f second", val)
+		return pluralize(out, val)
+	}
+	if mins := since.Minutes(); mins > 1 && mins < 60 {
+		val := math.Floor(mins)
+		out := fmt.Sprintf("%.0f minute", val)
+		return pluralize(out, val)
+	}
+	if hrs := since.Hours(); hrs > 1 && hrs < 24 {
+		val := math.Floor(hrs)
+		out := fmt.Sprintf("%.0f hour", val)
+		return pluralize(out, val)
+	}
+	if days := since.Hours() / 24; days > 1 && days < 365.25 {
+		val := math.Floor(days)
+		out := fmt.Sprintf("%.0f day", val)
+		return pluralize(out, val)
+	}
+	if years := since.Hours() / 24 / 365.25; years > 1 {
+		val := math.Floor(years)
+		out := fmt.Sprintf("%.0f year", val)
+		return pluralize(out, val)
+	}
+	return ""
 }

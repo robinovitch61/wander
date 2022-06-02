@@ -29,15 +29,13 @@ type jobResponseEntry struct {
 	JobSummary        struct {
 		JobID     string `json:"JobID"`
 		Namespace string `json:"Namespace"`
-		Summary   struct {
-			YourProjectName struct {
-				Queued   int `json:"Queued"`
-				Complete int `json:"Complete"`
-				Failed   int `json:"Failed"`
-				Running  int `json:"Running"`
-				Starting int `json:"Starting"`
-				Lost     int `json:"Lost"`
-			} `json:"your_project_name"`
+		Summary   map[string]struct {
+			Queued   int `json:"Queued"`
+			Complete int `json:"Complete"`
+			Failed   int `json:"Failed"`
+			Running  int `json:"Running"`
+			Starting int `json:"Starting"`
+			Lost     int `json:"Lost"`
 		} `json:"Summary"`
 		Children struct {
 			Pending int `json:"Pending"`
@@ -87,6 +85,11 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) 
 	var jobResponseRows [][]string
 	var keys []string
 	for _, row := range jobResponse {
+		uptime := "-"
+		if row.Status == "running" {
+			uptime = formatter.FormatTimeNsSinceNow(row.SubmitTime)
+		}
+
 		jobResponseRows = append(jobResponseRows, []string{
 			row.ID,
 			row.Type,
@@ -94,11 +97,12 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) 
 			strconv.Itoa(row.Priority),
 			row.Status,
 			formatter.FormatTimeNs(row.SubmitTime),
+			uptime,
 		})
 		keys = append(keys, toJobsKey(row))
 	}
 
-	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time"}
+	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time", "Uptime"}
 	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
 
 	var rows []page.Row
