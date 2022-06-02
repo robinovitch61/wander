@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
 	"strings"
+	"wander/dev"
 	"wander/formatter"
 	"wander/message"
 )
@@ -60,28 +61,41 @@ func ReadExecWebSocketNextMessage(ws *websocket.Conn) tea.Cmd {
 	}
 }
 
-func SendAndReadExecWebSocketMessage(ws *websocket.Conn, shellCmd string) tea.Cmd {
+func SendWebSocketMessage(ws *websocket.Conn, keyPress string) tea.Cmd {
 	return func() tea.Msg {
 		var err error
-		var finalMsg parsedWebSocketMessage
-		for _, char := range shellCmd + "\n" {
-			err = send(ws, string(char))
-			if err != nil {
-				return message.ErrMsg{Err: err}
-			}
-			finalMsg = appendNextMsg(ws, finalMsg)
-			if finalMsg.Err != nil {
-				return message.ErrMsg{Err: finalMsg.Err}
-			}
+		err = send(ws, keyPress)
+		if err != nil {
+			return message.ErrMsg{Err: err}
 		}
-		// after sending all chars including \n, next message will be response of command
-		finalMsg = appendNextMsg(ws, finalMsg)
-		if finalMsg.Err != nil {
-			return message.ErrMsg{Err: finalMsg.Err}
-		}
-		return ExecWebSocketResponseMsg{StdOut: finalMsg.StdOut, StdErr: finalMsg.StdErr, Close: finalMsg.Close}
+		dev.Debug(fmt.Sprintf("SENT %s", keyPress))
+		return nil
+		// return ExecWebSocketResponseMsg{StdOut: finalMsg.StdOut, StdErr: finalMsg.StdErr, Close: finalMsg.Close}
 	}
 }
+
+// func SendAndReadExecWebSocketMessage(ws *websocket.Conn, shellCmd string) tea.Cmd {
+// 	return func() tea.Msg {
+// 		var err error
+// 		var finalMsg parsedWebSocketMessage
+// 		for _, char := range shellCmd + "\n" {
+// 			err = send(ws, string(char))
+// 			if err != nil {
+// 				return message.ErrMsg{Err: err}
+// 			}
+// 			finalMsg = appendNextMsg(ws, finalMsg)
+// 			if finalMsg.Err != nil {
+// 				return message.ErrMsg{Err: finalMsg.Err}
+// 			}
+// 		}
+// 		// after sending all chars including \n, next message will be response of command
+// 		finalMsg = appendNextMsg(ws, finalMsg)
+// 		if finalMsg.Err != nil {
+// 			return message.ErrMsg{Err: finalMsg.Err}
+// 		}
+// 		return ExecWebSocketResponseMsg{StdOut: finalMsg.StdOut, StdErr: finalMsg.StdErr, Close: finalMsg.Close}
+// 	}
+// }
 
 type exitJSON struct {
 	ExitCode int `json:"exit_code"`

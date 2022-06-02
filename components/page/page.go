@@ -94,12 +94,29 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
+		dev.Debug("HERE LEO")
+		if m.isTerminal && m.prompt.Placeholder == "" && m.prompt.Focused() {
+			// this means we have an active websocket connection TODO LEO: this is dumb
+			dev.Debug("HI LEO")
+			dev.Debug(fmt.Sprintf("%U", msg.Runes))
+			keypress := string(msg.Runes)
+			switch msg.Type {
+			case tea.KeyEnter:
+				keypress = "\n"
+				m.prompt.Reset()
+			case tea.KeyBackspace:
+				keypress = "\b"
+			case tea.KeySpace:
+				keypress = " "
+			}
+			return m, func() tea.Msg { return HandleTerminalKeyPressMsg{KeyPress: keypress} }
+		}
+
 		if key.Matches(msg, keymap.KeyMap.Forward) && m.isTerminal && m.prompt.Value() != "" {
-			isFirstCmd := m.prompt.Placeholder != ""
 			shellCmd := m.prompt.Value()
 			m.prompt.Reset()
 			m.prompt.Placeholder = ""
-			return m, func() tea.Msg { return TerminalEnterMsg{Cmd: shellCmd, Init: isFirstCmd} }
+			return m, func() tea.Msg { return ExecInitialCommandEnteredMsg{Cmd: shellCmd, Init: true} }
 		}
 
 		if key.Matches(msg, keymap.KeyMap.Back) {
@@ -175,7 +192,20 @@ func (m *Model) SetAllPageData(allPageData []Row) {
 	m.updateViewport()
 }
 
-func (m *Model) AppendPageData(rows []Row) {
+func (m *Model) AppendCharsToViewport(chars string) {
+	if len(m.pageData.All) == 0 {
+		m.SetAllPageData([]Row{{Row: chars}})
+		m.viewport.SetSize(m.width, 1)
+	} else {
+		lastRow := m.pageData.All[len(m.pageData.All)-1]
+		lastRow = Row{Key: lastRow.Key, Row: lastRow.Row + chars}
+		m.SetAllPageData(append(m.pageData.All[:len(m.pageData.All)-1], lastRow))
+	}
+	m.updateViewport()
+	m.viewport.ScrollToBottom()
+}
+
+func (m *Model) AppendRowsToViewport(rows []Row) {
 	m.SetAllPageData(append(m.pageData.All, rows...))
 	m.updateViewport()
 	maxHeight := m.height - m.filter.ViewHeight()

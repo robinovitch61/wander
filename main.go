@@ -208,19 +208,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.logsPage.SetViewportCursorToBottom()
 		}
 
-	case page.TerminalEnterMsg:
+	case page.ExecInitialCommandEnteredMsg:
 		dev.Debug(msg.Cmd)
 		if msg.Init {
-			// var err error
-			// m.execPTY, err = pty.Start(exec.Command(msg.Cmd))
-			// if err != nil {
-			// 	return m, func() tea.Msg { return message.ErrMsg{Err: err} }
-			// }
 			return m, nomad.InitiateExecWebSocketConnection(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Cmd)
-		} else {
-			dev.Debug("SESSION")
-			cmds = append(cmds, nomad.SendAndReadExecWebSocketMessage(m.execWebSocket, msg.Cmd))
 		}
+
+	case page.HandleTerminalKeyPressMsg:
+		cmds = append(cmds, nomad.SendWebSocketMessage(m.execWebSocket, msg.KeyPress))
 
 	case nomad.ExecWebSocketConnectedMsg:
 		dev.Debug("CONNECTED")
@@ -233,17 +228,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.getCurrentPageModel().ResetPrompt()
 		} else {
 			dev.Debug("WS RESPONSE")
-			var newPageData []page.Row
 			stdOutRows := strings.Split(msg.StdOut, "\n")
 			stdErrRows := strings.Split(msg.StdErr, "\n")
 			for _, row := range append(stdOutRows, stdErrRows...) {
 				dev.Debug(row)
 				row = stripansi.Strip(row)
-				if strings.TrimSpace(row) != "" {
-					newPageData = append(newPageData, page.Row{Row: row})
+				if len(row) > 1 {
+					m.getCurrentPageModel().AppendRowsToViewport([]page.Row{{Row: row}})
+				} else {
+					m.getCurrentPageModel().AppendCharsToViewport(row)
 				}
 			}
-			m.getCurrentPageModel().AppendPageData(newPageData)
 			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		}
 	}

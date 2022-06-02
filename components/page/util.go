@@ -1,8 +1,12 @@
 package page
 
-type TerminalEnterMsg struct {
+type ExecInitialCommandEnteredMsg struct {
 	Cmd  string
 	Init bool
+}
+
+type HandleTerminalKeyPressMsg struct {
+	KeyPress string
 }
 
 type Row struct {
