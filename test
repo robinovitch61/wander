@@ -1,0 +1,249 @@
+ID                                                 Type       Namespace    Priority    Status     Submit Time            Uptime
+adams-refinery                                     service    default      50          running    2022-02-28T16:46:52    93 days
+admin-caddy-proxy                                  service    default      50          running    2020-07-17T12:07:44    1 year
+admin-template-server                              service    default      50          running    2022-06-01T08:22:40    23 hours
+aeso-scada                                         service    default      50          running    2022-02-28T07:07:45    94 days
+airbyte                                            service    default      50          running    2021-11-09T06:58:38    205 days
+alertmanager                                       service    default      50          running    2022-05-17T10:34:38    15 days
+alex_test                                          service    default      50          running    2022-01-11T05:47:07    142 days
+andy_test                                          service    default      50          running    2021-08-16T15:47:39    289 days
+banking-crons                                      batch      default      50          running    2021-11-24T00:48:58    190 days
+baselines-to-targets                               service    default      50          running    2022-04-27T18:29:12    35 days
+caiso-connector                                    service    default      50          running    2021-06-14T19:40:01    352 days
+caiso-dispatch                                     service    default      50          running    2022-05-05T09:23:00    27 days
+caiso-outstation                                   service    default      50          running    2022-03-17T14:03:56    76 days
+cashdash                                           service    default      50          running    2022-06-01T06:53:08    1 day
+cd2                                                service    default      50          running    2019-04-11T12:41:16    3 years
+cd2-frontend                                       service    default      50          running    2021-11-18T09:14:25    195 days
+celery-alert                                       service    default      50          running    2022-06-02T08:06:13    11 minutes
+celery-baseline                                    service    default      50          running    2022-06-02T08:06:13    11 minutes
+celery-default                                     service    default      50          running    2022-06-02T08:06:13    11 minutes
+celery-dispatch                                    service    default      50          running    2022-06-02T08:06:13    11 minutes
+celery-prometheus                                  service    default      50          running    2020-02-06T18:18:56    2 years
+celery-run-as-job                                  service    default      50          running    2022-06-02T08:06:13    11 minutes
+chronograf                                         service    default      50          running    2019-07-11T12:33:19    2 years
+clickhouse-kafka-bridge                            service    default      50          running    2022-05-17T16:12:24    15 days
+cloudwatch-stats                                   service    default      99          running    2022-01-05T06:31:34    148 days
+cluster-admin-services                             service    default      50          running    2022-02-09T12:17:51    112 days
+code-docs-2                                        service    default      50          running    2022-05-30T14:38:41    2 days
+collector2                                         service    default      50          running    2022-04-19T08:41:11    43 days
+consul-exporter                                    service    default      50          running    2020-11-12T20:57:45    1 year
+consul-snapshot                                    batch      default      100         running    2022-03-04T06:18:58    90 days
+consul-snapshot/periodic-1654152600                batch      default      100         dead       2022-06-01T23:50:00    -
+consul-snapshot/periodic-1654161600                batch      default      100         dead       2022-06-02T02:20:00    -
+consul-snapshot/periodic-1654162200                batch      default      100         dead       2022-06-02T02:30:00    -
+consul-snapshot/periodic-1654162800                batch      default      100         dead       2022-06-02T02:40:00    -
+consul-snapshot/periodic-1654163400                batch      default      100         dead       2022-06-02T02:50:00    -
+consul-snapshot/periodic-1654164000                batch      default      100         dead       2022-06-02T03:00:00    -
+consul-snapshot/periodic-1654164600                batch      default      100         dead       2022-06-02T03:10:00    -
+consul-snapshot/periodic-1654165200                batch      default      100         dead       2022-06-02T03:20:00    -
+consul-snapshot/periodic-1654165800                batch      default      100         dead       2022-06-02T03:30:00    -
+consul-snapshot/periodic-1654166400                batch      default      100         dead       2022-06-02T03:40:00    -
+consul-snapshot/periodic-1654167000                batch      default      100         dead       2022-06-02T03:50:00    -
+consul-snapshot/periodic-1654167600                batch      default      100         dead       2022-06-02T04:00:00    -
+consul-snapshot/periodic-1654168200                batch      default      100         dead       2022-06-02T04:10:00    -
+consul-snapshot/periodic-1654168800                batch      default      100         dead       2022-06-02T04:20:00    -
+consul-snapshot/periodic-1654169400                batch      default      100         dead       2022-06-02T04:30:00    -
+consul-snapshot/periodic-1654170000                batch      default      100         dead       2022-06-02T04:40:00    -
+consul-snapshot/periodic-1654170600                batch      default      100         dead       2022-06-02T04:50:00    -
+consul-snapshot/periodic-1654171200                batch      default      100         dead       2022-06-02T05:00:00    -
+consul-snapshot/periodic-1654171800                batch      default      100         dead       2022-06-02T05:10:00    -
+consul-snapshot/periodic-1654172400                batch      default      100         dead       2022-06-02T05:20:00    -
+consul-snapshot/periodic-1654173000                batch      default      100         dead       2022-06-02T05:30:00    -
+consul-snapshot/periodic-1654173600                batch      default      100         dead       2022-06-02T05:40:00    -
+consul-snapshot/periodic-1654174200                batch      default      100         dead       2022-06-02T05:50:00    -
+consul-snapshot/periodic-1654174800                batch      default      100         dead       2022-06-02T06:00:00    -
+consul-snapshot/periodic-1654175400                batch      default      100         dead       2022-06-02T06:10:00    -
+consul-snapshot/periodic-1654176000                batch      default      100         dead       2022-06-02T06:20:00    -
+consul-snapshot/periodic-1654176600                batch      default      100         dead       2022-06-02T06:30:00    -
+consul-snapshot/periodic-1654177200                batch      default      100         dead       2022-06-02T06:40:00    -
+consul-snapshot/periodic-1654177800                batch      default      100         dead       2022-06-02T06:50:00    -
+consul-snapshot/periodic-1654178400                batch      default      100         dead       2022-06-02T07:00:00    -
+consul-snapshot/periodic-1654179000                batch      default      100         dead       2022-06-02T07:10:00    -
+consul-snapshot/periodic-1654179600                batch      default      100         dead       2022-06-02T07:20:00    -
+consul-snapshot/periodic-1654180200                batch      default      100         dead       2022-06-02T07:30:00    -
+consul-snapshot/periodic-1654180800                batch      default      100         dead       2022-06-02T07:40:00    -
+consul-snapshot/periodic-1654181400                batch      default      100         dead       2022-06-02T07:50:00    -
+consul-snapshot/periodic-1654182000                batch      default      100         dead       2022-06-02T08:00:00    -
+consul-snapshot/periodic-1654182600                batch      default      100         dead       2022-06-02T08:10:00    -
+core-components-storybook                          service    default      50          running    2022-04-29T13:14:01    33 days
+csi-ebs-example                                    service    default      50          dead       2022-05-31T01:11:53    -
+csi-ebs-plugin-controller                          service    default      50          running    2022-05-31T04:11:54    2 days
+csi-ebs-plugin-node                                system     default      50          running    2022-05-23T06:17:22    10 days
+dagit                                              service    default      50          running    2022-05-26T09:01:08    6 days
+daily-load-forecast-scraper                        batch      default      50          running    2021-08-20T14:19:55    285 days
+daily-load-forecast-scraper/periodic-1654176720    batch      default      50          dead       2022-06-02T06:32:00    -
+dash-app                                           service    default      50          running    2022-05-27T12:44:06    5 days
+dask-scheduler                                     service    default      50          running    2022-06-02T08:09:02    8 minutes
+dask-scheduler-dagster                             service    default      50          running    2021-11-23T12:25:31    190 days
+dask-worker                                        service    default      50          running    2022-06-02T08:09:31    7 minutes
+datadog                                            system     default      100         running    2022-05-19T13:37:42    13 days
+datadog-log-download                               service    default      50          running    2021-07-19T11:48:27    317 days
+datadog-metrics                                    service    default      50          running    2022-05-04T13:45:45    28 days
+datadog-redis                                      service    default      100         running    2022-01-05T15:05:05    147 days
+datadog-singleton                                  service    default      50          running    2022-02-23T15:41:11    98 days
+dataeng-dispatch                                   service    default      50          running    2020-07-02T07:54:50    1 year
+dataeng-dispatch-celery                            service    default      50          running    2020-07-02T07:54:51    1 year
+dataeng-dispatch-celery-beat                       service    default      50          running    2020-07-02T07:54:50    1 year
+dataeng-etl                                        service    default      50          running    2022-05-26T11:24:54    6 days
+dataeng-ledger                                     service    default      50          running    2022-06-02T08:05:33    11 minutes
+dataeng-streams                                    service    default      50          running    2022-05-27T06:50:08    6 days
+dataeng-streams-eversource-telemetry               service    default      50          running    2022-05-31T16:59:04    1 day
+datasets-sync-dagster-grpc                         service    default      50          running    2022-05-19T08:42:15    13 days
+dbt-clickhouse-rpc                                 service    default      50          running    2022-05-13T11:39:37    19 days
+dbt-dagster-grpc                                   service    default      50          running    2022-05-31T13:40:38    1 day
+dbt-databricks                                     service    default      50          running    2022-05-17T07:42:01    16 days
+dind-demo-server-1                                 service    default      50          running    2022-04-26T14:09:03    36 days
+dispatch_internal                                  service    default      50          running    2022-03-01T21:15:14    92 days
+docs-proxy                                         service    default      50          running    2022-01-05T16:30:58    147 days
+enbala-ven                                         service    default      50          running    2022-05-26T09:54:31    6 days
+enrich                                             service    default      50          running    2022-03-02T09:48:15    91 days
+ercot-apx-lr-outstation                            service    default      50          running    2022-05-05T10:36:09    27 days
+ercot-dispatch                                     service    default      50          running    2022-05-25T01:02:25    8 days
+fabio                                              system     default      100         running    2021-07-09T06:43:16    328 days
+fabio-service                                      service    default      100         running    2022-03-02T09:59:50    91 days
+feature-flags-manager                              service    default      50          running    2021-10-06T09:44:37    238 days
+file_uploader                                      service    default      50          running    2022-05-27T13:13:42    5 days
+flower                                             service    default      50          running    2021-06-28T10:36:35    338 days
+forecast-scrapers                                  batch      default      50          running    2021-08-24T09:14:18    281 days
+forecast-scrapers/periodic-1654161900              batch      default      50          dead       2022-06-02T02:25:00    -
+forecast-scrapers/periodic-1654165500              batch      default      50          dead       2022-06-02T03:25:00    -
+forecast-scrapers/periodic-1654169100              batch      default      50          dead       2022-06-02T04:25:00    -
+forecast-scrapers/periodic-1654172700              batch      default      50          dead       2022-06-02T05:25:00    -
+forecast-scrapers/periodic-1654176300              batch      default      50          dead       2022-06-02T06:25:00    -
+forecast-scrapers/periodic-1654179900              batch      default      50          dead       2022-06-02T07:25:00    -
+frontend-takehome-challenge-server                 service    default      50          running    2022-05-03T11:56:54    29 days
+galactus                                           service    default      50          running    2022-05-16T15:33:43    16 days
+grafana                                            service    default      50          running    2022-05-27T13:53:53    5 days
+grits                                              service    default      50          running    2022-05-31T16:16:13    1 day
+grits-template-server                              service    default      50          running    2022-06-01T08:22:46    23 hours
+grpc-debug-server                                  service    default      50          running    2020-08-24T23:09:33    1 year
+hasura                                             service    default      50          running    2019-04-12T06:18:45    3 years
+http-redirector                                    system     default      50          running    2018-11-20T11:51:45    3 years
+hubspot                                            service    default      50          running    2022-04-19T10:20:41    43 days
+ieso-report-checker                                service    default      50          running    2022-06-01T16:37:47    15 hours
+influx-portfolio-denormalizer                      service    default      50          running    2022-03-02T09:57:13    91 days
+ingest-py                                          service    default      50          running    2022-05-26T11:07:34    6 days
+internal-dagster-grpc                              service    default      50          running    2022-05-26T09:12:18    6 days
+interval-finder-dask-scheduler                     service    default      50          running    2021-09-01T15:33:22    273 days
+interval-finder-dask-worker                        service    default      50          running    2021-09-01T15:33:59    273 days
+jupyter                                            service    default      50          running    2022-06-02T08:11:10    6 minutes
+jupyterlab                                         service    default      50          running    2022-02-15T11:00:14    106 days
+kafka-connect                                      service    default      50          running    2022-03-01T09:19:20    92 days
+kapacitor                                          service    default      50          running    2019-07-11T13:15:59    2 years
+kowl                                               service    default      50          running    2022-04-29T09:07:40    33 days
+ledger-dagster-grpc                                service    default      50          running    2022-06-02T08:10:08    7 minutes
+ledger-submit                                      service    default      50          running    2022-06-02T08:08:24    8 minutes
+letsencrypt-lego-runner                            batch      default      50          running    2020-04-29T10:41:48    2 years
+load-forecast-email                                batch      default      50          running    2021-08-24T17:35:30    281 days
+load-forecast-email/periodic-1654171200            batch      default      50          dead       2022-06-02T05:00:00    -
+login-template-server                              service    default      50          running    2022-06-01T08:22:35    23 hours
+logsearch                                          service    default      50          running    2021-08-05T09:31:17    300 days
+lowes-handler                                      service    default      50          running    2022-03-03T16:45:46    90 days
+marquez                                            service    default      50          running    2021-05-08T12:15:22    1 year
+miso-connector                                     service    default      50          running    2022-04-19T08:57:23    43 days
+miso-dispatch                                      service    default      50          running    2022-05-22T07:33:21    11 days
+miso-internal-proxy                                service    default      50          running    2022-02-09T18:48:14    112 days
+miso-rtpoller                                      service    default      50          running    2022-03-01T09:34:10    92 days
+miso-rtpoller-v2                                   service    default      50          running    2022-03-01T09:10:22    92 days
+msk-kafka-proxy                                    system     default      50          running    2022-03-08T19:37:48    85 days
+notebooks                                          service    default      50          running    2022-06-01T17:00:09    15 hours
+nteract-commuter                                   service    default      50          running    2022-04-25T16:31:08    37 days
+nyiso-active-endpoint                              service    default      50          running    2022-05-09T05:45:24    24 days
+nyiso-connector                                    service    default      50          running    2022-04-19T08:58:01    43 days
+nyiso-dispatch                                     service    default      50          running    2022-05-19T17:58:39    13 days
+oauth_proxy                                        service    default      50          running    2020-06-19T14:09:46    1 year
+pages                                              service    default      50          running    2022-05-04T16:20:50    28 days
+papermill-dagster-grpc                             service    default      50          running    2022-06-01T11:04:16    21 hours
+partner-mqtt                                       service    default      50          running    2022-05-24T15:11:45    8 days
+patrick-nomad-test                                 service    default      50          running    2022-04-21T13:13:53    41 days
+pd-schedule                                        service    default      50          running    2020-04-02T11:01:11    2 years
+peaksaver-alert-execute                            service    default      50          running    2022-06-01T06:54:04    1 day
+performance                                        service    default      50          running    2022-05-27T13:56:40    5 days
+performance-dagster-grpc                           service    default      50          running    2022-06-01T14:33:17    17 hours
+performance-streams                                service    default      50          running    2022-03-03T08:04:34    90 days
+pg-locks-alert                                     service    default      50          running    2019-11-01T11:19:08    2 years
+pjm-connector                                      service    default      50          running    2022-06-01T07:15:40    1 day
+pjm-internal-proxy                                 service    default      50          running    2022-02-08T07:07:14    114 days
+pjm-messages-producer                              service    default      50          running    2022-03-03T12:53:50    90 days
+pjm-messages-slackbot                              service    default      50          running    2022-02-28T08:22:09    93 days
+pjm-poller                                         service    default      50          pending    2022-04-27T11:06:39    -
+pricing-db-app                                     service    default      50          running    2022-06-02T08:08:58    8 minutes
+prometheus                                         service    default      50          running    2022-05-17T11:42:07    15 days
+promxy                                             service    default      50          running    2020-06-01T19:29:58    2 years
+pushgateway                                        service    default      50          running    2020-08-04T13:19:57    1 year
+py-csv-uploader                                    service    default      50          pending    2019-12-20T13:10:17    -
+readings-to-influx                                 service    default      50          running    2022-03-04T08:02:41    89 days
+redash                                             service    default      50          running    2022-05-19T12:59:02    13 days
+rippling                                           service    default      50          running    2021-12-30T22:59:24    153 days
+robodial                                           service    default      50          running    2022-05-27T09:21:18    5 days
+salesforce-stream                                  service    default      50          pending    2022-05-02T20:03:30    -
+salesforce_etl                                     batch      default      50          running    2022-04-21T18:27:34    41 days
+scheduler                                          service    default      50          running    2022-05-31T08:19:10    1 day
+secret-wrapper                                     service    default      50          running    2021-02-09T12:01:33    1 year
+settlement-facility-fetcher                        batch      default      50          running    2019-10-03T08:32:17    2 years
+sharemydata                                        service    default      50          running    2022-06-02T06:55:22    1 hour
+slack-sink                                         service    default      50          running    2022-03-08T19:39:15    85 days
+smud-ven                                           service    default      50          running    2022-06-01T14:58:13    17 hours
+spp-active-endpoint                                service    default      50          running    2022-05-05T16:08:58    27 days
+spp-connector                                      service    default      50          running    2022-04-19T08:46:33    43 days
+spp-dispatch                                       service    default      50          running    2022-04-19T09:07:12    43 days
+starlark-example                                   service    default      50          running    2021-09-02T09:24:09    272 days
+status-sink                                        service    default      50          running    2022-03-03T08:54:26    90 days
+superset                                           service    default      50          running    2022-04-20T18:12:33    42 days
+system-stats                                       system     default      99          running    2021-11-16T09:17:49    197 days
+tailscale-dns                                      service    default      50          running    2022-04-13T14:06:22    49 days
+tailscale-msk-kafka-proxy                          service    default      50          running    2022-02-28T18:10:52    93 days
+tailscale-proxy                                    service    default      50          running    2022-05-08T10:11:41    24 days
+tailscale-subnet-router                            service    default      50          running    2022-05-04T10:27:41    28 days
+target-gridpoint                                   service    default      50          running    2022-04-19T08:40:33    43 days
+telemetry-aggregator                               service    default      50          running    2022-04-15T09:00:52    47 days
+telemetry-api                                      service    default      50          running    2022-05-27T13:47:13    5 days
+telemetry-influx                                   service    default      50          running    2022-03-01T07:28:42    92 days
+telemetry-superclient                              service    default      50          dead       2022-05-20T15:04:31    -
+temporal                                           service    default      50          dead       2022-03-17T11:04:41    -
+temporal-frontend                                  service    default      50          running    2022-05-27T09:52:10    5 days
+temporal-history                                   service    default      50          running    2022-05-27T09:52:10    5 days
+temporal-matching                                  service    default      50          running    2022-05-27T09:52:10    5 days
+temporal-worker                                    service    default      50          running    2022-05-27T09:52:10    5 days
+test_api                                           service    default      50          running    2021-11-10T09:51:02    203 days
+tick-ingestion                                     service    default      50          running    2022-05-22T18:16:26    10 days
+traefik                                            system     default      50          running    2021-05-26T12:49:41    1 year
+training-webecho                                   service    default      50          running    2022-05-06T07:53:54    27 days
+trigger_utility_performance                        service    default      50          running    2022-04-12T16:05:56    50 days
+udr-gin                                            service    default      50          running    2022-05-24T12:17:37    8 days
+utility-data-requests-api                          service    default      50          running    2022-03-04T14:19:56    89 days
+utility-intervals-api                              service    default      50          running    2022-06-02T07:58:08    19 minutes
+utility-meter-data-mover                           service    default      50          running    2022-05-31T09:39:47    1 day
+vaffle-bot                                         batch      default      50          running    2022-06-01T12:25:15    19 hours
+voc-active-dispatch-streams                        service    default      50          running    2022-04-07T08:31:23    55 days
+voc-admin                                          service    default      50          running    2022-05-23T16:18:22    9 days
+voc-snapshots                                      service    default      50          running    2022-05-31T10:54:03    1 day
+voc-socket                                         service    default      50          running    2022-04-05T13:07:09    57 days
+voc-streams                                        service    default      50          running    2022-03-02T10:17:12    91 days
+voltapp-collector                                  service    default      50          running    2022-06-02T08:06:13    11 minutes
+voltapp-flask                                      service    default      50          running    2022-06-02T08:06:13    11 minutes
+voltapp-react-template-server                      service    default      50          running    2022-06-01T08:23:09    23 hours
+voltappenings-app                                  service    default      50          running    2022-05-23T16:25:12    9 days
+voltappenings-cms                                  service    default      50          running    2022-03-18T08:23:56    75 days
+voltappenings-react                                service    default      50          running    2022-03-21T07:53:39    73 days
+voltlet-config-listener                            service    default      50          running    2021-01-19T16:08:57    1 year
+voltlet-tailscale-router                           service    default      50          running    2022-05-27T09:18:03    5 days
+vortex                                             service    default      50          running    2022-04-19T11:52:51    43 days
+vtn-enersponse                                     service    default      50          running    2022-03-08T20:07:24    85 days
+vtn-entouch                                        service    default      50          running    2022-03-01T17:08:21    92 days
+vtn-gridpoint                                      service    default      50          running    2022-03-01T17:10:02    92 days
+vtn-healthcheck-e2e                                service    default      50          running    2022-03-02T06:11:59    92 days
+vtn-resideo                                        service    default      50          running    2022-04-07T17:35:10    55 days
+vtn-target                                         service    default      50          running    2022-03-02T10:29:02    91 days
+walmart-dispatch                                   service    default      50          running    2022-03-01T14:15:30    92 days
+warehouse-metering                                 service    default      50          running    2022-02-28T18:21:19    93 days
+weather-report                                     batch      default      50          running    2020-06-18T10:05:32    1 year
+weather-report/periodic-1654169400                 batch      default      50          dead       2022-06-02T04:30:00    -
+web-api-redirector                                 service    default      50          running    2022-05-04T13:27:07    28 days
+web-api-redirector-internal                        service    default      50          running    2022-05-04T13:27:07    28 days
+web-api-sandbox-2020-12-30                         service    default      50          running    2022-04-26T14:26:05    36 days
+web-api-sandbox-2022-04-15                         service    default      50          running    2022-05-05T14:12:57    27 days
+web-api-sandbox-internal-2020-12-30                service    default      50          running    2022-04-27T08:19:34    35 days
+web-api-sandbox-internal-2022-04-15                service    default      50          running    2022-05-04T15:05:32    28 days
+your_project_name                                  service    default      50          running    2021-07-15T11:31:07    321 days
