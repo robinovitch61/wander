@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"os"
-	"strings"
 	"wander/components/header"
 	"wander/components/page"
-	"wander/components/toast"
-	"wander/components/viewport"
 	"wander/constants"
 	"wander/dev"
 	"wander/keymap"
@@ -20,8 +16,9 @@ import (
 )
 
 type model struct {
-	nomadUrl        string
-	nomadToken      string
+	nomadUrl   string
+	nomadToken string
+
 	header          header.Model
 	currentPage     nomad.Page
 	jobsPage        page.Model
@@ -30,17 +27,17 @@ type model struct {
 	allocSpecPage   page.Model
 	logsPage        page.Model
 	loglinePage     page.Model
-	jobID           string
-	jobNamespace    string
-	allocID         string
-	taskName        string
-	logline         string
-	logType         nomad.LogType
-	width, height   int
-	initialized     bool
-	toastMessage    string
-	showToast       bool
-	err             error
+
+	jobID        string
+	jobNamespace string
+	allocID      string
+	taskName     string
+	logline      string
+	logType      nomad.LogType
+
+	width, height int
+	initialized   bool
+	err           error
 }
 
 func initialModel() model {
@@ -167,20 +164,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 		return m, nil
 
-	case toast.ToastTimeoutMsg:
-		m.showToast = false
-		return m, nil
-
-	case viewport.SaveStatusMsg:
-		if msg.Err != "" {
-			m.toastMessage = style.ErrorToast.Width(m.width).Render(fmt.Sprintf("Error: %s", msg.Err))
-		} else {
-			m.toastMessage = style.SuccessToast.Width(m.width).Render(msg.SuccessMessage)
-		}
-		m.showToast = true
-		cmds = append(cmds, toast.GetToastTimeoutCmd())
-		return m, tea.Batch(cmds...)
-
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		if !m.initialized {
@@ -216,12 +199,6 @@ func (m model) View() string {
 	}
 
 	pageView := m.header.View() + "\n" + m.getCurrentPageModel().View()
-
-	if m.showToast {
-		lines := strings.Split(pageView, "\n")
-		lines = lines[:len(lines)-lipgloss.Height(m.toastMessage)]
-		pageView = strings.Join(lines, "\n") + "\n" + m.toastMessage
-	}
 
 	return pageView
 }

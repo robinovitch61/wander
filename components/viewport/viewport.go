@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"unicode/utf8"
+	"wander/components/toast"
 	"wander/constants"
 	"wander/dev"
 	"wander/fileio"
@@ -57,6 +58,9 @@ type Model struct {
 	header        []string
 	content       []string
 	maxLineLength int
+
+	toastMessage string
+	showToast    bool
 }
 
 func New(width, height int) (m Model) {
@@ -111,6 +115,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	} else {
 		switch msg := msg.(type) {
+		case toast.ToastTimeoutMsg:
+			m.showToast = false
+			return m, nil
+
+		case SaveStatusMsg:
+			if msg.Err != "" {
+				m.toastMessage = style.ErrorToast.Width(m.width).Render(fmt.Sprintf("Error: %s", msg.Err))
+			} else {
+				m.toastMessage = style.SuccessToast.Width(m.width).Render(msg.SuccessMessage)
+			}
+			m.showToast = true
+			cmds = append(cmds, toast.GetToastTimeoutCmd())
+			return m, tea.Batch(cmds...)
+
 		case tea.KeyMsg:
 			switch {
 			case key.Matches(msg, m.keyMap.Up):
@@ -254,6 +272,13 @@ func (m Model) View() string {
 	}
 	trimmedViewLines := strings.Trim(viewString, "\n")
 	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
+
+	if m.showToast {
+		lines := strings.Split(renderedViewLines, "\n")
+		lines = lines[:len(lines)-lipgloss.Height(m.toastMessage)]
+		renderedViewLines = strings.Join(lines, "\n") + "\n" + m.toastMessage
+	}
+
 	return renderedViewLines
 }
 
