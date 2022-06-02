@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"wander/components/filter"
+	"wander/components/toast"
 	"wander/components/viewport"
 	"wander/dev"
 	"wander/keymap"
@@ -55,6 +56,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case viewport.SaveStatusMsg:
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+
+	case toast.ToastTimeoutMsg:
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+
 	case tea.KeyMsg:
 		if key.Matches(msg, keymap.KeyMap.Back) {
 			m.clearFilter()
@@ -71,6 +80,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.filter.Focus()
 				return m, nil
 			}
+
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
 		}
 
 		prevFilter := m.filter.Filter
@@ -80,9 +92,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		cmds = append(cmds, cmd)
 	}
-
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
