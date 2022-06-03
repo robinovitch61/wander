@@ -1,7 +1,5 @@
 package viewport
 
-// TODO LEO: resolve viewport errors when strange formatting in content
-
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -263,15 +261,15 @@ func (m Model) View() string {
 		viewString += footerString
 	}
 	trimmedViewLines := strings.Trim(viewString, "\n")
-	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
+	renderedViewString := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 
 	if m.showToast {
-		lines := strings.Split(renderedViewLines, "\n")
+		lines := strings.Split(renderedViewString, "\n")
 		lines = lines[:len(lines)-lipgloss.Height(m.toastMessage)]
-		renderedViewLines = strings.Join(lines, "\n") + "\n" + m.toastMessage
+		renderedViewString = strings.Join(lines, "\n") + "\n" + m.toastMessage
 	}
 
-	return renderedViewLines
+	return renderedViewString
 }
 
 func (m *Model) SetCursorEnabled(cursorEnabled bool) {

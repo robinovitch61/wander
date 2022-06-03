@@ -2,6 +2,7 @@ package nomad
 
 import (
 	"fmt"
+	"github.com/acarl005/stripansi"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
 	"wander/components/page"
@@ -51,7 +52,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		logRows := strings.Split(string(body), "\n")
+		logRows := strings.Split(stripansi.Strip(string(body)), "\n")
 
 		tableHeader, allPageData := logsAsTable(logRows, logType)
 		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageData: allPageData}
