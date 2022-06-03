@@ -42,9 +42,7 @@ type Model struct {
 	yOffset int
 	xOffset int
 
-	toastMessage string
-	showToast    bool
-
+	toast          toast.Model
 	HeaderStyle    lipgloss.Style
 	CursorRowStyle lipgloss.Style
 	HighlightStyle lipgloss.Style
@@ -105,19 +103,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	} else {
 		switch msg := msg.(type) {
-		case toast.ToastTimeoutMsg:
-			m.showToast = false
-			return m, nil
-
 		case SaveStatusMsg:
 			if msg.Err != "" {
-				m.toastMessage = style.ErrorToast.Width(m.width).Render(fmt.Sprintf("Error: %s", msg.Err))
+				m.toast = toast.New(fmt.Sprintf("Error: %s", msg.Err))
+				m.toast.MessageStyle = style.ErrorToast.Copy().Width(m.width)
 			} else {
-				m.toastMessage = style.SuccessToast.Width(m.width).Render(msg.SuccessMessage)
+				m.toast = toast.New(msg.SuccessMessage)
+				m.toast.MessageStyle = style.SuccessToast.Copy().Width(m.width)
 			}
-			m.showToast = true
-			cmds = append(cmds, toast.GetToastTimeoutCmd())
-			return m, tea.Batch(cmds...)
 
 		case tea.KeyMsg:
 			switch {
@@ -197,6 +190,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 	}
+
+	m.toast, cmd = m.toast.Update(msg)
+	cmds = append(cmds, cmd)
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -263,10 +260,10 @@ func (m Model) View() string {
 	trimmedViewLines := strings.Trim(viewString, "\n")
 	renderedViewString := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 
-	if m.showToast {
+	if m.toast.Visible {
 		lines := strings.Split(renderedViewString, "\n")
-		lines = lines[:len(lines)-lipgloss.Height(m.toastMessage)]
-		renderedViewString = strings.Join(lines, "\n") + "\n" + m.toastMessage
+		lines = lines[:len(lines)-m.toast.ViewHeight()]
+		renderedViewString = strings.Join(lines, "\n") + "\n" + m.toast.View()
 	}
 
 	return renderedViewString
@@ -288,6 +285,10 @@ func (m *Model) SetWrapText(wrapText bool) {
 	} else {
 		m.wrapText = wrapText
 	}
+}
+
+func (m *Model) HideToast() {
+	m.toast.Visible = false
 }
 
 // SetSize sets the viewport's width and height, including header.
