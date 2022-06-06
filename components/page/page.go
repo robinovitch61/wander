@@ -60,7 +60,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 
-	case toast.ToastTimeoutMsg:
+	case toast.TimeoutMsg:
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 
@@ -137,6 +137,10 @@ func (m *Model) SetViewportCursorToBottom() {
 
 func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
+}
+
+func (m *Model) HideToast() {
+	m.viewport.HideToast()
 }
 
 func (m Model) Loading() bool {
