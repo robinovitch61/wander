@@ -39,7 +39,9 @@ type Model struct {
 	keyMap     viewportKeyMap
 	saveDialog textinput.Model
 
+	// yOffset indexes into content to the first shown line on the viewport, i.e. "top" = content[yOffset]
 	yOffset int
+	// xOffset is the number of columns scrolled right when lines overflow the viewport and wrapText is false
 	xOffset int
 
 	toast          toast.Model
@@ -274,17 +276,15 @@ func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 }
 
 func (m *Model) SetWrapText(wrapText bool) {
-	// TODO LEO: currently can't wrap text with cursor enabled due to mismatch between contentHeight and what
-	// View() actually returns
-
 	// idea for wrapping: model internally maintains wrappedHeader, wrappedContent []wrapped
 	// where type wrapped struct { unwrappedIdx int, value string }
 	// unwrappedIdx represents cursorRow when wrapped
-	if m.cursorEnabled {
-		m.wrapText = false
-	} else {
-		m.wrapText = wrapText
-	}
+	m.wrapText = wrapText
+}
+
+func (m *Model) ToggleWrapText() {
+	m.wrapText = !m.wrapText
+	dev.Debug(fmt.Sprintf("wrap %t", m.wrapText))
 }
 
 func (m *Model) HideToast() {
@@ -434,15 +434,27 @@ func (m Model) getSaveDialogPlaceholder() string {
 
 // lastVisibleLineIdx returns the maximum visible line index
 func (m Model) lastVisibleLineIdx() int {
-	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
+	if !m.wrapText {
+		return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
+	} else {
+		lastIdx := m.yOffset
+		for count := 0; lastIdx > 0 && lastIdx <= m.maxLinesIdx() && count+len(m.getWrappedLines(m.content[lastIdx])) < m.contentHeight; count += len(m.getWrappedLines(m.content[lastIdx])) {
+			lastIdx += 1
+		}
+		return lastIdx - 1
+	}
 }
 
 // maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
 func (m Model) maxYOffset() int {
-	if m.maxLinesIdx() < m.contentHeight {
-		return 0
+	if !m.wrapText {
+		if m.maxLinesIdx() < m.contentHeight {
+			return 0
+		}
+		return len(m.content) - m.contentHeight
+	} else {
+
 	}
-	return len(m.content) - m.contentHeight
 }
 
 // maxCursorRow returns the maximum cursorRow
@@ -484,11 +496,15 @@ func (m Model) getWrappedLines(line string) []string {
 	for pos, b := range []rune(line) {
 		l += string(b)
 		if pos != 0 && (pos+1)%m.width == 0 {
-			lines = append(lines, l)
-			l = ""
+			if strings.TrimSpace(l) != "" {
+				lines = append(lines, l)
+				l = ""
+			}
 		}
 	}
-	lines = append(lines, l)
+	if strings.TrimSpace(l) != "" {
+		lines = append(lines, l)
+	}
 	return lines
 }
 

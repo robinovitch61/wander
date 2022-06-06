@@ -65,8 +65,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
-		if key.Matches(msg, keymap.KeyMap.Back) {
+		switch {
+		case key.Matches(msg, keymap.KeyMap.Back):
 			m.clearFilter()
+
+		case key.Matches(msg, keymap.KeyMap.Wrap):
+			m.viewport.ToggleWrapText()
 		}
 
 		if m.filter.Focused() {
