@@ -89,7 +89,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 
-	case toast.ToastTimeoutMsg:
+	case toast.TimeoutMsg:
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 
@@ -249,6 +249,10 @@ func (m *Model) TogglePromptFocus() {
 	}
 }
 
+func (m *Model) HideToast() {
+	m.viewport.HideToast()
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
@@ -287,7 +291,7 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateViewport() {
-	m.viewport.Highlight = m.filter.Filter
+	m.viewport.StringToHighlight = m.filter.Filter
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
 	// m.viewport.SetCursorRow(0)

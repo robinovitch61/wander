@@ -1,7 +1,5 @@
 package viewport
 
-// TODO LEO: resolve viewport errors when strange formatting in content
-
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -25,42 +23,31 @@ type SaveStatusMsg struct {
 }
 
 type Model struct {
-	// cursorRow is the row index of the cursor.
-	cursorRow int
+	header            []string
+	content           []string
+	cursorEnabled     bool
+	cursorRow         int
+	StringToHighlight string
+	wrapText          bool
+	mouseWheelEnabled bool
 
-	// Highlight is the text to highlight (case-sensitive), used for search, filter etc.
-	Highlight string
+	width         int
+	height        int
+	contentHeight int
+	maxLineLength int
 
-	// Styles
+	keyMap     viewportKeyMap
+	saveDialog textinput.Model
+
+	yOffset int
+	xOffset int
+
+	toast          toast.Model
 	HeaderStyle    lipgloss.Style
 	CursorRowStyle lipgloss.Style
 	HighlightStyle lipgloss.Style
 	ContentStyle   lipgloss.Style
 	FooterStyle    lipgloss.Style
-
-	width         int
-	height        int
-	contentHeight int
-	keyMap        viewportKeyMap
-	cursorEnabled bool
-	wrapText      bool
-	saveDialog    textinput.Model
-
-	// Currently, causes flickering if enabled.
-	mouseWheelEnabled bool
-
-	// yOffset is the vertical scroll position of the text.
-	yOffset int
-
-	// xOffset is the horizontal scroll position of the text.
-	xOffset int
-
-	header        []string
-	content       []string
-	maxLineLength int
-
-	toastMessage string
-	showToast    bool
 }
 
 func New(width, height int) (m Model) {
@@ -69,19 +56,20 @@ func New(width, height int) (m Model) {
 	m.saveDialog = textinput.New()
 	m.saveDialog.Prompt = "> "
 	m.saveDialog.Placeholder = m.getSaveDialogPlaceholder()
-	m.saveDialog.PromptStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
-	m.saveDialog.PlaceholderStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
-	m.saveDialog.TextStyle = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))
+	m.saveDialog.PromptStyle = style.SaveDialogPromptStyle
+	m.saveDialog.PlaceholderStyle = style.SaveDialogPlaceholderStyle
+	m.saveDialog.TextStyle = style.SaveDialogTextStyle
 
 	m.setContentHeight()
 	m.keyMap = GetKeyMap()
 	m.cursorEnabled = true
 	m.wrapText = false
 	m.mouseWheelEnabled = false
+
 	m.HeaderStyle = style.ViewportHeaderStyle
-	m.CursorRowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
-	m.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
-	m.FooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))
+	m.CursorRowStyle = style.ViewportCursorRowStyle
+	m.HighlightStyle = style.ViewportHighlightStyle
+	m.FooterStyle = style.ViewportFooterStyle
 	return m
 }
 
@@ -115,19 +103,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	} else {
 		switch msg := msg.(type) {
-		case toast.ToastTimeoutMsg:
-			m.showToast = false
-			return m, nil
-
 		case SaveStatusMsg:
 			if msg.Err != "" {
-				m.toastMessage = style.ErrorToast.Width(m.width).Render(fmt.Sprintf("Error: %s", msg.Err))
+				m.toast = toast.New(fmt.Sprintf("Error: %s", msg.Err))
+				m.toast.MessageStyle = style.ErrorToast.Copy().Width(m.width)
 			} else {
-				m.toastMessage = style.SuccessToast.Width(m.width).Render(msg.SuccessMessage)
+				m.toast = toast.New(msg.SuccessMessage)
+				m.toast.MessageStyle = style.SuccessToast.Copy().Width(m.width)
 			}
-			m.showToast = true
-			cmds = append(cmds, toast.GetToastTimeoutCmd())
-			return m, tea.Batch(cmds...)
 
 		case tea.KeyMsg:
 			switch {
@@ -207,13 +190,17 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 	}
+
+	m.toast, cmd = m.toast.Update(msg)
+	cmds = append(cmds, cmd)
+
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
 	var viewString string
 
-	nothingHighlighted := len(m.Highlight) == 0
+	nothingHighlighted := len(m.StringToHighlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
 	viewportHeightWithoutFooter := m.height - footerHeight
@@ -246,13 +233,13 @@ func (m Model) View() string {
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
-			styledHighlight := m.HighlightStyle.Render(m.Highlight)
+			styledHighlight := m.HighlightStyle.Render(m.StringToHighlight)
 			lineStyle := m.ContentStyle
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
 			for _, line := range parsedLines {
-				lineChunks := strings.Split(line, m.Highlight)
+				lineChunks := strings.Split(line, m.StringToHighlight)
 				var styledChunks []string
 				for _, chunk := range lineChunks {
 					styledChunks = append(styledChunks, lineStyle.Render(chunk))
@@ -274,15 +261,15 @@ func (m Model) View() string {
 	if trimmedViewLines == "" {
 		return ""
 	}
-	renderedViewLines := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
+	renderedViewString := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
 
-	if m.showToast {
-		lines := strings.Split(renderedViewLines, "\n")
-		lines = lines[:len(lines)-lipgloss.Height(m.toastMessage)]
-		renderedViewLines = strings.Join(lines, "\n") + "\n" + m.toastMessage
+	if m.toast.Visible {
+		lines := strings.Split(renderedViewString, "\n")
+		lines = lines[:len(lines)-m.toast.ViewHeight()]
+		renderedViewString = strings.Join(lines, "\n") + "\n" + m.toast.View()
 	}
 
-	return renderedViewLines
+	return renderedViewString
 }
 
 func (m *Model) SetCursorEnabled(cursorEnabled bool) {
@@ -292,11 +279,19 @@ func (m *Model) SetCursorEnabled(cursorEnabled bool) {
 func (m *Model) SetWrapText(wrapText bool) {
 	// TODO LEO: currently can't wrap text with cursor enabled due to mismatch between contentHeight and what
 	// View() actually returns
+
+	// idea for wrapping: model internally maintains wrappedHeader, wrappedContent []wrapped
+	// where type wrapped struct { unwrappedIdx int, value string }
+	// unwrappedIdx represents cursorRow when wrapped
 	if m.cursorEnabled {
 		m.wrapText = false
 	} else {
 		m.wrapText = wrapText
 	}
+}
+
+func (m *Model) HideToast() {
+	m.toast.Visible = false
 }
 
 // SetSize sets the viewport's width and height, including header.
@@ -317,14 +312,6 @@ func (m *Model) SetContent(content []string) {
 	m.updateMaxLineLength()
 	m.setContentHeight()
 	m.fixState()
-}
-
-func (m *Model) updateMaxLineLength() {
-	for _, line := range append(m.header, m.content...) {
-		if lineLength := len(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
-			m.maxLineLength = lineLength
-		}
-	}
 }
 
 // SetCursorRow sets the cursorRow with bounds. Adjusts yOffset as necessary.
@@ -351,6 +338,10 @@ func (m *Model) ScrollToBottom() {
 	m.viewDown(len(m.content))
 }
 
+func (m *Model) SetXOffset(n int) {
+	m.xOffset = max(0, min(m.maxLineLength, n))
+}
+
 func (m Model) CursorRow() int {
 	return m.cursorRow
 }
@@ -359,16 +350,17 @@ func (m Model) Saving() bool {
 	return m.saveDialog.Focused()
 }
 
+func (m *Model) updateMaxLineLength() {
+	for _, line := range append(m.header, m.content...) {
+		if lineLength := len(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
+			m.maxLineLength = lineLength
+		}
+	}
+}
+
 func (m *Model) setWidthAndHeight(width, height int) {
 	m.width, m.height = width, height
 	m.saveDialog.Placeholder = m.getSaveDialogPlaceholder()
-}
-
-func (m Model) getSaveDialogPlaceholder() string {
-	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
-	padding = max(0, padding)
-	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
-	return placeholder[:min(len(placeholder), m.width)]
 }
 
 // fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
@@ -402,24 +394,6 @@ func (m *Model) maxLinesIdx() int {
 	return len(m.content) - 1
 }
 
-// lastVisibleLineIdx returns the maximum visible line index
-func (m Model) lastVisibleLineIdx() int {
-	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
-}
-
-// maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
-func (m Model) maxYOffset() int {
-	if m.maxLinesIdx() < m.contentHeight {
-		return 0
-	}
-	return len(m.content) - m.contentHeight
-}
-
-// maxCursorRow returns the maximum cursorRow
-func (m Model) maxCursorRow() int {
-	return len(m.content) - 1
-}
-
 // setYOffset sets the yOffset with bounds.
 func (m *Model) setYOffset(n int) {
 	if maxYOffset := m.maxYOffset(); n > maxYOffset {
@@ -427,16 +401,6 @@ func (m *Model) setYOffset(n int) {
 	} else {
 		m.yOffset = max(0, n)
 	}
-}
-
-// visibleLines retrieves the visible content based on the yOffset
-func (m Model) visibleLines() []string {
-	start := min(len(m.content), m.yOffset)
-	end := start + m.contentHeight
-	if end > m.maxLinesIdx() {
-		return m.content[start:]
-	}
-	return m.content[start:end]
 }
 
 // cursorRowDown moves the cursorRow down by the given number of content.
@@ -459,10 +423,6 @@ func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
 
-func (m *Model) SetXOffset(n int) {
-	m.xOffset = max(0, n)
-}
-
 // viewLeft moves the view left the given number of columns.
 func (m *Model) viewLeft(n int) {
 	m.SetXOffset(m.xOffset - n)
@@ -471,6 +431,41 @@ func (m *Model) viewLeft(n int) {
 // viewRight moves the view right the given number of columns.
 func (m *Model) viewRight(n int) {
 	m.SetXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
+}
+
+func (m Model) getSaveDialogPlaceholder() string {
+	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
+	padding = max(0, padding)
+	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
+	return placeholder[:min(len(placeholder), m.width)]
+}
+
+// lastVisibleLineIdx returns the maximum visible line index
+func (m Model) lastVisibleLineIdx() int {
+	return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
+}
+
+// maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
+func (m Model) maxYOffset() int {
+	if m.maxLinesIdx() < m.contentHeight {
+		return 0
+	}
+	return len(m.content) - m.contentHeight
+}
+
+// maxCursorRow returns the maximum cursorRow
+func (m Model) maxCursorRow() int {
+	return len(m.content) - 1
+}
+
+// visibleLines retrieves the visible content based on the yOffset
+func (m Model) visibleLines() []string {
+	start := min(len(m.content), m.yOffset)
+	end := start + m.contentHeight
+	if end > m.maxLinesIdx() {
+		return m.content[start:]
+	}
+	return m.content[start:end]
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
@@ -564,3 +559,7 @@ func max(a, b int) int {
 func percent(a, b int) int {
 	return int(float32(a) / float32(b) * 100)
 }
+
+// func normalizeLineEndings(s string) string {
+// 	return strings.ReplaceAll(s, "\r\n", "\n")
+// }

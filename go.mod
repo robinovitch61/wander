@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect

@@ -106,6 +106,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					nextPage := m.currentPage.Forward()
 					if nextPage != m.currentPage {
+						m.getCurrentPageModel().HideToast()
 						m.setPage(nextPage)
 						return m, m.getCurrentPageCmd()
 					}
@@ -130,6 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
 						m.getCurrentPageModel().ResetPrompt()
+						m.getCurrentPageModel().HideToast()
 						m.setPage(prevPage)
 						return m, m.getCurrentPageCmd()
 					}
@@ -166,7 +168,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.currentPage == nomad.LogsPage {
 				switch {
 				case key.Matches(msg, keymap.KeyMap.StdOut):
-					if m.logType != nomad.StdOut {
+					if !m.currentPageLoading() && m.logType != nomad.StdOut {
 						m.logType = nomad.StdOut
 						m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
 						m.getCurrentPageModel().SetLoading(true)
@@ -174,7 +176,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 
 				case key.Matches(msg, keymap.KeyMap.StdErr):
-					if m.logType != nomad.StdErr {
+					if !m.currentPageLoading() && m.logType != nomad.StdErr {
 						m.logType = nomad.StdErr
 						stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
 						m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
