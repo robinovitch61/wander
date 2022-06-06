@@ -97,6 +97,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					nextPage := m.currentPage.Forward()
 					if nextPage != m.currentPage {
+						m.getCurrentPageModel().HideToast()
 						m.setPage(nextPage)
 						return m, m.getCurrentPageCmd()
 					}
@@ -106,6 +107,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if !m.currentPageFilterApplied() {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
+						m.getCurrentPageModel().HideToast()
 						m.setPage(prevPage)
 						return m, m.getCurrentPageCmd()
 					}

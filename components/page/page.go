@@ -139,6 +139,10 @@ func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
 }
 
+func (m *Model) HideToast() {
+	m.viewport.HideToast()
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }

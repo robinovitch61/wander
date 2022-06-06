@@ -4,13 +4,20 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"sync"
 	"time"
 	"wander/constants"
 	"wander/dev"
 	"wander/style"
 )
 
+var (
+	lastID int
+	idMtx  sync.Mutex
+)
+
 type Model struct {
+	id           int
 	message      string
 	timeout      time.Duration
 	initialized  bool
@@ -20,6 +27,7 @@ type Model struct {
 
 func New(message string) Model {
 	return Model{
+		id:           nextID(),
 		message:      message,
 		timeout:      constants.ToastDuration,
 		Visible:      true,
@@ -31,11 +39,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("toast %T", msg))
 	if !m.initialized {
 		m.initialized = true
-		return m, m.timeoutAfterDuration()
+		return m, m.timeoutAfterDuration(m.id)
 	}
 
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case TimeoutMsg:
+		if msg.ID > 0 && msg.ID != m.id {
+			return m, nil
+		}
+
 		m.Visible = false
 	}
 
@@ -55,8 +67,19 @@ func (m Model) ViewHeight() int {
 
 // Msg and Cmds
 
-type TimeoutMsg struct{}
+type TimeoutMsg struct {
+	ID int
+}
 
-func (m Model) timeoutAfterDuration() tea.Cmd {
-	return tea.Tick(m.timeout, func(t time.Time) tea.Msg { return TimeoutMsg{} })
+func (m Model) timeoutAfterDuration(id int) tea.Cmd {
+	return tea.Tick(m.timeout, func(t time.Time) tea.Msg { return TimeoutMsg{id} })
+}
+
+// Helpers
+
+func nextID() int {
+	idMtx.Lock()
+	defer idMtx.Unlock()
+	lastID++
+	return lastID
 }
