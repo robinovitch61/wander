@@ -39,7 +39,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("toast %T", msg))
 	if !m.initialized {
 		m.initialized = true
-		return m, m.timeoutAfterDuration(m.id)
+		return m, m.timeoutAfterDuration()
 	}
 
 	switch msg := msg.(type) {
@@ -71,8 +71,8 @@ type TimeoutMsg struct {
 	ID int
 }
 
-func (m Model) timeoutAfterDuration(id int) tea.Cmd {
-	return tea.Tick(m.timeout, func(t time.Time) tea.Msg { return TimeoutMsg{id} })
+func (m Model) timeoutAfterDuration() tea.Cmd {
+	return tea.Tick(m.timeout, func(t time.Time) tea.Msg { return TimeoutMsg{m.id} })
 }
 
 // Helpers
