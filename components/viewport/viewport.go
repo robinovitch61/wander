@@ -24,8 +24,11 @@ type SaveStatusMsg struct {
 }
 
 type Model struct {
-	header            []string
-	content           []string
+	header         []string
+	content        []string
+	wrappedContent []string
+	// wrappedOffsets maps an index of content to the number of terminal rows it takes up when wrapped
+	wrappedOffsets    map[int]int
 	cursorEnabled     bool
 	cursorRow         int
 	stringToHighlight string
@@ -92,19 +95,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			switch {
-			case key.Matches(msg, m.keyMap.CancelSave):
+			cancel := key.Matches(msg, m.keyMap.CancelSave)
+			confirm := key.Matches(msg, m.keyMap.ConfirmSave)
+			if cancel || confirm {
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
 
-			case key.Matches(msg, m.keyMap.ConfirmSave):
-				var content string
-				for _, line := range append(m.header, m.content...) {
-					content += strings.TrimRight(line, " ") + "\n"
+				if confirm {
+					cmds = append(cmds, m.getSaveCommand())
+					// return m, tea.Batch(cmds...) // TODO LEO: Confirm ok
 				}
-				cmds = append(cmds, saveCommand(m.saveDialog.Value(), content))
-				m.saveDialog.Blur()
-				m.saveDialog.Reset()
 			}
 		}
 	} else {
@@ -272,11 +272,12 @@ func (m *Model) SetWrapText(wrapText bool) {
 	// where type wrapped struct { unwrappedIdx int, value string }
 	// unwrappedIdx represents cursorRow when wrapped
 	m.wrapText = wrapText
+	m.fixState()
 }
 
 func (m *Model) ToggleWrapText() {
 	m.wrapText = !m.wrapText
-	dev.Debug(fmt.Sprintf("wrap %t", m.wrapText))
+	m.fixState()
 }
 
 func (m *Model) HideToast() {
@@ -298,6 +299,7 @@ func (m *Model) SetHeader(header []string) {
 
 func (m *Model) SetContent(content []string) {
 	m.content = content
+	m.updateWrappedContent()
 	m.updateMaxLineLength()
 	m.setContentHeight()
 	m.fixState()
@@ -339,8 +341,22 @@ func (m Model) Saving() bool {
 	return m.saveDialog.Focused()
 }
 
+func (m *Model) updateWrappedContent() {
+	var allWrappedContent []string
+	wrappedOffsets := make(map[int]int)
+	for i, line := range m.currentContent() {
+		wrappedLinesForLine := m.getWrappedLines(line)
+		wrappedOffsets[i] = len(wrappedLinesForLine)
+		for _, wrappedLine := range wrappedLinesForLine {
+			allWrappedContent = append(allWrappedContent, wrappedLine)
+		}
+	}
+	m.wrappedContent = allWrappedContent
+	m.wrappedOffsets = wrappedOffsets
+}
+
 func (m *Model) updateMaxLineLength() {
-	for _, line := range append(m.header, m.content...) {
+	for _, line := range append(m.header, m.currentContent()...) {
 		if lineLength := runeCount(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
 			m.maxLineLength = lineLength
 		}
@@ -380,7 +396,7 @@ func (m *Model) setContentHeight() {
 
 // maxContentIndex returns the maximum index of the model's content
 func (m *Model) maxContentIndex() int {
-	return len(m.content) - 1
+	return len(m.currentContent()) - 1
 }
 
 // setYOffset sets the yOffset with bounds.
@@ -422,6 +438,13 @@ func (m *Model) viewRight(n int) {
 	m.SetXOffset(m.xOffset + n)
 }
 
+func (m Model) currentContent() []string {
+	if m.wrapText {
+		return m.wrappedContent
+	}
+	return m.content
+}
+
 func (m Model) getSaveDialogPlaceholder() string {
 	padding := m.width - runeCount(constants.SaveDialogPlaceholder) - runeCount(m.saveDialog.Prompt)
 	padding = max(0, padding)
@@ -431,42 +454,30 @@ func (m Model) getSaveDialogPlaceholder() string {
 
 // lastVisibleLineIdx returns the maximum visible line index
 func (m Model) lastVisibleLineIdx() int {
-	if !m.wrapText {
-		return min(m.maxContentIndex(), m.yOffset+m.contentHeight-1)
-	} else {
-		lastIdx := m.yOffset
-		for count := 0; lastIdx > 0 && lastIdx <= m.maxContentIndex() && count+len(m.getWrappedLines(m.content[lastIdx])) < m.contentHeight; count += len(m.getWrappedLines(m.content[lastIdx])) {
-			lastIdx += 1
-		}
-		return lastIdx - 1
-	}
+	return min(m.maxContentIndex(), m.yOffset+m.contentHeight-1)
 }
 
 // maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
 func (m Model) maxYOffset() int {
-	if !m.wrapText {
-		if m.maxContentIndex() < m.contentHeight {
-			return 0
-		}
-		return len(m.content) - m.contentHeight
-	} else {
+	if m.maxContentIndex() < m.contentHeight {
 		return 0
 	}
+	return len(m.currentContent()) - m.contentHeight
 }
 
 // maxCursorRow returns the maximum cursorRow
 func (m Model) maxCursorRow() int {
-	return len(m.content) - 1
+	return len(m.currentContent()) - 1
 }
 
 // visibleLines retrieves the visible content based on the yOffset
 func (m Model) visibleLines() []string {
-	start := min(len(m.content), m.yOffset)
+	start := min(len(m.currentContent()), m.yOffset)
 	end := start + m.contentHeight
 	if end > m.maxContentIndex() {
-		return m.content[start:]
+		return m.currentContent()[start:]
 	}
-	return m.content[start:end]
+	return m.currentContent()[start:end]
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
@@ -488,21 +499,25 @@ func (m Model) getWrappedLines(line string) []string {
 		return []string{line}
 	}
 
-	var lines []string
-	l := ""
-	for pos, b := range []rune(line) {
-		l += string(b)
-		if pos != 0 && (pos+1)%m.width == 0 {
-			if strings.TrimSpace(l) != "" {
-				lines = append(lines, l)
-				l = ""
-			}
+	line = strings.TrimSpace(line)
+
+	var wrappedLines []string
+	for {
+		lineWidth := runeCount(line)
+		if lineWidth == 0 {
+			break
 		}
+
+		width := m.width
+		if lineWidth < m.width {
+			width = lineWidth
+		}
+
+		wrappedLines = append(wrappedLines, line[0:width])
+		line = line[width:]
 	}
-	if strings.TrimSpace(l) != "" {
-		lines = append(lines, l)
-	}
-	return lines
+
+	return wrappedLines
 }
 
 func (m Model) lineToViewLines(line string) []string {
@@ -527,7 +542,7 @@ func (m Model) getFooter() (string, int) {
 		numerator = m.yOffset + m.contentHeight
 	}
 
-	if numLines := len(m.content); numLines > m.height-len(m.header) {
+	if numLines := len(m.currentContent()); numLines > m.height-len(m.header) {
 		percentScrolled := percent(numerator, numLines)
 		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
 		renderedFooterString := m.FooterStyle.Copy().MaxWidth(m.width).Render(footerString)
@@ -537,14 +552,18 @@ func (m Model) getFooter() (string, int) {
 	return "", 0
 }
 
-func saveCommand(saveDialogValue string, fileContent string) tea.Cmd {
+func (m Model) getSaveCommand() tea.Cmd {
+	var content string
+	for _, line := range append(m.header, m.currentContent()...) {
+		content += strings.TrimRight(line, " ") + "\n"
+	}
+
 	return func() tea.Msg {
-		savePathWithFileName, err := fileio.SaveToFile(saveDialogValue, fileContent)
+		savePathWithFileName, err := fileio.SaveToFile(m.saveDialog.Value(), content)
 		if err != nil {
-			return SaveStatusMsg{SuccessMessage: "", Err: err.Error()}
+			return SaveStatusMsg{Err: err.Error()}
 		}
-		successMessage := fmt.Sprintf("Success: saved to %s", savePathWithFileName)
-		return SaveStatusMsg{SuccessMessage: successMessage, Err: ""}
+		return SaveStatusMsg{SuccessMessage: fmt.Sprintf("Success: saved to %s", savePathWithFileName)}
 	}
 }
 
