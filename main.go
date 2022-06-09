@@ -267,6 +267,7 @@ func (m *model) getCurrentPageCmd() tea.Cmd {
 }
 
 func (m model) getPageHeight() int {
+	dev.Debug(fmt.Sprintf("total height %d, header height %d", m.height, m.header.ViewHeight()))
 	return m.height - m.header.ViewHeight()
 }
 

@@ -8,7 +8,6 @@ import (
 	"math"
 	"strings"
 	"time"
-	"wander/dev"
 )
 
 func prettyPrint(b []byte) ([]byte, error) {
@@ -102,7 +101,6 @@ func FormatTimeNs(t int64) string {
 
 func pluralize(s string, q float64) string {
 	if q > 1 {
-		dev.Debug(fmt.Sprintf("%f %f", q, math.Round(q)))
 		return s + "s"
 	}
 	return s

@@ -1,5 +1,9 @@
 package viewport
 
+// TODO LEO: Remove
+// - terminal rows mean a literal row in the terminal
+// - selection maps to an entry in content, even if that entry wraps to more than one terminal row
+
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -25,20 +29,24 @@ type SaveStatusMsg struct {
 
 type Model struct {
 	header         []string
+	wrappedHeader  []string
 	content        []string
 	wrappedContent []string
-	// wrappedOffsets maps an index of content to the number of terminal rows it takes up when wrapped
-	wrappedOffsets    map[int]int
-	cursorEnabled     bool
-	cursorRow         int
-	stringToHighlight string
-	wrapText          bool
+
+	// wrappedContentIdxToContentIdx maps indexes of wrappedContent to the indexes of content they are associated with
+	wrappedContentIdxToContentIdx map[int]int
+	selectionEnabled              bool
+
+	// selectedContentIdx is the index of content of the currently selected item when selectionEnabled is true
+	selectedContentIdx int
+	stringToHighlight  string
+	wrapText           bool
 
 	// width is the width of the entire viewport in terminal columns
 	width int
 	// height is the height of the entire viewport in terminal rows
 	height int
-	// contentHeight is the height of the viewport in terminal rows, excluding the terminal rows taken up by the header
+	// contentHeight is the height of the viewport in terminal rows, excluding the header and footer
 	contentHeight int
 	// maxLineLength is the maximum line length in terminal characters across header and content
 	maxLineLength int
@@ -53,30 +61,29 @@ type Model struct {
 	saveDialog textinput.Model
 	toast      toast.Model
 
-	HeaderStyle    lipgloss.Style
-	CursorRowStyle lipgloss.Style
-	HighlightStyle lipgloss.Style
-	ContentStyle   lipgloss.Style
-	FooterStyle    lipgloss.Style
+	HeaderStyle          lipgloss.Style
+	SelectedContentStyle lipgloss.Style
+	HighlightStyle       lipgloss.Style
+	ContentStyle         lipgloss.Style
+	FooterStyle          lipgloss.Style
 }
 
 func New(width, height int) (m Model) {
-	m.width, m.height = width, height
-
 	m.saveDialog = textinput.New()
 	m.saveDialog.Prompt = "> "
-	m.saveDialog.Placeholder = m.getSaveDialogPlaceholder()
 	m.saveDialog.PromptStyle = style.SaveDialogPromptStyle
 	m.saveDialog.PlaceholderStyle = style.SaveDialogPlaceholderStyle
 	m.saveDialog.TextStyle = style.SaveDialogTextStyle
 
-	m.setContentHeight()
+	m.setWidthAndHeight(width, height)
+
+	m.updateContentHeight()
 	m.keyMap = GetKeyMap()
-	m.cursorEnabled = true
+	m.selectionEnabled = true
 	m.wrapText = false
 
 	m.HeaderStyle = style.ViewportHeaderStyle
-	m.CursorRowStyle = style.ViewportCursorRowStyle
+	m.SelectedContentStyle = style.ViewportSelectedRowStyle
 	m.HighlightStyle = style.ViewportHighlightStyle
 	m.FooterStyle = style.ViewportFooterStyle
 	return m
@@ -121,15 +128,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch {
 			case key.Matches(msg, m.keyMap.Up):
-				if m.cursorEnabled {
-					m.cursorRowUp(1)
+				if m.selectionEnabled {
+					m.selectedContentIdxUp(1)
 				} else {
 					m.viewUp(1)
 				}
 
 			case key.Matches(msg, m.keyMap.Down):
-				if m.cursorEnabled {
-					m.cursorRowDown(1)
+				if m.selectionEnabled {
+					m.selectedContentIdxDown(1)
 				} else {
 					m.viewDown(1)
 				}
@@ -142,38 +149,38 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			case key.Matches(msg, m.keyMap.HalfPageUp):
 				m.viewUp(m.contentHeight / 2)
-				if m.cursorEnabled {
-					m.cursorRowUp(m.contentHeight / 2)
+				if m.selectionEnabled {
+					m.selectedContentIdxUp(m.contentHeight / 2)
 				}
 
 			case key.Matches(msg, m.keyMap.HalfPageDown):
 				m.viewDown(m.contentHeight / 2)
-				if m.cursorEnabled {
-					m.cursorRowDown(m.contentHeight / 2)
+				if m.selectionEnabled {
+					m.selectedContentIdxDown(m.contentHeight / 2)
 				}
 
 			case key.Matches(msg, m.keyMap.PageUp):
 				m.viewUp(m.contentHeight)
-				if m.cursorEnabled {
-					m.cursorRowUp(m.contentHeight)
+				if m.selectionEnabled {
+					m.selectedContentIdxUp(m.contentHeight)
 				}
 
 			case key.Matches(msg, m.keyMap.PageDown):
 				m.viewDown(m.contentHeight)
-				if m.cursorEnabled {
-					m.cursorRowDown(m.contentHeight)
+				if m.selectionEnabled {
+					m.selectedContentIdxDown(m.contentHeight)
 				}
 
 			case key.Matches(msg, m.keyMap.Top):
-				if m.cursorEnabled {
-					m.cursorRowUp(m.yOffset + m.cursorRow)
+				if m.selectionEnabled {
+					m.selectedContentIdxUp(m.yOffset + m.contentHeight)
 				} else {
-					m.viewUp(m.yOffset + m.cursorRow)
+					m.viewUp(m.yOffset + m.contentHeight)
 				}
 
 			case key.Matches(msg, m.keyMap.Bottom):
-				if m.cursorEnabled {
-					m.cursorRowDown(m.maxContentIndex())
+				if m.selectionEnabled {
+					m.selectedContentIdxDown(m.maxContentIndex())
 				} else {
 					m.viewDown(m.maxContentIndex())
 				}
@@ -194,65 +201,49 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var viewString string
 
-	nothingHighlighted := runeCount(m.stringToHighlight) == 0
 	footerString, footerHeight := m.getFooter()
-	lineCount := 0
-	viewportHeightWithoutFooter := m.height - footerHeight
+	dev.Debug(fmt.Sprintf("contentHeight %d, footerHeight %d", m.contentHeight, footerHeight))
 
 	addLineToViewString := func(line string) {
-		if lineCount < viewportHeightWithoutFooter {
-			viewString += line + "\n"
-			lineCount += 1
-		}
+		viewString += line + "\n"
 	}
 
-	for _, headerLine := range m.header {
-		for _, line := range m.lineToViewLines(headerLine) {
-			addLineToViewString(m.HeaderStyle.Render(line))
-		}
+	for _, headerLine := range m.getHeader() {
+		headerViewLine := m.getVisiblePartOfLine(headerLine)
+		addLineToViewString(m.HeaderStyle.Render(headerViewLine))
 	}
 
-	for idx, line := range m.visibleLines() {
-		isSelected := m.cursorEnabled && m.yOffset+idx == m.cursorRow
-		parsedLines := m.lineToViewLines(line)
+	visibleLines := m.getVisibleLines()
+	dev.Debug(fmt.Sprintf("LEN VISIBLE %d", len(visibleLines)))
+	for idx, line := range visibleLines {
+		isSelected := m.selectionEnabled && m.getContentIdx(m.yOffset+idx) == m.selectedContentIdx
+		lineStyle := m.ContentStyle
+		if isSelected {
+			lineStyle = m.SelectedContentStyle
+		}
+		contentViewLine := m.getVisiblePartOfLine(line)
 
-		if nothingHighlighted {
-			for _, line := range parsedLines {
-				if isSelected {
-					addLineToViewString(m.CursorRowStyle.Render(line))
-				} else {
-					addLineToViewString(m.ContentStyle.Render(line))
-				}
-			}
+		if runeCount(m.stringToHighlight) == 0 {
+			addLineToViewString(lineStyle.Render(contentViewLine))
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
-			styledHighlight := m.HighlightStyle.Render(m.stringToHighlight)
-			lineStyle := m.ContentStyle
-			if isSelected {
-				lineStyle = m.CursorRowStyle
+			lineChunks := strings.Split(contentViewLine, m.stringToHighlight)
+			var styledChunks []string
+			for _, chunk := range lineChunks {
+				styledChunks = append(styledChunks, lineStyle.Render(chunk))
 			}
-			for _, line := range parsedLines {
-				lineChunks := strings.Split(line, m.stringToHighlight)
-				var styledChunks []string
-				for _, chunk := range lineChunks {
-					styledChunks = append(styledChunks, lineStyle.Render(chunk))
-				}
-				addLineToViewString(strings.Join(styledChunks, styledHighlight))
-			}
+			addLineToViewString(strings.Join(styledChunks, m.HighlightStyle.Render(m.stringToHighlight)))
 		}
 	}
 
 	if footerHeight > 0 {
 		// pad so footer shows up at bottom
-		for lineCount < viewportHeightWithoutFooter {
-			viewString += "\n"
-			lineCount += 1
-		}
+		padCount := max(0, m.contentHeight-len(visibleLines)-len(m.getHeader()))
+		viewString += strings.Repeat("\n", padCount)
 		viewString += footerString
 	}
-	trimmedViewLines := strings.Trim(viewString, "\n")
-	renderedViewString := style.Viewport.Width(m.width).Height(m.height).Render(trimmedViewLines)
+	renderedViewString := style.Viewport.Width(m.width).Height(m.height).Render(viewString)
 
 	if m.toast.Visible {
 		lines := strings.Split(renderedViewString, "\n")
@@ -263,20 +254,22 @@ func (m Model) View() string {
 	return renderedViewString
 }
 
-func (m *Model) SetCursorEnabled(cursorEnabled bool) {
-	m.cursorEnabled = cursorEnabled
+func (m *Model) SetSelectionEnabled(selectionEnabled bool) {
+	m.selectionEnabled = selectionEnabled
 }
 
 func (m *Model) SetWrapText(wrapText bool) {
 	// idea for wrapping: model internally maintains wrappedHeader, wrappedContent []wrapped
 	// where type wrapped struct { unwrappedIdx int, value string }
-	// unwrappedIdx represents cursorRow when wrapped
+	// unwrappedIdx represents selectedContentIdx when wrapped
 	m.wrapText = wrapText
+	m.updateContentHeight()
 	m.fixState()
 }
 
 func (m *Model) ToggleWrapText() {
 	m.wrapText = !m.wrapText
+	m.updateContentHeight()
 	m.fixState()
 }
 
@@ -287,13 +280,16 @@ func (m *Model) HideToast() {
 // SetSize sets the viewport's width and height, including header.
 func (m *Model) SetSize(width, height int) {
 	m.setWidthAndHeight(width, height)
-	m.setContentHeight()
+	m.updateContentHeight()
 	m.fixState()
 }
 
 func (m *Model) SetHeader(header []string) {
 	m.header = header
+	m.updateWrappedHeader()
+	// TODO LEO: dedupe these three lines
 	m.updateMaxLineLength()
+	m.updateContentHeight()
 	m.fixState()
 }
 
@@ -301,26 +297,26 @@ func (m *Model) SetContent(content []string) {
 	m.content = content
 	m.updateWrappedContent()
 	m.updateMaxLineLength()
-	m.setContentHeight()
+	m.updateContentHeight()
 	m.fixState()
 }
 
-// SetCursorRow sets the cursorRow with bounds. Adjusts yOffset as necessary.
-func (m *Model) SetCursorRow(n int) {
+// SetSelectedContentIdx sets the selectedContentIdx with bounds. Adjusts yOffset as necessary.
+func (m *Model) SetSelectedContentIdx(n int) {
 	if m.contentHeight == 0 {
 		return
 	}
 
-	if maxSelection := m.maxCursorRow(); n > maxSelection {
-		m.cursorRow = maxSelection
+	if maxSelectedIdx := m.maxContentIdx(); n > maxSelectedIdx {
+		m.selectedContentIdx = maxSelectedIdx
 	} else {
-		m.cursorRow = max(0, n)
+		m.selectedContentIdx = max(0, n)
 	}
 
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.cursorRow > lastVisibleLineIdx {
-		m.viewDown(m.cursorRow - lastVisibleLineIdx)
-	} else if m.cursorRow < m.yOffset {
-		m.viewUp(m.yOffset - m.cursorRow)
+	if lastVisibleLineIdx := m.lastVisibleLineIdx(); m.selectedContentIdx > lastVisibleLineIdx {
+		m.viewDown(m.selectedContentIdx - lastVisibleLineIdx)
+	} else if m.selectedContentIdx < m.yOffset {
+		m.viewUp(m.yOffset - m.selectedContentIdx)
 	}
 }
 
@@ -333,30 +329,43 @@ func (m *Model) SetStringToHighlight(h string) {
 	m.stringToHighlight = h
 }
 
-func (m Model) CursorRow() int {
-	return m.cursorRow
+func (m Model) SelectedContentIdx() int {
+	return m.selectedContentIdx
 }
 
 func (m Model) Saving() bool {
 	return m.saveDialog.Focused()
 }
 
+func (m *Model) updateWrappedHeader() {
+	var allWrappedHeader []string
+	for _, line := range m.header {
+		wrappedLinesForLine := m.getWrappedLines(line)
+		for _, wrappedLine := range wrappedLinesForLine {
+			allWrappedHeader = append(allWrappedHeader, wrappedLine)
+		}
+	}
+	m.wrappedHeader = allWrappedHeader
+}
+
 func (m *Model) updateWrappedContent() {
 	var allWrappedContent []string
-	wrappedOffsets := make(map[int]int)
-	for i, line := range m.currentContent() {
+	wrappedContentIdxToContentIdx := make(map[int]int)
+	var wrappedContentIdx int
+	for contentIdx, line := range m.content {
 		wrappedLinesForLine := m.getWrappedLines(line)
-		wrappedOffsets[i] = len(wrappedLinesForLine)
 		for _, wrappedLine := range wrappedLinesForLine {
 			allWrappedContent = append(allWrappedContent, wrappedLine)
+			wrappedContentIdxToContentIdx[wrappedContentIdx] = contentIdx
+			wrappedContentIdx += 1
 		}
 	}
 	m.wrappedContent = allWrappedContent
-	m.wrappedOffsets = wrappedOffsets
+	m.wrappedContentIdxToContentIdx = wrappedContentIdxToContentIdx
 }
 
 func (m *Model) updateMaxLineLength() {
-	for _, line := range append(m.header, m.currentContent()...) {
+	for _, line := range append(m.getHeader(), m.getContent()...) {
 		if lineLength := runeCount(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
 			m.maxLineLength = lineLength
 		}
@@ -365,13 +374,15 @@ func (m *Model) updateMaxLineLength() {
 
 func (m *Model) setWidthAndHeight(width, height int) {
 	m.width, m.height = width, height
-	m.saveDialog.Placeholder = m.getSaveDialogPlaceholder()
+	m.updateWrappedHeader()
+	m.updateWrappedContent()
+	m.updateSaveDialogPlaceholder()
 }
 
-// fixCursorRow adjusts the cursor to be in a visible location if it is outside the visible content
-func (m *Model) fixCursorRow() {
-	if m.cursorRow > m.lastVisibleLineIdx() {
-		m.SetCursorRow(m.lastVisibleLineIdx())
+// fixSelectedContentIdx adjusts the selection to be in a visible location if it is outside the visible content
+func (m *Model) fixSelectedContentIdx() {
+	if m.selectedContentIdx > m.lastVisibleLineIdx() {
+		m.SetSelectedContentIdx(m.lastVisibleLineIdx())
 	}
 }
 
@@ -382,24 +393,24 @@ func (m *Model) fixYOffset() {
 	}
 }
 
-// fixState fixes cursorRow and yOffset
+// fixState fixes selectedContentIdx and yOffset
 func (m *Model) fixState() {
 	m.fixYOffset()
-	m.fixCursorRow()
+	m.fixSelectedContentIdx()
 }
 
-func (m *Model) setContentHeight() {
+func (m *Model) updateContentHeight() {
 	_, footerHeight := m.getFooter()
-	contentHeight := m.height - len(m.header) - footerHeight
+	contentHeight := m.height - len(m.getHeader()) - footerHeight
 	m.contentHeight = max(0, contentHeight)
 }
 
 // maxContentIndex returns the maximum index of the model's content
 func (m *Model) maxContentIndex() int {
-	return len(m.currentContent()) - 1
+	return len(m.getContent()) - 1
 }
 
-// setYOffset sets the yOffset with bounds.
+// setYOffset sets the yOffset with bounds
 func (m *Model) setYOffset(n int) {
 	if maxYOffset := m.maxYOffset(); n > maxYOffset {
 		m.yOffset = maxYOffset
@@ -408,48 +419,55 @@ func (m *Model) setYOffset(n int) {
 	}
 }
 
-// cursorRowDown moves the cursorRow down by the given number of content.
-func (m *Model) cursorRowDown(n int) {
-	m.SetCursorRow(m.cursorRow + n)
+// selectedContentIdxDown moves the selectedContentIdx down by the given number of terminal rows
+func (m *Model) selectedContentIdxDown(n int) {
+	m.SetSelectedContentIdx(m.selectedContentIdx + n)
 }
 
-// cursorRowUp moves the cursorRow up by the given number of content.
-func (m *Model) cursorRowUp(n int) {
-	m.SetCursorRow(m.cursorRow - n)
+// selectedContentIdxUp moves the selectedContentIdx up by the given number of terminal rows
+func (m *Model) selectedContentIdxUp(n int) {
+	m.SetSelectedContentIdx(m.selectedContentIdx - n)
 }
 
-// viewDown moves the view down by the given number of content.
+// viewDown moves the view down by the given number of terminal rows
 func (m *Model) viewDown(n int) {
 	m.setYOffset(m.yOffset + n)
 }
 
-// viewUp moves the view up by the given number of content.
+// viewUp moves the view up by the given number of terminal rows
 func (m *Model) viewUp(n int) {
 	m.setYOffset(m.yOffset - n)
 }
 
-// viewLeft moves the view left the given number of columns.
+// viewLeft moves the view left the given number of columns
 func (m *Model) viewLeft(n int) {
 	m.SetXOffset(m.xOffset - n)
 }
 
-// viewRight moves the view right the given number of columns.
+// viewRight moves the view right the given number of columns
 func (m *Model) viewRight(n int) {
 	m.SetXOffset(m.xOffset + n)
 }
 
-func (m Model) currentContent() []string {
+func (m *Model) updateSaveDialogPlaceholder() {
+	padding := m.width - runeCount(constants.SaveDialogPlaceholder) - runeCount(m.saveDialog.Prompt)
+	padding = max(0, padding)
+	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
+	m.saveDialog.Placeholder = placeholder[:min(runeCount(placeholder), m.width)]
+}
+
+func (m Model) getHeader() []string {
+	if m.wrapText {
+		return m.wrappedHeader
+	}
+	return m.header
+}
+
+func (m Model) getContent() []string {
 	if m.wrapText {
 		return m.wrappedContent
 	}
 	return m.content
-}
-
-func (m Model) getSaveDialogPlaceholder() string {
-	padding := m.width - runeCount(constants.SaveDialogPlaceholder) - runeCount(m.saveDialog.Prompt)
-	padding = max(0, padding)
-	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
-	return placeholder[:min(runeCount(placeholder), m.width)]
 }
 
 // lastVisibleLineIdx returns the maximum visible line index
@@ -462,22 +480,22 @@ func (m Model) maxYOffset() int {
 	if m.maxContentIndex() < m.contentHeight {
 		return 0
 	}
-	return len(m.currentContent()) - m.contentHeight
+	return len(m.getContent()) - m.contentHeight
 }
 
-// maxCursorRow returns the maximum cursorRow
-func (m Model) maxCursorRow() int {
-	return len(m.currentContent()) - 1
+// maxContentIdx returns the maximum content index
+func (m Model) maxContentIdx() int {
+	return len(m.getContent()) - 1
 }
 
-// visibleLines retrieves the visible content based on the yOffset
-func (m Model) visibleLines() []string {
-	start := min(len(m.currentContent()), m.yOffset)
+// getVisibleLines retrieves the visible content based on the yOffset and contentHeight
+func (m Model) getVisibleLines() []string {
+	start := max(0, min(m.maxContentIdx(), m.yOffset))
 	end := start + m.contentHeight
 	if end > m.maxContentIndex() {
-		return m.currentContent()[start:]
+		return m.getContent()[start:]
 	}
-	return m.currentContent()[start:end]
+	return m.getContent()[start:end]
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
@@ -486,7 +504,8 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	start := min(end, m.xOffset)
 	line = line[start:end]
 	if m.xOffset+m.width < rightTrimmedLineLength {
-		line = line[:runeCount(line)-lenLineContinuationIndicator] + lineContinuationIndicator
+		truncate := max(0, runeCount(line)-lenLineContinuationIndicator)
+		line = line[:truncate] + lineContinuationIndicator
 	}
 	if m.xOffset > 0 {
 		line = lineContinuationIndicator + line[min(runeCount(line), lenLineContinuationIndicator):]
@@ -494,55 +513,36 @@ func (m Model) getVisiblePartOfLine(line string) string {
 	return line
 }
 
+func (m Model) getContentIdx(wrappedContentIdx int) int {
+	if !m.wrapText {
+		return wrappedContentIdx
+	}
+	return m.wrappedContentIdxToContentIdx[wrappedContentIdx]
+}
+
 func (m Model) getWrappedLines(line string) []string {
 	if runeCount(line) < m.width {
 		return []string{line}
 	}
-
 	line = strings.TrimSpace(line)
-
-	var wrappedLines []string
-	for {
-		lineWidth := runeCount(line)
-		if lineWidth == 0 {
-			break
-		}
-
-		width := m.width
-		if lineWidth < m.width {
-			width = lineWidth
-		}
-
-		wrappedLines = append(wrappedLines, line[0:width])
-		line = line[width:]
-	}
-
-	return wrappedLines
-}
-
-func (m Model) lineToViewLines(line string) []string {
-	if m.wrapText {
-		return m.getWrappedLines(line)
-	} else {
-		return []string{m.getVisiblePartOfLine(line)}
-	}
+	return splitLineIntoSizedChunks(line, m.width)
 }
 
 func (m Model) getFooter() (string, int) {
-	numerator := m.cursorRow + 1
+	numerator := m.selectedContentIdx + 1
 
 	if m.saveDialog.Focused() {
 		footer := lipgloss.NewStyle().MaxWidth(m.width).Render(m.saveDialog.View())
 		return footer, lipgloss.Height(footer)
 	}
 
-	// if cursor is disabled, percentage should show from the bottom of the visible content
+	// if selection is disabled, percentage should show from the bottom of the visible content
 	// such that panning the view to the bottom shows 100%
-	if !m.cursorEnabled {
+	if !m.selectionEnabled {
 		numerator = m.yOffset + m.contentHeight
 	}
 
-	if numLines := len(m.currentContent()); numLines > m.height-len(m.header) {
+	if numLines := len(m.getContent()); numLines > m.height-len(m.getHeader()) {
 		percentScrolled := percent(numerator, numLines)
 		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
 		renderedFooterString := m.FooterStyle.Copy().MaxWidth(m.width).Render(footerString)
@@ -554,7 +554,7 @@ func (m Model) getFooter() (string, int) {
 
 func (m Model) getSaveCommand() tea.Cmd {
 	var content string
-	for _, line := range append(m.header, m.currentContent()...) {
+	for _, line := range append(m.getHeader(), m.getContent()...) {
 		content += strings.TrimRight(line, " ") + "\n"
 	}
 
@@ -583,6 +583,25 @@ func max(a, b int) int {
 
 func percent(a, b int) int {
 	return int(float32(a) / float32(b) * 100)
+}
+
+func splitLineIntoSizedChunks(line string, chunkSize int) []string {
+	var wrappedLines []string
+	for {
+		lineWidth := runeCount(line)
+		if lineWidth == 0 {
+			break
+		}
+
+		width := chunkSize
+		if lineWidth < chunkSize {
+			width = lineWidth
+		}
+
+		wrappedLines = append(wrappedLines, line[0:width])
+		line = line[width:]
+	}
+	return wrappedLines
 }
 
 func runeCount(a string) int {

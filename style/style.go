@@ -12,7 +12,7 @@ var (
 	Header                     = lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.RoundedBorder(), true)
 	Viewport                   = lipgloss.NewStyle().Background(lipgloss.Color("#000000"))
 	ViewportHeaderStyle        = lipgloss.NewStyle().Bold(true)
-	ViewportCursorRowStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
+	ViewportSelectedRowStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))
 	ViewportHighlightStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#e760fc"))
 	ViewportFooterStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#737373"))
 	SaveDialogPromptStyle      = lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")).Foreground(lipgloss.Color("#000000"))

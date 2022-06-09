@@ -28,8 +28,9 @@ func New(
 	cursorEnabled, wrapText bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
+	dev.Debug(fmt.Sprintf("page height %d, viewport height %d", height, height-pageFilter.ViewHeight()))
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
-	pageViewport.SetCursorEnabled(cursorEnabled)
+	pageViewport.SetSelectionEnabled(cursorEnabled)
 	pageViewport.SetWrapText(wrapText)
 	model := Model{
 		width:         width,
@@ -136,7 +137,7 @@ func (m *Model) SetFilterPrefix(prefix string) {
 }
 
 func (m *Model) SetViewportCursorToBottom() {
-	m.viewport.SetCursorRow(len(m.pageData.Filtered) - 1)
+	m.viewport.SetSelectedContentIdx(len(m.pageData.Filtered) - 1)
 }
 
 func (m *Model) SetViewportXOffset(n int) {
@@ -152,7 +153,7 @@ func (m Model) Loading() bool {
 }
 
 func (m Model) GetSelectedPageRow() (Row, error) {
-	cursorRow := m.viewport.CursorRow()
+	cursorRow := m.viewport.SelectedContentIdx()
 	if filtered := m.pageData.Filtered; len(filtered) > 0 && cursorRow >= 0 && cursorRow < len(filtered) {
 		return filtered[cursorRow], nil
 	}
@@ -180,7 +181,7 @@ func (m *Model) updateViewport() {
 	m.viewport.SetStringToHighlight(m.filter.Filter)
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
-	m.viewport.SetCursorRow(0)
+	m.viewport.SetSelectedContentIdx(0)
 }
 
 func (m *Model) updateFilteredData() {
