@@ -16,7 +16,8 @@ import (
 )
 
 const lineContinuationIndicator = "..."
-const lenLineContinuationIndicator = len(lineContinuationIndicator)
+
+var lenLineContinuationIndicator = runeCount(lineContinuationIndicator)
 
 type SaveStatusMsg struct {
 	SuccessMessage, Err string
@@ -169,9 +170,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			case key.Matches(msg, m.keyMap.Bottom):
 				if m.cursorEnabled {
-					m.cursorRowDown(m.maxLinesIdx())
+					m.cursorRowDown(m.maxContentIndex())
 				} else {
-					m.viewDown(m.maxLinesIdx())
+					m.viewDown(m.maxContentIndex())
 				}
 
 			case key.Matches(msg, m.keyMap.Save):
@@ -202,7 +203,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var viewString string
 
-	nothingHighlighted := len(m.StringToHighlight) == 0
+	nothingHighlighted := runeCount(m.StringToHighlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
 	viewportHeightWithoutFooter := m.height - footerHeight
@@ -331,7 +332,8 @@ func (m *Model) SetCursorRow(n int) {
 }
 
 func (m *Model) SetXOffset(n int) {
-	m.xOffset = max(0, min(m.maxLineLength, n))
+	maxXOffset := m.maxLineLength - m.width
+	m.xOffset = max(0, min(maxXOffset, n))
 }
 
 func (m Model) CursorRow() int {
@@ -344,7 +346,7 @@ func (m Model) Saving() bool {
 
 func (m *Model) updateMaxLineLength() {
 	for _, line := range append(m.header, m.content...) {
-		if lineLength := len(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
+		if lineLength := runeCount(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
 			m.maxLineLength = lineLength
 		}
 	}
@@ -381,8 +383,8 @@ func (m *Model) setContentHeight() {
 	m.contentHeight = max(0, contentHeight)
 }
 
-// maxLinesIdx returns the maximum index of the model's content
-func (m *Model) maxLinesIdx() int {
+// maxContentIndex returns the maximum index of the model's content
+func (m *Model) maxContentIndex() int {
 	return len(m.content) - 1
 }
 
@@ -422,23 +424,23 @@ func (m *Model) viewLeft(n int) {
 
 // viewRight moves the view right the given number of columns.
 func (m *Model) viewRight(n int) {
-	m.SetXOffset(min(m.maxLineLength-m.width, m.xOffset+n))
+	m.SetXOffset(m.xOffset + n)
 }
 
 func (m Model) getSaveDialogPlaceholder() string {
-	padding := m.width - utf8.RuneCountInString(constants.SaveDialogPlaceholder) - utf8.RuneCountInString(m.saveDialog.Prompt)
+	padding := m.width - runeCount(constants.SaveDialogPlaceholder) - runeCount(m.saveDialog.Prompt)
 	padding = max(0, padding)
 	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
-	return placeholder[:min(len(placeholder), m.width)]
+	return placeholder[:min(runeCount(placeholder), m.width)]
 }
 
 // lastVisibleLineIdx returns the maximum visible line index
 func (m Model) lastVisibleLineIdx() int {
 	if !m.wrapText {
-		return min(m.maxLinesIdx(), m.yOffset+m.contentHeight-1)
+		return min(m.maxContentIndex(), m.yOffset+m.contentHeight-1)
 	} else {
 		lastIdx := m.yOffset
-		for count := 0; lastIdx > 0 && lastIdx <= m.maxLinesIdx() && count+len(m.getWrappedLines(m.content[lastIdx])) < m.contentHeight; count += len(m.getWrappedLines(m.content[lastIdx])) {
+		for count := 0; lastIdx > 0 && lastIdx <= m.maxContentIndex() && count+len(m.getWrappedLines(m.content[lastIdx])) < m.contentHeight; count += len(m.getWrappedLines(m.content[lastIdx])) {
 			lastIdx += 1
 		}
 		return lastIdx - 1
@@ -448,12 +450,12 @@ func (m Model) lastVisibleLineIdx() int {
 // maxYOffset returns the maximum yOffset (the yOffset that shows the final screen)
 func (m Model) maxYOffset() int {
 	if !m.wrapText {
-		if m.maxLinesIdx() < m.contentHeight {
+		if m.maxContentIndex() < m.contentHeight {
 			return 0
 		}
 		return len(m.content) - m.contentHeight
 	} else {
-
+		return 0
 	}
 }
 
@@ -466,28 +468,28 @@ func (m Model) maxCursorRow() int {
 func (m Model) visibleLines() []string {
 	start := min(len(m.content), m.yOffset)
 	end := start + m.contentHeight
-	if end > m.maxLinesIdx() {
+	if end > m.maxContentIndex() {
 		return m.content[start:]
 	}
 	return m.content[start:end]
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
-	rightTrimmedLineLength := len(strings.TrimRight(line, " "))
-	end := min(len(line), m.xOffset+m.width)
+	rightTrimmedLineLength := runeCount(strings.TrimRight(line, " "))
+	end := min(runeCount(line), m.xOffset+m.width)
 	start := min(end, m.xOffset)
 	line = line[start:end]
 	if m.xOffset+m.width < rightTrimmedLineLength {
-		line = line[:len(line)-lenLineContinuationIndicator] + lineContinuationIndicator
+		line = line[:runeCount(line)-lenLineContinuationIndicator] + lineContinuationIndicator
 	}
 	if m.xOffset > 0 {
-		line = lineContinuationIndicator + line[min(len(line), lenLineContinuationIndicator):]
+		line = lineContinuationIndicator + line[min(runeCount(line), lenLineContinuationIndicator):]
 	}
 	return line
 }
 
 func (m Model) getWrappedLines(line string) []string {
-	if utf8.RuneCountInString(line) < m.width {
+	if runeCount(line) < m.width {
 		return []string{line}
 	}
 
@@ -566,6 +568,10 @@ func max(a, b int) int {
 
 func percent(a, b int) int {
 	return int(float32(a) / float32(b) * 100)
+}
+
+func runeCount(a string) int {
+	return utf8.RuneCountInString(a)
 }
 
 // func normalizeLineEndings(s string) string {
