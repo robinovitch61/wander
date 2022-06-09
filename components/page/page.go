@@ -177,7 +177,7 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateViewport() {
-	m.viewport.StringToHighlight = m.filter.Filter
+	m.viewport.SetStringToHighlight(m.filter.Filter)
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
 	m.viewport.SetCursorRow(0)

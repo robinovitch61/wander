@@ -28,24 +28,28 @@ type Model struct {
 	content           []string
 	cursorEnabled     bool
 	cursorRow         int
-	StringToHighlight string
+	stringToHighlight string
 	wrapText          bool
-	mouseWheelEnabled bool
 
-	width         int
-	height        int
+	// width is the width of the entire viewport in terminal columns
+	width int
+	// height is the height of the entire viewport in terminal rows
+	height int
+	// contentHeight is the height of the viewport in terminal rows, excluding the terminal rows taken up by the header
 	contentHeight int
+	// maxLineLength is the maximum line length in terminal characters across header and content
 	maxLineLength int
 
-	keyMap     viewportKeyMap
-	saveDialog textinput.Model
+	keyMap viewportKeyMap
 
-	// yOffset indexes into content to the first shown line on the viewport, i.e. "top" = content[yOffset]
+	// yOffset indexes into content to the first shown line in the viewport. top line = content[yOffset]
 	yOffset int
-	// xOffset is the number of columns scrolled right when lines overflow the viewport and wrapText is false
+	// xOffset is the number of columns scrolled right when content lines overflow the viewport and wrapText is false
 	xOffset int
 
-	toast          toast.Model
+	saveDialog textinput.Model
+	toast      toast.Model
+
 	HeaderStyle    lipgloss.Style
 	CursorRowStyle lipgloss.Style
 	HighlightStyle lipgloss.Style
@@ -67,7 +71,6 @@ func New(width, height int) (m Model) {
 	m.keyMap = GetKeyMap()
 	m.cursorEnabled = true
 	m.wrapText = false
-	m.mouseWheelEnabled = false
 
 	m.HeaderStyle = style.ViewportHeaderStyle
 	m.CursorRowStyle = style.ViewportCursorRowStyle
@@ -179,18 +182,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.saveDialog.Focus()
 				cmds = append(cmds, textinput.Blink)
 			}
-
-		case tea.MouseMsg:
-			if !m.mouseWheelEnabled {
-				break
-			}
-			switch msg.Type {
-			case tea.MouseWheelUp:
-				m.cursorRowUp(1)
-
-			case tea.MouseWheelDown:
-				m.cursorRowDown(1)
-			}
 		}
 	}
 
@@ -203,7 +194,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var viewString string
 
-	nothingHighlighted := runeCount(m.StringToHighlight) == 0
+	nothingHighlighted := runeCount(m.stringToHighlight) == 0
 	footerString, footerHeight := m.getFooter()
 	lineCount := 0
 	viewportHeightWithoutFooter := m.height - footerHeight
@@ -236,13 +227,13 @@ func (m Model) View() string {
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
-			styledHighlight := m.HighlightStyle.Render(m.StringToHighlight)
+			styledHighlight := m.HighlightStyle.Render(m.stringToHighlight)
 			lineStyle := m.ContentStyle
 			if isSelected {
 				lineStyle = m.CursorRowStyle
 			}
 			for _, line := range parsedLines {
-				lineChunks := strings.Split(line, m.StringToHighlight)
+				lineChunks := strings.Split(line, m.stringToHighlight)
 				var styledChunks []string
 				for _, chunk := range lineChunks {
 					styledChunks = append(styledChunks, lineStyle.Render(chunk))
@@ -334,6 +325,10 @@ func (m *Model) SetCursorRow(n int) {
 func (m *Model) SetXOffset(n int) {
 	maxXOffset := m.maxLineLength - m.width
 	m.xOffset = max(0, min(maxXOffset, n))
+}
+
+func (m *Model) SetStringToHighlight(h string) {
+	m.stringToHighlight = h
 }
 
 func (m Model) CursorRow() int {
@@ -522,13 +517,14 @@ func (m Model) getFooter() (string, int) {
 	numerator := m.cursorRow + 1
 
 	if m.saveDialog.Focused() {
-		return lipgloss.NewStyle().MaxWidth(m.width).Render(m.saveDialog.View()), 1
+		footer := lipgloss.NewStyle().MaxWidth(m.width).Render(m.saveDialog.View())
+		return footer, lipgloss.Height(footer)
 	}
 
 	// if cursor is disabled, percentage should show from the bottom of the visible content
 	// such that panning the view to the bottom shows 100%
 	if !m.cursorEnabled {
-		numerator = m.yOffset + len(m.visibleLines())
+		numerator = m.yOffset + m.contentHeight
 	}
 
 	if numLines := len(m.content); numLines > m.height-len(m.header) {
