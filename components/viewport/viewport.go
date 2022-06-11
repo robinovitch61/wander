@@ -158,27 +158,31 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, m.keyMap.HalfPageUp):
+				offset := max(1, m.getNumVisibleItems()/2)
 				m.viewUp(m.contentHeight / 2)
 				if m.selectionEnabled {
-					m.selectedContentIdxUp(m.contentHeight / 2)
+					m.selectedContentIdxUp(offset)
 				}
 
 			case key.Matches(msg, m.keyMap.HalfPageDown):
+				offset := max(1, m.getNumVisibleItems()/2)
 				m.viewDown(m.contentHeight / 2)
 				if m.selectionEnabled {
-					m.selectedContentIdxDown(m.contentHeight / 2)
+					m.selectedContentIdxDown(offset)
 				}
 
 			case key.Matches(msg, m.keyMap.PageUp):
+				offset := m.getNumVisibleItems()
 				m.viewUp(m.contentHeight)
 				if m.selectionEnabled {
-					m.selectedContentIdxUp(m.contentHeight)
+					m.selectedContentIdxUp(offset)
 				}
 
 			case key.Matches(msg, m.keyMap.PageDown):
+				offset := m.getNumVisibleItems()
 				m.viewDown(m.contentHeight)
 				if m.selectionEnabled {
-					m.selectedContentIdxDown(m.contentHeight)
+					m.selectedContentIdxDown(offset)
 				}
 
 			case key.Matches(msg, m.keyMap.Top):
@@ -551,6 +555,26 @@ func (m Model) getWrappedLines(line string) []string {
 	}
 	line = strings.TrimRight(line, " ")
 	return splitLineIntoSizedChunks(line, m.width)
+}
+
+func (m Model) getNumVisibleItems() int {
+	if !m.wrapText {
+		return m.contentHeight
+	}
+
+	var itemCount int
+	var rowCount int
+	contentIdx := m.wrappedContentIdxToContentIdx[m.yOffset]
+	for rowCount < m.contentHeight {
+		if height, exists := m.contentIdxToHeight[contentIdx]; exists {
+			rowCount += height
+		} else {
+			break
+		}
+		contentIdx += 1
+		itemCount += 1
+	}
+	return itemCount - 1
 }
 
 func (m Model) lastContentItemSelected() bool {
