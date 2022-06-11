@@ -412,7 +412,10 @@ func (m *Model) fixViewForSelection() {
 	offScreenRowCount := currentLineIdx - lastVisibleLineIdx
 	if offScreenRowCount >= 0 || m.lastContentItemSelected() {
 		heightOffset := m.contentIdxToHeight[m.selectedContentIdx] - 1
-		m.viewDown(offScreenRowCount + heightOffset) // TODO LEO: clean this up
+		if !m.wrapText {
+			heightOffset = 0
+		}
+		m.viewDown(offScreenRowCount + heightOffset)
 	} else if currentLineIdx < m.yOffset {
 		m.viewUp(m.yOffset - currentLineIdx)
 	}
@@ -574,7 +577,7 @@ func (m Model) getNumVisibleItems() int {
 		contentIdx += 1
 		itemCount += 1
 	}
-	return itemCount - 1
+	return itemCount
 }
 
 func (m Model) lastContentItemSelected() bool {
