@@ -28,7 +28,6 @@ func New(
 	selectionEnabled, wrapText bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
-	dev.Debug(fmt.Sprintf("page height %d, viewport height %d", height, height-pageFilter.ViewHeight()))
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
 	pageViewport.SetSelectionEnabled(selectionEnabled)
 	pageViewport.SetWrapText(wrapText)
