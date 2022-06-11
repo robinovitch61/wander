@@ -1,9 +1,5 @@
 package viewport
 
-// TODO LEO: Remove
-// - terminal rows mean a literal row in the terminal
-// - selection maps to an entry in content, even if that entry wraps to more than one terminal row
-
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -111,13 +107,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			cancel := key.Matches(msg, m.keyMap.CancelSave)
 			confirm := key.Matches(msg, m.keyMap.ConfirmSave)
 			if cancel || confirm {
-				m.saveDialog.Blur()
-				m.saveDialog.Reset()
-
 				if confirm {
 					cmds = append(cmds, m.getSaveCommand())
-					// return m, tea.Batch(cmds...) // TODO LEO: Confirm ok
 				}
+
+				m.saveDialog.Blur()
+				m.saveDialog.Reset()
+				return m, tea.Batch(cmds...)
 			}
 		}
 	} else {
@@ -271,25 +267,13 @@ func (m *Model) SetSelectionEnabled(selectionEnabled bool) {
 }
 
 func (m *Model) SetWrapText(wrapText bool) {
-	// idea for wrapping: model internally maintains wrappedHeader, wrappedContent []wrapped
-	// where type wrapped struct { unwrappedIdx int, value string }
-	// unwrappedIdx represents selectedContentIdx when wrapped
 	m.wrapText = wrapText
-	// TODO LEO: dedupe these function calls here and below
-	m.updateContentHeight()
-	m.updateWrappedContent()
-	m.updateMaxLineLength()
-	m.SetXOffset(0)
-	m.fixViewForSelection()
+	m.updateForWrapText()
 }
 
 func (m *Model) ToggleWrapText() {
 	m.wrapText = !m.wrapText
-	m.updateContentHeight()
-	m.updateWrappedContent()
-	m.updateMaxLineLength()
-	m.SetXOffset(0)
-	m.fixViewForSelection()
+	m.updateForWrapText()
 }
 
 func (m *Model) HideToast() {
@@ -306,18 +290,13 @@ func (m *Model) SetSize(width, height int) {
 func (m *Model) SetHeader(header []string) {
 	m.header = header
 	m.updateWrappedHeader()
-	// TODO LEO: dedupe these three lines
-	m.updateMaxLineLength()
-	m.updateContentHeight()
-	m.fixViewForSelection()
+	m.updateForHeaderAndContent()
 }
 
 func (m *Model) SetContent(content []string) {
 	m.content = content
 	m.updateWrappedContent()
-	m.updateMaxLineLength()
-	m.updateContentHeight()
-	m.fixViewForSelection()
+	m.updateForHeaderAndContent()
 }
 
 // SetSelectedContentIdx sets the selectedContentIdx with bounds. Adjusts yOffset as necessary.
@@ -388,6 +367,20 @@ func (m *Model) updateWrappedContent() {
 	m.wrappedContentIdxToContentIdx = wrappedContentIdxToContentIdx
 	m.contentIdxToFirstWrappedContentIdx = contentIdxToFirstWrappedContentIdx
 	m.contentIdxToHeight = contentIdxToHeight
+}
+
+func (m *Model) updateForHeaderAndContent() {
+	m.updateMaxLineLength()
+	m.updateContentHeight()
+	m.fixViewForSelection()
+}
+
+func (m *Model) updateForWrapText() {
+	m.updateContentHeight()
+	m.updateWrappedContent()
+	m.updateMaxLineLength()
+	m.SetXOffset(0)
+	m.fixViewForSelection()
 }
 
 func (m *Model) updateMaxLineLength() {
