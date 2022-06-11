@@ -25,12 +25,12 @@ type Model struct {
 func New(
 	width, height int,
 	filterPrefix, loadingString string,
-	cursorEnabled, wrapText bool,
+	selectionEnabled, wrapText bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	dev.Debug(fmt.Sprintf("page height %d, viewport height %d", height, height-pageFilter.ViewHeight()))
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
-	pageViewport.SetSelectionEnabled(cursorEnabled)
+	pageViewport.SetSelectionEnabled(selectionEnabled)
 	pageViewport.SetWrapText(wrapText)
 	model := Model{
 		width:         width,
@@ -136,7 +136,7 @@ func (m *Model) SetFilterPrefix(prefix string) {
 	m.filter.SetPrefix(prefix)
 }
 
-func (m *Model) SetViewportCursorToBottom() {
+func (m *Model) SetViewportSelectionToBottom() {
 	m.viewport.SetSelectedContentIdx(len(m.pageData.Filtered) - 1)
 }
 
@@ -153,9 +153,9 @@ func (m Model) Loading() bool {
 }
 
 func (m Model) GetSelectedPageRow() (Row, error) {
-	cursorRow := m.viewport.SelectedContentIdx()
-	if filtered := m.pageData.Filtered; len(filtered) > 0 && cursorRow >= 0 && cursorRow < len(filtered) {
-		return filtered[cursorRow], nil
+	selectedRow := m.viewport.SelectedContentIdx()
+	if filtered := m.pageData.Filtered; len(filtered) > 0 && selectedRow >= 0 && selectedRow < len(filtered) {
+		return filtered[selectedRow], nil
 	}
 	return Row{}, fmt.Errorf("bad thing")
 }
