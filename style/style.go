@@ -4,7 +4,7 @@ import "github.com/charmbracelet/lipgloss"
 
 var (
 	Bold                       = lipgloss.NewStyle().Bold(true)
-	Logo                       = lipgloss.NewStyle().MarginBottom(1).Padding(0).Foreground(lipgloss.Color("#dbbd70"))
+	Logo                       = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color("#dbbd70"))
 	ClusterUrl                 = lipgloss.NewStyle()
 	KeyHelp                    = lipgloss.NewStyle().Padding(0, 2)
 	KeyHelpKey                 = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true)

@@ -122,34 +122,37 @@ func getShortHelp(bindings []key.Binding) string {
 }
 
 func GetPageKeyHelp(currentPage Page) string {
-	alwaysShown := []key.Binding{keymap.KeyMap.Exit}
+	firstRow := []key.Binding{keymap.KeyMap.Exit, keymap.KeyMap.Wrap}
 
-	if currentPage != LoglinePage {
-		alwaysShown = append(alwaysShown, keymap.KeyMap.Reload)
+	if currentPage.Loads() {
+		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
+	viewportKeyMap := viewport.GetKeyMap()
+	secondRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Save}
+
+	var thirdRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
 		keymap.KeyMap.Forward.SetHelp(keymap.KeyMap.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
-		alwaysShown = append(alwaysShown, keymap.KeyMap.Forward)
+		thirdRow = append(thirdRow, keymap.KeyMap.Forward)
 	}
 
 	if prevPage := currentPage.Backward(); prevPage != currentPage {
 		keymap.KeyMap.Back.SetHelp(keymap.KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
-		alwaysShown = append(alwaysShown, keymap.KeyMap.Back)
+		thirdRow = append(thirdRow, keymap.KeyMap.Back)
 	}
 
 	if currentPage == JobsPage || currentPage == AllocationsPage {
-		alwaysShown = append(alwaysShown, keymap.KeyMap.Spec)
+		thirdRow = append(thirdRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
-		alwaysShown = append(alwaysShown, keymap.KeyMap.StdOut)
-		alwaysShown = append(alwaysShown, keymap.KeyMap.StdErr)
+		thirdRow = append(thirdRow, keymap.KeyMap.StdOut)
+		thirdRow = append(thirdRow, keymap.KeyMap.StdErr)
 	}
 
-	firstRow := getShortHelp(alwaysShown)
+	var final string
+	for _, row := range [][]key.Binding{firstRow, secondRow, thirdRow} {
+		final += getShortHelp(row) + "\n"
+	}
 
-	viewportKeyMap := viewport.GetKeyMap()
-	viewportAlwaysShown := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Save}
-	secondRow := getShortHelp(viewportAlwaysShown)
-
-	return firstRow + "\n" + secondRow
+	return strings.TrimRight(final, "\n")
 }
