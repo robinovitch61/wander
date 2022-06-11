@@ -33,11 +33,14 @@ type Model struct {
 	content        []string
 	wrappedContent []string
 
-	// wrappedContentIdxToContentIdx maps indexes of wrappedContent to the indexes of content they are associated with
+	// wrappedContentIdxToContentIdx maps the item at an index of wrappedContent to the index of content it is associated with (many wrappedContent indexes -> one content index)
 	wrappedContentIdxToContentIdx map[int]int
 
-	// contentIdxToWrappedContentIdx maps indexes of content to the indexes of wrappedContent they are associated with
-	contentIdxToWrappedContentIdx map[int]int
+	// contentIdxToFirstWrappedContentIdx maps the item at an index of content to the first index of wrappedContent it is associated with (index of content -> first index of wrappedContent)
+	contentIdxToFirstWrappedContentIdx map[int]int
+
+	// contentIdxToHeight maps the item at an index of content to its wrapped height in terminal rows
+	contentIdxToHeight map[int]int
 
 	// selectedContentIdx is the index of content of the currently selected item when selectionEnabled is true
 	selectedContentIdx int
@@ -56,7 +59,7 @@ type Model struct {
 
 	keyMap viewportKeyMap
 
-	// yOffset indexes into content to the first shown line in the viewport. top line = content[yOffset]
+	// yOffset is the index of the first row shown on screen - wrappedContent[yOffset] if wrapText, otherwise content[yOffset]
 	yOffset int
 	// xOffset is the number of columns scrolled right when content lines overflow the viewport and wrapText is false
 	xOffset int
@@ -145,10 +148,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, m.keyMap.Left):
-				m.viewLeft(m.width / 4)
+				if !m.wrapText {
+					m.viewLeft(m.width / 4)
+				}
 
 			case key.Matches(msg, m.keyMap.Right):
-				m.viewRight(m.width / 4)
+				if !m.wrapText {
+					m.viewRight(m.width / 4)
+				}
 
 			case key.Matches(msg, m.keyMap.HalfPageUp):
 				m.viewUp(m.contentHeight / 2)
@@ -264,15 +271,21 @@ func (m *Model) SetWrapText(wrapText bool) {
 	// where type wrapped struct { unwrappedIdx int, value string }
 	// unwrappedIdx represents selectedContentIdx when wrapped
 	m.wrapText = wrapText
+	// TODO LEO: dedupe these function calls here and below
 	m.updateContentHeight()
-	m.fixState()
+	m.updateWrappedContent()
+	m.updateMaxLineLength()
+	m.SetXOffset(0)
+	m.fixViewForSelection()
 }
 
 func (m *Model) ToggleWrapText() {
 	m.wrapText = !m.wrapText
 	m.updateContentHeight()
 	m.updateWrappedContent()
-	m.fixState()
+	m.updateMaxLineLength()
+	m.SetXOffset(0)
+	m.fixViewForSelection()
 }
 
 func (m *Model) HideToast() {
@@ -283,7 +296,7 @@ func (m *Model) HideToast() {
 func (m *Model) SetSize(width, height int) {
 	m.setWidthAndHeight(width, height)
 	m.updateContentHeight()
-	m.fixState()
+	m.fixViewForSelection()
 }
 
 func (m *Model) SetHeader(header []string) {
@@ -292,7 +305,7 @@ func (m *Model) SetHeader(header []string) {
 	// TODO LEO: dedupe these three lines
 	m.updateMaxLineLength()
 	m.updateContentHeight()
-	m.fixState()
+	m.fixViewForSelection()
 }
 
 func (m *Model) SetContent(content []string) {
@@ -300,7 +313,7 @@ func (m *Model) SetContent(content []string) {
 	m.updateWrappedContent()
 	m.updateMaxLineLength()
 	m.updateContentHeight()
-	m.fixState()
+	m.fixViewForSelection()
 }
 
 // SetSelectedContentIdx sets the selectedContentIdx with bounds. Adjusts yOffset as necessary.
@@ -315,13 +328,7 @@ func (m *Model) SetSelectedContentIdx(n int) {
 		m.selectedContentIdx = max(0, n)
 	}
 
-	m.fixSelectedContentIdx()
-	// currentLineIdx := m.getCurrentLineIdx()
-	// if lastVisibleLineIdx := m.lastVisibleLineIdx(); currentLineIdx > lastVisibleLineIdx {
-	// 	m.viewDown(currentLineIdx - lastVisibleLineIdx)
-	// } else if currentLineIdx < m.yOffset {
-	// 	m.viewUp(m.yOffset - currentLineIdx)
-	// }
+	m.fixViewForSelection()
 }
 
 func (m *Model) SetXOffset(n int) {
@@ -355,16 +362,19 @@ func (m *Model) updateWrappedHeader() {
 func (m *Model) updateWrappedContent() {
 	var allWrappedContent []string
 	wrappedContentIdxToContentIdx := make(map[int]int)
-	contentIdxToWrappedContentIdx := make(map[int]int)
+	contentIdxToFirstWrappedContentIdx := make(map[int]int)
+	contentIdxToHeight := make(map[int]int)
+
 	var wrappedContentIdx int
 	for contentIdx, line := range m.content {
 		wrappedLinesForLine := m.getWrappedLines(line)
+		contentIdxToHeight[contentIdx] = len(wrappedLinesForLine)
 		for _, wrappedLine := range wrappedLinesForLine {
 			allWrappedContent = append(allWrappedContent, wrappedLine)
 
 			wrappedContentIdxToContentIdx[wrappedContentIdx] = contentIdx
-			if _, exists := contentIdxToWrappedContentIdx[contentIdx]; !exists {
-				contentIdxToWrappedContentIdx[contentIdx] = wrappedContentIdx
+			if _, exists := contentIdxToFirstWrappedContentIdx[contentIdx]; !exists {
+				contentIdxToFirstWrappedContentIdx[contentIdx] = wrappedContentIdx
 			}
 
 			wrappedContentIdx += 1
@@ -372,7 +382,8 @@ func (m *Model) updateWrappedContent() {
 	}
 	m.wrappedContent = allWrappedContent
 	m.wrappedContentIdxToContentIdx = wrappedContentIdxToContentIdx
-	m.contentIdxToWrappedContentIdx = contentIdxToWrappedContentIdx
+	m.contentIdxToFirstWrappedContentIdx = contentIdxToFirstWrappedContentIdx
+	m.contentIdxToHeight = contentIdxToHeight
 }
 
 func (m *Model) updateMaxLineLength() {
@@ -390,27 +401,21 @@ func (m *Model) setWidthAndHeight(width, height int) {
 	m.updateSaveDialogPlaceholder()
 }
 
-// fixSelectedContentIdx adjusts the selection to be in a visible location if it is outside the visible content
-func (m *Model) fixSelectedContentIdx() {
+// fixViewForSelection adjusts the view given the current selection
+func (m *Model) fixViewForSelection() {
 	currentLineIdx := m.getCurrentLineIdx()
-	if lastVisibleLineIdx := m.lastVisibleLineIdx(); currentLineIdx > lastVisibleLineIdx {
-		m.viewDown(currentLineIdx - lastVisibleLineIdx)
+	lastVisibleLineIdx := m.lastVisibleLineIdx()
+	offScreenRowCount := currentLineIdx - lastVisibleLineIdx
+	if offScreenRowCount >= 0 || m.lastContentItemSelected() {
+		heightOffset := m.contentIdxToHeight[m.selectedContentIdx] - 1
+		m.viewDown(offScreenRowCount + heightOffset) // TODO LEO: clean this up
 	} else if currentLineIdx < m.yOffset {
 		m.viewUp(m.yOffset - currentLineIdx)
 	}
-}
 
-// fixYOffset adjusts the yOffset such that it's not above the maximum value
-func (m *Model) fixYOffset() {
 	if maxYOffset := m.maxYOffset(); m.yOffset > maxYOffset {
 		m.setYOffset(maxYOffset)
 	}
-}
-
-// fixState fixes selectedContentIdx and yOffset
-func (m *Model) fixState() {
-	m.fixYOffset()
-	m.fixSelectedContentIdx()
 }
 
 func (m *Model) updateContentHeight() {
@@ -421,13 +426,11 @@ func (m *Model) updateContentHeight() {
 
 // setYOffset sets the yOffset with bounds
 func (m *Model) setYOffset(n int) {
-	dev.Debug(fmt.Sprintf("SETTING Y OFFSET %d", n))
 	if maxYOffset := m.maxYOffset(); n > maxYOffset {
 		m.yOffset = maxYOffset
 	} else {
 		m.yOffset = max(0, n)
 	}
-	dev.Debug(fmt.Sprintf("Y OFFSET %d", m.yOffset))
 }
 
 // selectedContentIdxDown moves the selectedContentIdx down by the given number of terminal rows
@@ -504,9 +507,10 @@ func (m Model) maxContentIdx() int {
 
 // getVisibleLines retrieves the visible content based on the yOffset and contentHeight
 func (m Model) getVisibleLines() []string {
-	start := max(0, min(m.maxVisibleLineIdx(), m.yOffset))
+	maxVisibleLineIdx := m.maxVisibleLineIdx()
+	start := max(0, min(maxVisibleLineIdx, m.yOffset))
 	end := start + m.contentHeight
-	if end > m.maxVisibleLineIdx() {
+	if end > maxVisibleLineIdx {
 		return m.getContent()[start:]
 	}
 	return m.getContent()[start:end]
@@ -536,8 +540,7 @@ func (m Model) getContentIdx(wrappedContentIdx int) int {
 
 func (m Model) getCurrentLineIdx() int {
 	if m.wrapText {
-		dev.Debug(fmt.Sprintf("SELECTED CONTENT IDX %d", m.selectedContentIdx))
-		return m.contentIdxToWrappedContentIdx[m.selectedContentIdx]
+		return m.contentIdxToFirstWrappedContentIdx[m.selectedContentIdx]
 	}
 	return m.selectedContentIdx
 }
@@ -546,12 +549,18 @@ func (m Model) getWrappedLines(line string) []string {
 	if runeCount(line) < m.width {
 		return []string{line}
 	}
-	line = strings.TrimSpace(line)
+	line = strings.TrimRight(line, " ")
 	return splitLineIntoSizedChunks(line, m.width)
 }
 
+func (m Model) lastContentItemSelected() bool {
+	return m.selectedContentIdx == len(m.content)-1
+}
+
 func (m Model) getFooter() (string, int) {
-	numerator := m.getCurrentLineIdx() + 1
+	numerator := m.selectedContentIdx + 1
+	denominator := len(m.content)
+	totalNumLines := len(m.getContent())
 
 	if m.saveDialog.Focused() {
 		footer := lipgloss.NewStyle().MaxWidth(m.width).Render(m.saveDialog.View())
@@ -562,11 +571,12 @@ func (m Model) getFooter() (string, int) {
 	// such that panning the view to the bottom shows 100%
 	if !m.selectionEnabled {
 		numerator = m.yOffset + m.contentHeight
+		denominator = totalNumLines
 	}
 
-	if numLines := len(m.getContent()); numLines > m.height-len(m.getHeader()) {
-		percentScrolled := percent(numerator, numLines)
-		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, numLines)
+	if totalNumLines > m.height-len(m.getHeader()) {
+		percentScrolled := percent(numerator, denominator)
+		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 		renderedFooterString := m.FooterStyle.Copy().MaxWidth(m.width).Render(footerString)
 		footerHeight := lipgloss.Height(renderedFooterString)
 		return renderedFooterString, footerHeight
