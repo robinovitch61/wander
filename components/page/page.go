@@ -25,11 +25,11 @@ type Model struct {
 func New(
 	width, height int,
 	filterPrefix, loadingString string,
-	cursorEnabled, wrapText bool,
+	selectionEnabled, wrapText bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
-	pageViewport.SetCursorEnabled(cursorEnabled)
+	pageViewport.SetSelectionEnabled(selectionEnabled)
 	pageViewport.SetWrapText(wrapText)
 	model := Model{
 		width:         width,
@@ -65,8 +65,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
-		if key.Matches(msg, keymap.KeyMap.Back) {
+		switch {
+		case key.Matches(msg, keymap.KeyMap.Back):
 			m.clearFilter()
+
+		case key.Matches(msg, keymap.KeyMap.Wrap):
+			m.viewport.ToggleWrapText()
 		}
 
 		if m.filter.Focused() {
@@ -131,8 +135,8 @@ func (m *Model) SetFilterPrefix(prefix string) {
 	m.filter.SetPrefix(prefix)
 }
 
-func (m *Model) SetViewportCursorToBottom() {
-	m.viewport.SetCursorRow(len(m.pageData.Filtered) - 1)
+func (m *Model) SetViewportSelectionToBottom() {
+	m.viewport.SetSelectedContentIdx(len(m.pageData.Filtered) - 1)
 }
 
 func (m *Model) SetViewportXOffset(n int) {
@@ -148,9 +152,9 @@ func (m Model) Loading() bool {
 }
 
 func (m Model) GetSelectedPageRow() (Row, error) {
-	cursorRow := m.viewport.CursorRow()
-	if filtered := m.pageData.Filtered; len(filtered) > 0 && cursorRow >= 0 && cursorRow < len(filtered) {
-		return filtered[cursorRow], nil
+	selectedRow := m.viewport.SelectedContentIdx()
+	if filtered := m.pageData.Filtered; len(filtered) > 0 && selectedRow >= 0 && selectedRow < len(filtered) {
+		return filtered[selectedRow], nil
 	}
 	return Row{}, fmt.Errorf("bad thing")
 }
@@ -173,10 +177,10 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateViewport() {
-	m.viewport.StringToHighlight = m.filter.Filter
+	m.viewport.SetStringToHighlight(m.filter.Filter)
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
-	m.viewport.SetCursorRow(0)
+	m.viewport.SetSelectedContentIdx(0)
 }
 
 func (m *Model) updateFilteredData() {
