@@ -32,5 +32,3 @@ require (
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 )
-
-replace github.com/robinovitch61/wander => /Users/leo/projects/wander
