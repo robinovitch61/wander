@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/robinovitch61/wander/components/app"
+	"github.com/robinovitch61/wander/constants"
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -20,15 +22,25 @@ import (
 	"github.com/gliderlabs/ssh"
 )
 
-const (
-	host = "localhost"
-	port = 23234
-)
-
 func main() {
+	host := os.Getenv(constants.WanderSSHHost)
+	if host == "" {
+		fmt.Printf("Set environment variable %s\n", constants.WanderSSHHost)
+		os.Exit(1)
+	}
+
+	portStr := os.Getenv(constants.WanderSSHPort)
+	if portStr == "" {
+		fmt.Printf("Set environment variable %s\n", constants.WanderSSHPort)
+		os.Exit(1)
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		panic(err)
+	}
+
 	s, err := wish.NewServer(
 		wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
-		wish.WithHostKeyPath(".ssh/term_info_ed25519"),
 		wish.WithMiddleware(
 			bm.Middleware(teaHandler),
 			lm.Middleware(),
@@ -57,37 +69,5 @@ func main() {
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	return app.InitialApp(), []tea.ProgramOption{tea.WithAltScreen()}
-}
-
-// Just a generic tea.Model to demo terminal information of ssh.
-type model struct {
-	term   string
-	width  int
-	height int
-}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		}
-	}
-	return m, nil
-}
-
-func (m model) View() string {
-	s := "Your term is %s\n"
-	s += "Your window size is x: %d y: %d\n\n"
-	s += "Press 'q' to quit\n"
-	return fmt.Sprintf(s, m.term, m.width, m.height)
+	return app.InitialModel(), []tea.ProgramOption{tea.WithAltScreen()}
 }

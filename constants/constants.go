@@ -7,7 +7,9 @@ import (
 
 const (
 	NomadTokenEnvVariable = "NOMAD_TOKEN"
-	NomadUrlEnvVariable   = "NOMAD_ADDR"
+	NomadURLEnvVariable   = "NOMAD_ADDR"
+	WanderSSHHost         = "WANDER_SSH_HOST"
+	WanderSSHPort         = "WANDER_SSH_PORT"
 )
 
 var LogoString = strings.Join([]string{

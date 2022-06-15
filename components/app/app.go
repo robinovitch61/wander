@@ -42,9 +42,9 @@ func InitialModel() Model {
 		os.Exit(1)
 	}
 
-	nomadUrl := os.Getenv(constants.NomadUrlEnvVariable)
+	nomadUrl := os.Getenv(constants.NomadURLEnvVariable)
 	if nomadUrl == "" {
-		fmt.Printf("Set environment variable %s\n", constants.NomadUrlEnvVariable)
+		fmt.Printf("Set environment variable %s\n", constants.NomadURLEnvVariable)
 		os.Exit(1)
 	}
 
