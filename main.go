@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/robinovitch61/wander/components/header"
+	"github.com/robinovitch61/wander/components/page"
+	"github.com/robinovitch61/wander/constants"
+	"github.com/robinovitch61/wander/dev"
+	"github.com/robinovitch61/wander/keymap"
+	"github.com/robinovitch61/wander/message"
+	"github.com/robinovitch61/wander/nomad"
+	"github.com/robinovitch61/wander/style"
 	"os"
-	"wander/components/header"
-	"wander/components/page"
-	"wander/constants"
-	"wander/dev"
-	"wander/keymap"
-	"wander/message"
-	"wander/nomad"
-	"wander/style"
 )
 
 type model struct {

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/wander/constants"
+	"github.com/robinovitch61/wander/dev"
+	"github.com/robinovitch61/wander/style"
 	"sync"
 	"time"
-	"wander/constants"
-	"wander/dev"
-	"wander/style"
 )
 
 var (

@@ -3,8 +3,8 @@ package header
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/wander/style"
 	"strings"
-	"wander/style"
 )
 
 type Model struct {

@@ -5,12 +5,12 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/wander/components/filter"
+	"github.com/robinovitch61/wander/components/toast"
+	"github.com/robinovitch61/wander/components/viewport"
+	"github.com/robinovitch61/wander/dev"
+	"github.com/robinovitch61/wander/keymap"
 	"strings"
-	"wander/components/filter"
-	"wander/components/toast"
-	"wander/components/viewport"
-	"wander/dev"
-	"wander/keymap"
 )
 
 type Model struct {

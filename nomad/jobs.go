@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/robinovitch61/wander/components/page"
+	"github.com/robinovitch61/wander/formatter"
+	"github.com/robinovitch61/wander/message"
 	"sort"
 	"strconv"
 	"strings"
-	"wander/components/page"
-	"wander/formatter"
-	"wander/message"
 )
 
 type jobResponseEntry struct {

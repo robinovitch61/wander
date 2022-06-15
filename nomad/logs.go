@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/acarl005/stripansi"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/robinovitch61/wander/components/page"
+	"github.com/robinovitch61/wander/formatter"
+	"github.com/robinovitch61/wander/message"
 	"strings"
-	"wander/components/page"
-	"wander/formatter"
-	"wander/message"
 )
 
 type LogType int8

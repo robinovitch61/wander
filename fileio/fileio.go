@@ -2,12 +2,12 @@ package fileio
 
 import (
 	"fmt"
+	"github.com/robinovitch61/wander/formatter"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
-	"wander/formatter"
 )
 
 func SaveToFile(saveDialogValue, fileContent string) (string, error) {
