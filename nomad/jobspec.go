@@ -2,9 +2,9 @@ package nomad
 
 import (
 	"fmt"
-	"wander/components/page"
-	"wander/formatter"
-	"wander/message"
+	"github.com/robinovitch61/wander/components/page"
+	"github.com/robinovitch61/wander/formatter"
+	"github.com/robinovitch61/wander/message"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

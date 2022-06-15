@@ -1,4 +1,4 @@
-module wander
+module github.com/robinovitch61/wander
 
 go 1.18
 

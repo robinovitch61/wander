@@ -6,13 +6,13 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/wander/components/toast"
+	"github.com/robinovitch61/wander/constants"
+	"github.com/robinovitch61/wander/dev"
+	"github.com/robinovitch61/wander/fileio"
+	"github.com/robinovitch61/wander/style"
 	"strings"
 	"unicode/utf8"
-	"wander/components/toast"
-	"wander/constants"
-	"wander/dev"
-	"wander/fileio"
-	"wander/style"
 )
 
 const lineContinuationIndicator = "..."

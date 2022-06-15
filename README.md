@@ -14,7 +14,13 @@ active development. Expect near term improvements. Feature requests in the form 
 
 ## Installation
 
-Currently, the best way to install `wander` is to clone this repo, build from source with `cd <cloned_repo> && go build`
+With [Go installed on your machine](https://go.dev/doc/install), install `wander` with
+
+```shell
+go install github.com/robinovitch61/wander
+```
+
+Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build`
 , then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
 ## Usage

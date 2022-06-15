@@ -2,8 +2,8 @@ package nomad
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"wander/components/page"
-	"wander/formatter"
+	"github.com/robinovitch61/wander/components/page"
+	"github.com/robinovitch61/wander/formatter"
 )
 
 func FetchLogLine(logline string) tea.Cmd {
