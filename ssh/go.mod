@@ -1,4 +1,4 @@
-module github.com/robinovitch61/wander/ssh
+module github.com/robinovitch61/wander/wander-ssh
 
 go 1.18
 
