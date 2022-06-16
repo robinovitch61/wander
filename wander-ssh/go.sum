@@ -68,6 +68,8 @@ github.com/robinovitch61/wander v0.0.0-20220615161453-c5774d66e0c7 h1:lUDRxU0Fp7
 github.com/robinovitch61/wander v0.0.0-20220615161453-c5774d66e0c7/go.mod h1:NBCRmLNgVt+c0yjqxUBz4XLd8+OvDX5VNPvQ0IkF/Gk=
 github.com/robinovitch61/wander v0.0.0-20220615165032-755339aec81f h1:Fop/O1+y/dNDOOKJfwT93OhgJT+z+cgWJCWlBHP61H8=
 github.com/robinovitch61/wander v0.0.0-20220615165032-755339aec81f/go.mod h1:NBCRmLNgVt+c0yjqxUBz4XLd8+OvDX5VNPvQ0IkF/Gk=
+github.com/robinovitch61/wander v0.0.0-20220616144119-1ba26651f1aa h1:jswcJ8n6NFLu7cZsauV3guP+mHoIGNdgPeZZIXb3/BY=
+github.com/robinovitch61/wander v0.0.0-20220616144119-1ba26651f1aa/go.mod h1:bLF3w9g6+Kci93dwU9QmMFYQ2SkXJJ9kQj3U7WPRxVo=
 github.com/sahilm/fuzzy v0.1.0/go.mod h1:VFvziUEIMCrT6A6tw2RFIXPXXmzXbOsSHF0DOI8ZK9Y=
 golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20220307211146-efcb8507fb70 h1:syTAU9FwmvzEoIYMqcPHOcVm4H3U5u90WsvuYgwpETU=
@@ -89,6 +91,8 @@ golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a h1:dGzPydgVsqGcTRVwiLJ1jVbuf
 golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220614162138-6c1b26c55098 h1:PgOr27OhUx2IRqGJ2RxAWI4dJQ7bi9cSrB82uzFzfUA=
 golang.org/x/sys v0.0.0-20220614162138-6c1b26c55098/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c h1:aFV+BgZ4svzjfabn8ERpuB4JI4N6/rdy1iusx77G3oU=
+golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210422114643-f5beecf764ed/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 h1:JGgROgKl9N8DuW20oFS5gxc+lE67/N3FcwmBPMe7ArY=
