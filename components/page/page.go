@@ -180,7 +180,6 @@ func (m *Model) updateViewport() {
 	m.viewport.SetStringToHighlight(m.filter.Filter)
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
-	m.viewport.SetSelectedContentIdx(0)
 }
 
 func (m *Model) updateFilteredData() {

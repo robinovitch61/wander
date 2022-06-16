@@ -297,6 +297,7 @@ func (m *Model) SetContent(content []string) {
 	m.content = content
 	m.updateWrappedContent()
 	m.updateForHeaderAndContent()
+	m.fixSelection()
 }
 
 // SetSelectedContentIdx sets the selectedContentIdx with bounds. Adjusts yOffset as necessary.
@@ -415,6 +416,15 @@ func (m *Model) fixViewForSelection() {
 
 	if maxYOffset := m.maxYOffset(); m.yOffset > maxYOffset {
 		m.setYOffset(maxYOffset)
+	}
+}
+
+func (m *Model) fixSelection() {
+	if !m.selectionEnabled {
+		return
+	}
+	if m.selectedContentIdx > m.maxContentIdx() {
+		m.selectedContentIdx = 0
 	}
 }
 
