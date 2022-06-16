@@ -1,6 +1,6 @@
 # wander: a terminal app for [Nomad by HashiCorp](https://www.nomadproject.io/)
 
-<p align="center"><strong>Click any image to view full demo</strong></p>
+<p align="center"><strong>Click <a href="https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif">here</a> or any image to view full demo</strong></p>
 
 Browse jobs, allocations, and tasks
 [![wander](./img/wander.jpg)](https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif)
@@ -47,7 +47,7 @@ NOMAD_ADDR=http://localhost:4646 NOMAD_TOKEN="blank" wander
 
 ## Development
 
-The `dev/dev.sh` script watches the source code and rebuilds the app on changes
+The `scripts/dev.sh` script watches the source code and rebuilds the app on changes
 using [entr](https://github.com/eradman/entr).
 
 Run `./wander` to run the built app.
