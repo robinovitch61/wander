@@ -17,7 +17,7 @@ active development. Expect near term improvements. Feature requests in the form 
 With [Go installed on your machine](https://go.dev/doc/install), install `wander` with
 
 ```shell
-go install github.com/robinovitch61/wander
+go install github.com/robinovitch61/wander@latest
 ```
 
 Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build`
