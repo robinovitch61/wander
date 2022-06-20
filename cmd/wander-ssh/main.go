@@ -6,8 +6,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/robinovitch61/wander/components/app"
-	"github.com/robinovitch61/wander/constants"
+	"github.com/robinovitch61/wander/internal/tui/components/app"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"log"
 	"os"
 	"os/signal"

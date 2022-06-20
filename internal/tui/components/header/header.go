@@ -3,7 +3,7 @@ package header
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/wander/style"
+	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 )
 

@@ -3,11 +3,11 @@ package nomad
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/robinovitch61/wander/components/page"
-	"github.com/robinovitch61/wander/components/viewport"
-	"github.com/robinovitch61/wander/formatter"
-	"github.com/robinovitch61/wander/keymap"
-	"github.com/robinovitch61/wander/style"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/components/viewport"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"github.com/robinovitch61/wander/internal/tui/keymap"
+	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 )
 
