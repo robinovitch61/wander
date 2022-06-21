@@ -12,7 +12,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"os"
 )
 
 type Model struct {
@@ -35,25 +34,13 @@ type Model struct {
 	err           error
 }
 
-func InitialModel() Model {
-	nomadToken := os.Getenv(constants.NomadTokenEnvVariable)
-	if nomadToken == "" {
-		fmt.Printf("Set environment variable %s\n", constants.NomadTokenEnvVariable)
-		os.Exit(1)
-	}
-
-	nomadUrl := os.Getenv(constants.NomadURLEnvVariable)
-	if nomadUrl == "" {
-		fmt.Printf("Set environment variable %s\n", constants.NomadURLEnvVariable)
-		os.Exit(1)
-	}
-
+func InitialModel(url, token string) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, nomadUrl, "")
+	initialHeader := header.New(constants.LogoString, url, "")
 
 	return Model{
-		nomadUrl:    nomadUrl,
-		nomadToken:  nomadToken,
+		nomadUrl:    url,
+		nomadToken:  token,
 		header:      initialHeader,
 		currentPage: firstPage,
 	}

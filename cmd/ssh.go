@@ -1,11 +1,13 @@
-package main
-
-// An example Bubble Tea server. This will put an ssh session into alt screen
-// and continually print up to date terminal information.
+package cmd
 
 import (
 	"context"
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/wish"
+	bm "github.com/charmbracelet/wish/bubbletea"
+	lm "github.com/charmbracelet/wish/logging"
+	"github.com/gliderlabs/ssh"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"log"
@@ -14,12 +16,6 @@ import (
 	"strconv"
 	"syscall"
 	"time"
-
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/wish"
-	bm "github.com/charmbracelet/wish/bubbletea"
-	lm "github.com/charmbracelet/wish/logging"
-	"github.com/gliderlabs/ssh"
 )
 
 func main() {
@@ -68,6 +64,6 @@ func main() {
 	}
 }
 
-func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	return app.InitialModel(), []tea.ProgramOption{tea.WithAltScreen()}
+func teaHandler(_ ssh.Session) (tea.Model, []tea.ProgramOption) {
+	return app.InitialModel("", ""), []tea.ProgramOption{tea.WithAltScreen()}
 }
