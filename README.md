@@ -17,10 +17,10 @@ active development. Expect near term improvements. Feature requests in the form 
 With [Go installed on your machine](https://go.dev/doc/install), install `wander` with
 
 ```shell
-go install github.com/robinovitch61/wander@latest
+go install github.com/robinovitch61/wander/cmd/wander@latest
 ```
 
-Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build`
+Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build -o wander ./cmd/wander`
 , then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
 ## Usage
@@ -50,7 +50,7 @@ NOMAD_ADDR=http://localhost:4646 NOMAD_TOKEN="blank" wander
 The `scripts/dev.sh` script watches the source code and rebuilds the app on changes
 using [entr](https://github.com/eradman/entr).
 
-Run `./wander` to run the built app.
+`wander` runs the built app. You must rerun it on rebuild.
 
 If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs logs
 to `wander.log`.
