@@ -4,9 +4,9 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/wander/constants"
-	"github.com/robinovitch61/wander/dev"
-	"github.com/robinovitch61/wander/style"
+	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/constants"
+	"github.com/robinovitch61/wander/internal/tui/style"
 	"sync"
 	"time"
 )

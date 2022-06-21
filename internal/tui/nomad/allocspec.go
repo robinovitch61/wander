@@ -3,9 +3,9 @@ package nomad
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/robinovitch61/wander/components/page"
-	"github.com/robinovitch61/wander/formatter"
-	"github.com/robinovitch61/wander/message"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"github.com/robinovitch61/wander/internal/tui/message"
 )
 
 func FetchAllocSpec(url, token, allocID string) tea.Cmd {

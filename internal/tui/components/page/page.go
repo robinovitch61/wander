@@ -5,11 +5,11 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/wander/components/filter"
-	"github.com/robinovitch61/wander/components/toast"
-	"github.com/robinovitch61/wander/components/viewport"
-	"github.com/robinovitch61/wander/dev"
-	"github.com/robinovitch61/wander/keymap"
+	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/components/filter"
+	"github.com/robinovitch61/wander/internal/tui/components/toast"
+	"github.com/robinovitch61/wander/internal/tui/components/viewport"
+	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"strings"
 )
 

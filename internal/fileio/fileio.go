@@ -2,7 +2,7 @@ package fileio
 
 import (
 	"fmt"
-	"github.com/robinovitch61/wander/formatter"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"os"
 	"os/user"
 	"path/filepath"

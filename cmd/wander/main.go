@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/robinovitch61/wander/components/app"
-	"github.com/robinovitch61/wander/dev"
+	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"os"
 )
 
