@@ -30,7 +30,7 @@ var (
 		config:   "wander_port",
 	}
 
-	serveDescription = `wander serve starts an ssh server hosting wander.`
+	serveDescription = `Starts an ssh server hosting wander.`
 
 	serveCmd = &cobra.Command{
 		Use:   "serve",

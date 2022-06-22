@@ -20,14 +20,12 @@ With [Go installed on your machine](https://go.dev/doc/install), install `wander
 go install github.com/robinovitch61/wander@latest
 ```
 
-Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build -o wander ./cmd/wander`
+Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build`
 , then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
-## Usage
+## Configuration
 
-### Configuration
-
-`wander` can be configured in a yaml file at `~/.wander.yaml` or a file path passed to the `--config` argument.
+`wander` can be configured in a yaml file at `$HOME/.wander.yaml` or a file path passed to the `--config` argument.
 
 Example yaml file:
 
@@ -48,7 +46,7 @@ wander_port: 22
 Alternatively, `wander` can be configured via environment variables (e.g. `wander_addr` in yaml above becomes the
 WANDER_ADDR environment variable), or via command line args visible by running `wander --help`.
 
-### Try it Out
+## Trying It Out
 
 You can try `wander` out by running a local nomad cluster in dev mode
 following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):

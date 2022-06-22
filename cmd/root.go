@@ -35,7 +35,7 @@ in a productivity-focused UI.`
 
 	rootCmd = &cobra.Command{
 		Use:   "wander",
-		Short: "A terminal application for Nomad by HashiCorp.",
+		Short: "A terminal application for Nomad by HashiCorp",
 		Long:  description,
 		Run:   mainEntrypoint,
 	}
@@ -52,9 +52,9 @@ func init() {
 	// root
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.wander.yaml)")
 	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
-	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "nomad token for HTTP API auth.")
+	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "nomad token for HTTP API auth")
 	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
-	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "nomad address, e.g. http://localhost:4646.")
+	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "nomad address, e.g. http://localhost:4646")
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
 
 	// serve
