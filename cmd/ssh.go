@@ -77,7 +77,8 @@ func sshEntrypoint(cmd *cobra.Command, args []string) {
 	}
 }
 
-func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.ProgramOption) {
+func generateTeaHandler(s ssh.Session, cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.ProgramOption) {
+	cmd.SetArgs(s.Command())
 	nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
 	nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
 
