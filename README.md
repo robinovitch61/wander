@@ -17,7 +17,7 @@ active development. Expect near term improvements. Feature requests in the form 
 With [Go installed on your machine](https://go.dev/doc/install), install `wander` with
 
 ```shell
-go install github.com/robinovitch61/wander/cmd/wander@latest
+go install github.com/robinovitch61/wander@latest
 ```
 
 Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build -o wander ./cmd/wander`
@@ -25,10 +25,30 @@ Alternatively, clone this repo, build from source with `cd <cloned_repo> && go b
 
 ## Usage
 
-`wander` requires two environment variables set:
+### Configuration
 
-- `NOMAD_ADDR`: path to nomad cluster
-- `NOMAD_TOKEN`: token for auth against the HTTP API
+`wander` can be configured in a yaml file at `~/.wander.yaml` or a file path passed to the `--config` argument.
+
+Example yaml file:
+
+```shell
+# the nomad address
+wander_addr: http://localhost:4646
+
+# the nomad token
+wander_token: nomad_token
+
+# only relevant for `wander serve` - the host of the machine serving the ssh app
+wander_host: localhost
+
+# only relevant for `wander serve` - the port of the ssh app
+wander_port: 22
+```
+
+Alternatively, `wander` can be configured via environment variables (e.g. `wander_addr` in yaml above becomes the
+WANDER_ADDR environment variable), or via command line args visible by running `wander --help`.
+
+### Try it Out
 
 You can try `wander` out by running a local nomad cluster in dev mode
 following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):
