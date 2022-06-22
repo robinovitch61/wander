@@ -70,8 +70,8 @@ NOMAD_ADDR=http://localhost:4646 NOMAD_TOKEN="blank" wander
 ## SSH App
 
 `wander` can be served via ssh application. For example, you could host an internal ssh application for your company
-such that anyone on the internal network can `ssh -p <your-port> <your-host>` and immediately use `wander` without
-installing anything.
+such that anyone on the internal network can `ssh -p <your-port> <your-host>` and immediately access `wander` without
+installing or configuring anything.
 
 Optionally, users can pass their token in with `ssh -p <port> <host> -t <token>`. The `-t` argument does not stand for
 token - it forces `ssh` to allocate a pty.
