@@ -23,6 +23,10 @@ go install github.com/robinovitch61/wander@latest
 Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build`
 , then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
+## Usage
+
+Run the app by running `wander` in a terminal. See `wander --help` and config section below for details.
+
 ## Configuration
 
 `wander` can be configured in a yaml file at `$HOME/.wander.yaml` or a file path passed to the `--config` argument.
@@ -30,10 +34,10 @@ Alternatively, clone this repo, build from source with `cd <cloned_repo> && go b
 Example yaml file:
 
 ```shell
-# the nomad address
+# required: nomad address
 wander_addr: http://localhost:4646
 
-# the nomad token
+# required: nomad token
 wander_token: nomad_token
 
 # only relevant for `wander serve` - the host of the machine serving the ssh app
