@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -77,12 +78,15 @@ func sshEntrypoint(cmd *cobra.Command, args []string) {
 	}
 }
 
-func generateTeaHandler(s ssh.Session, cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.ProgramOption) {
-	cmd.SetArgs(s.Command())
-	nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
-	nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
+func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.ProgramOption) {
+	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+		nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
+		nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
+		if sshCommands := s.Command(); len(sshCommands) == 1 {
+			nomadToken = strings.TrimSpace(sshCommands[0])
+		}
+		fmt.Printf("cmd %s addr %s token %s", s.Command(), nomadAddr, nomadToken)
 
-	return func(_ ssh.Session) (tea.Model, []tea.ProgramOption) {
 		return app.InitialModel(nomadAddr, nomadToken), []tea.ProgramOption{tea.WithAltScreen()}
 	}
 }
