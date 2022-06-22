@@ -48,7 +48,7 @@ wander_port: 21324
 ```
 
 Alternatively, `wander` can be configured via environment variables (e.g. `wander_addr` in yaml above becomes the
-WANDER_ADDR environment variable), or via command line args visible by running `wander --help`.
+`WANDER_ADDR` environment variable), or via command line args visible by running `wander --help`.
 
 ## Trying It Out
 
