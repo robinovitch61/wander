@@ -5,11 +5,6 @@ import (
 	"time"
 )
 
-const (
-	WanderSSHHost = "WANDER_SSH_HOST"
-	WanderSSHPort = "WANDER_SSH_PORT"
-)
-
 var LogoString = strings.Join([]string{
 	"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
 	"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
