@@ -49,22 +49,21 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
+	// root
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.wander.yaml)")
 	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
-
 	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "nomad token for HTTP API auth.")
 	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
-
 	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "nomad address, e.g. http://localhost:4646.")
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
 
-	sshCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "host for wander ssh server")
-	viper.BindPFlag(hostArg.cliLong, sshCmd.PersistentFlags().Lookup(hostArg.config))
+	// serve
+	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "host for wander ssh server")
+	viper.BindPFlag(hostArg.cliLong, serveCmd.PersistentFlags().Lookup(hostArg.config))
+	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", "port for wander ssh server")
+	viper.BindPFlag(portArg.cliLong, serveCmd.PersistentFlags().Lookup(portArg.config))
 
-	sshCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", "port for wander ssh server")
-	viper.BindPFlag(portArg.cliLong, sshCmd.PersistentFlags().Lookup(portArg.config))
-
-	rootCmd.AddCommand(sshCmd)
+	rootCmd.AddCommand(serveCmd)
 }
 
 func initConfig() {

@@ -6,7 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
 	bm "github.com/charmbracelet/wish/bubbletea"
-	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/spf13/cobra"
@@ -23,25 +22,25 @@ var (
 	hostArg = arg{
 		cliShort: "h",
 		cliLong:  "host",
-		config:   "wander_ssh_host",
+		config:   "wander_host",
 	}
 	portArg = arg{
 		cliShort: "p",
 		cliLong:  "port",
-		config:   "wander_ssh_port",
+		config:   "wander_port",
 	}
 
-	sshDescription = `wander ssh starts an ssh server that serves wander.`
+	serveDescription = `wander serve starts an ssh server hosting wander.`
 
-	sshCmd = &cobra.Command{
-		Use:   "ssh",
-		Short: "Start ssh server for wander.",
-		Long:  sshDescription,
-		Run:   sshEntrypoint,
+	serveCmd = &cobra.Command{
+		Use:   "serve",
+		Short: "Start ssh server for wander",
+		Long:  serveDescription,
+		Run:   serveEntrypoint,
 	}
 )
 
-func sshEntrypoint(cmd *cobra.Command, args []string) {
+func serveEntrypoint(cmd *cobra.Command, args []string) {
 	host := retrieveAssertExists(cmd, hostArg.cliLong, hostArg.config)
 	portStr := retrieveAssertExists(cmd, portArg.cliLong, portArg.config)
 	port, err := strconv.Atoi(portStr)
@@ -53,7 +52,7 @@ func sshEntrypoint(cmd *cobra.Command, args []string) {
 		wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
 		wish.WithMiddleware(
 			bm.Middleware(generateTeaHandler(cmd)),
-			lm.Middleware(),
+			CustomLoggingMiddleware(),
 		),
 	)
 	if err != nil {
@@ -82,6 +81,7 @@ func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
 		nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
+		// optionally override token - MUST run with `-t` flag to force pty, e.g. ssh -p 20000 localhost -t <token>
 		if sshCommands := s.Command(); len(sshCommands) == 1 {
 			nomadToken = strings.TrimSpace(sshCommands[0])
 		}
