@@ -85,8 +85,6 @@ func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.
 		if sshCommands := s.Command(); len(sshCommands) == 1 {
 			nomadToken = strings.TrimSpace(sshCommands[0])
 		}
-		fmt.Printf("cmd %s addr %s token %s", s.Command(), nomadAddr, nomadToken)
-
 		return app.InitialModel(nomadAddr, nomadToken), []tea.ProgramOption{tea.WithAltScreen()}
 	}
 }
