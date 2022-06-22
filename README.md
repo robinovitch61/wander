@@ -43,8 +43,8 @@ wander_token: nomad_token
 # only relevant for `wander serve` - the host of the machine serving the ssh app
 wander_host: localhost
 
-# only relevant for `wander serve` - the port of the ssh app
-wander_port: 22
+# only relevant for `wander serve` - the port for the ssh app
+wander_port: 21324
 ```
 
 Alternatively, `wander` can be configured via environment variables (e.g. `wander_addr` in yaml above becomes the
