@@ -4,7 +4,7 @@ thisdir=${0:a:h}
 
 DEV_CMD=$(cat <<-EOM
 rm -f $GOPATH/bin/wander && \
-echo "building $(date +"%T")" && \
+echo "building" && \
 go build $thisdir/.. && \
 mv $thisdir/../wander $GOPATH/bin && \
 echo "built"

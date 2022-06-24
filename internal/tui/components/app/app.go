@@ -62,14 +62,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	currentPageModel := m.getCurrentPageModel()
+	if currentPageModel != nil {
+		*currentPageModel, cmd = currentPageModel.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// always exit if desired, or don't respond if editing filter or saving
+		// always exit if desired, or don't respond if typing "q" legitimately in some text input
 		if key.Matches(msg, keymap.KeyMap.Exit) {
 			addingQToFilter := m.currentPageFilterFocused()
 			saving := m.currentPageViewportSaving()
-			typingQWhileFilteringOrSaving := (addingQToFilter || saving) && msg.String() == "q"
-			if !typingQWhileFilteringOrSaving {
+			enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
+			typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput)
+			if !typingQLegitimately {
 				return m, tea.Quit
 			}
 		}
@@ -175,18 +182,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
 		m.getCurrentPageModel().SetLoading(false)
 		m.getCurrentPageModel().SetViewportXOffset(0)
-		if m.currentPage == nomad.LogsPage {
-			m.pageModels[nomad.LogsPage].SetViewportSelectionToBottom()
+
+		switch m.currentPage {
+		case nomad.LogsPage:
+			m.getCurrentPageModel().SetViewportSelectionToBottom()
+		case nomad.ExecPage:
+			m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 		}
 
 	case nomad.ExecWebSocketConnectedMsg:
 		m.execWebSocket = msg.WebSocketConnection
 		m.getCurrentPageModel().SetLoading(false)
 	}
-
-	currentPageModel := m.getCurrentPageModel()
-	*currentPageModel, cmd = currentPageModel.Update(msg)
-	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -208,25 +215,25 @@ func (m *Model) initialize() {
 
 	m.pageModels = make(map[nomad.Page]*page.Model)
 
-	jobsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString(), true, false)
+	jobsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString(), true, false, false)
 	m.pageModels[nomad.JobsPage] = &jobsPage
 
-	jobSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false, true)
+	jobSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false, true, false)
 	m.pageModels[nomad.JobSpecPage] = &jobSpecPage
 
-	allocationsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false)
+	allocationsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false, false)
 	m.pageModels[nomad.AllocationsPage] = &allocationsPage
 
-	execPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.ExecPage), nomad.ExecPage.LoadingString(), false, true)
+	execPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.ExecPage), nomad.ExecPage.LoadingString(), false, true, true)
 	m.pageModels[nomad.ExecPage] = &execPage
 
-	allocSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false, true)
+	allocSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false, true, false)
 	m.pageModels[nomad.AllocSpecPage] = &allocSpecPage
 
-	logsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString(), true, false)
+	logsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString(), true, false, false)
 	m.pageModels[nomad.LogsPage] = &logsPage
 
-	loglinePage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString(), false, true)
+	loglinePage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString(), false, true, false)
 	m.pageModels[nomad.LoglinePage] = &loglinePage
 
 	m.initialized = true
@@ -263,7 +270,8 @@ func (m *Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllocationsPage:
 		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
-		return nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, "echo hi") // TODO LEO: fixme
+		return func() tea.Msg { return nomad.PageLoadedMsg{nomad.ExecPage, []string{}, []page.Row{}} }
+		// return nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, "echo hi") // TODO LEO: fixme
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
 	case nomad.LogsPage:

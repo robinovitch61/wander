@@ -3,6 +3,7 @@ package page
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/wander/internal/dev"
@@ -10,34 +11,57 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"github.com/robinovitch61/wander/internal/tui/components/viewport"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
+	"github.com/robinovitch61/wander/internal/tui/message"
 	"strings"
 )
 
 type Model struct {
 	width, height int
-	pageData      data
-	viewport      viewport.Model
-	filter        filter.Model
+
+	pageData data
+
+	viewport viewport.Model
+	filter   filter.Model
+
 	loadingString string
 	loading       bool
+
+	doesRequestInput bool
+	textinput        textinput.Model
+	enteringInput    bool
+	inputPrefix      string
+	initialized      bool
 }
 
 func New(
 	width, height int,
 	filterPrefix, loadingString string,
-	selectionEnabled, wrapText bool,
+	selectionEnabled, wrapText, requestInput bool,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
 	pageViewport.SetSelectionEnabled(selectionEnabled)
 	pageViewport.SetWrapText(wrapText)
+
+	enteringInput := false
+	var pageTextInput textinput.Model
+	if requestInput {
+		pageTextInput = textinput.New()
+		pageTextInput.Focus()
+		pageTextInput.Prompt = ""
+		enteringInput = true
+	}
+
 	model := Model{
-		width:         width,
-		height:        height,
-		viewport:      pageViewport,
-		filter:        pageFilter,
-		loadingString: loadingString,
-		loading:       true,
+		width:            width,
+		height:           height,
+		viewport:         pageViewport,
+		filter:           pageFilter,
+		loadingString:    loadingString,
+		loading:          true,
+		doesRequestInput: requestInput,
+		textinput:        pageTextInput,
+		enteringInput:    enteringInput,
 	}
 	return model
 }
@@ -48,6 +72,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
+	if !m.initialized && m.EnteringInput() {
+		m.initialized = true
+		return m, textinput.Blink
+	}
+
+	if m.EnteringInput() {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if msg.String() == "enter" {
+				m.enteringInput = false
+				return m, func() tea.Msg { return message.PageInputReceivedMsg{Input: m.textinput.Value()} }
+			}
+		}
+
+		m.textinput, cmd = m.textinput.Update(msg)
+		return m, cmd
+	}
 
 	if m.viewport.Saving() {
 		m.viewport, cmd = m.viewport.Update(msg)
@@ -101,9 +142,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	content := fmt.Sprintf(m.loadingString)
-	if !m.loading {
-		content = m.viewport.View()
+	var content string
+	if m.loading {
+		content = fmt.Sprintf(m.loadingString)
+	} else {
+		if m.EnteringInput() {
+			content = m.inputPrefix + m.textinput.View()
+		} else {
+			content = m.viewport.View()
+		}
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
 }
@@ -115,6 +162,10 @@ func (m *Model) SetWindowSize(width, height int) {
 
 func (m *Model) SetHeader(header []string) {
 	m.viewport.SetHeader(header)
+}
+
+func (m *Model) SetInputPrefix(p string) {
+	m.inputPrefix = p
 }
 
 func (m *Model) SetViewportStyle(headerStyle, contentStyle lipgloss.Style) {
@@ -157,6 +208,10 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 		return filtered[selectedRow], nil
 	}
 	return Row{}, fmt.Errorf("bad thing")
+}
+
+func (m Model) EnteringInput() bool {
+	return m.doesRequestInput && m.enteringInput
 }
 
 func (m Model) FilterFocused() bool {
