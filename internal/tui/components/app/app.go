@@ -66,7 +66,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	currentPageModel := m.getCurrentPageModel()
-	if currentPageModel != nil {
+	if currentPageModel != nil && currentPageModel.EnteringInput() {
 		*currentPageModel, cmd = currentPageModel.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -218,6 +218,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		dev.Debug(name)
 		body, err := ioutil.ReadFile(name)
 		dev.Debug(string(body))
+	}
+
+	currentPageModel = m.getCurrentPageModel()
+	if currentPageModel != nil && !currentPageModel.EnteringInput() {
+		*currentPageModel, cmd = currentPageModel.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
