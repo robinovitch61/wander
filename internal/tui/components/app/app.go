@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
@@ -13,6 +14,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
+	"io/ioutil"
 	"os"
 )
 
@@ -32,7 +34,8 @@ type Model struct {
 	logType      nomad.LogType
 
 	execWebSocket *websocket.Conn
-	execPTY       *os.File
+	execPty       *os.File
+	inPty         bool
 
 	width, height int
 	initialized   bool
@@ -190,12 +193,66 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 		}
 
+	case message.PageInputReceivedMsg:
+		if m.currentPage == nomad.ExecPage {
+			m.getCurrentPageModel().SetLoading(true)
+			return m, nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Input)
+		}
+
 	case nomad.ExecWebSocketConnectedMsg:
 		m.execWebSocket = msg.WebSocketConnection
 		m.getCurrentPageModel().SetLoading(false)
+		m.inPty = true
+		ptyFile, err := getPty()
+		if err != nil {
+			return m, func() tea.Msg { return message.ErrMsg{Err: err} }
+		}
+		m.execPty = ptyFile
+		dev.Debug("HERE")
+		m.execPty.Write([]byte("foo\n"))
+		m.execPty.Write([]byte("bar\n"))
+		m.execPty.Write([]byte("baz\n"))
+		m.execPty.Write([]byte{4}) // EOT
+		dev.Debug("THERE")
+		name := m.execPty.Name()
+		dev.Debug(name)
+		body, err := ioutil.ReadFile(name)
+		dev.Debug(string(body))
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func getPty() (*os.File, error) {
+	pty, tty, err := pty.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tty.Close() }() // Best effort.
+
+	// if sz != nil {
+	// 	if err := pty.Setsize(pty, sz); err != nil {
+	// 		_ = pty.Close() // Best effort.
+	// 		return nil, err
+	// 	}
+	// }
+	// if c.Stdout == nil {
+	// 	c.Stdout = tty
+	// }
+	// if c.Stderr == nil {
+	// 	c.Stderr = tty
+	// }
+	// if c.Stdin == nil {
+	// 	c.Stdin = tty
+	// }
+	//
+	// c.SysProcAttr = attrs
+	//
+	// if err := c.Start(); err != nil {
+	// 	_ = pty.Close() // Best effort.
+	// 	return nil, err
+	// }
+	return pty, err
 }
 
 func (m Model) View() string {
@@ -271,7 +328,6 @@ func (m *Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
 		return func() tea.Msg { return nomad.PageLoadedMsg{nomad.ExecPage, []string{}, []page.Row{}} }
-		// return nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, "echo hi") // TODO LEO: fixme
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
 	case nomad.LogsPage:
