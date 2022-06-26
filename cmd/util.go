@@ -55,3 +55,7 @@ func CustomLoggingMiddleware() wish.Middleware {
 func initialModel(addr, token string) app.Model {
 	return app.InitialModel(Version, CommitSHA, addr, token)
 }
+
+func getVersion() string {
+	return Version
+}

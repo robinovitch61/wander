@@ -35,10 +35,11 @@ view jobs, allocations, tasks, logs, and more, all from the terminal
 in a productivity-focused UI.`
 
 	rootCmd = &cobra.Command{
-		Use:   "wander",
-		Short: "A terminal application for Nomad by HashiCorp",
-		Long:  description,
-		Run:   mainEntrypoint,
+		Use:     "wander",
+		Short:   "A terminal application for Nomad by HashiCorp",
+		Long:    description,
+		Run:     mainEntrypoint,
+		Version: getVersion(),
 	}
 )
 
