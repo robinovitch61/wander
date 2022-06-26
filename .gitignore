@@ -4,3 +4,4 @@ wander
 wander.log
 mock.go
 .DS_Store
+dist/
