@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,7 +15,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"io/ioutil"
+	"io"
 	"os"
 )
 
@@ -208,16 +209,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg { return message.ErrMsg{Err: err} }
 		}
 		m.execPty = ptyFile
-		dev.Debug("HERE")
-		m.execPty.Write([]byte("foo\n"))
+		_, err = m.execPty.Write([]byte("foo\n"))
+		if err != nil {
+			return m, func() tea.Msg { return message.ErrMsg{Err: err} }
+		}
 		m.execPty.Write([]byte("bar\n"))
 		m.execPty.Write([]byte("baz\n"))
 		m.execPty.Write([]byte{4}) // EOT
-		dev.Debug("THERE")
-		name := m.execPty.Name()
-		dev.Debug(name)
-		body, err := ioutil.ReadFile(name)
-		dev.Debug(string(body))
+		buf := new(bytes.Buffer)
+		io.Copy(buf, m.execPty)
+		dev.Debug(buf.String())
+		pty.Start()
 	}
 
 	currentPageModel = m.getCurrentPageModel()
