@@ -15,6 +15,8 @@ type arg struct {
 }
 
 var (
+	Version = ""
+
 	// Used for flags.
 	cfgFile string
 
@@ -94,6 +96,8 @@ func mainEntrypoint(cmd *cobra.Command, args []string) {
 	program := tea.NewProgram(app.InitialModel(nomadAddr, nomadToken), tea.WithAltScreen())
 
 	dev.Debug("~STARTING UP~")
+	dev.Debug(Version)
+	dev.Debug("HERE")
 	if err := program.Start(); err != nil {
 		fmt.Printf("Error on wander startup: %v", err)
 		os.Exit(1)
