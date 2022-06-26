@@ -14,14 +14,28 @@ active development. Expect near term improvements. Feature requests in the form 
 
 ## Installation
 
-With [Go installed on your machine](https://go.dev/doc/install), install `wander` with
+### homebrew
+
+```shell
+brew install robinovitch61/tap/wander
+````
+
+### using [go installed on your machine](https://go.dev/doc/install)
 
 ```shell
 go install github.com/robinovitch61/wander@latest
 ```
 
-Alternatively, clone this repo, build from source with `cd <cloned_repo> && go build`
-, then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
+### download from github
+
+Download the relevant asset for your operating system from
+the [latest Github release](https://github.com/robinovitch61/wander/releases). Unpack it, then move the binary to
+somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
+
+### build from source
+
+Clone this repo, build from source with `cd <cloned_repo> && go build`,
+then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
 ## Usage
 
@@ -73,7 +87,8 @@ NOMAD_ADDR=http://localhost:4646 NOMAD_TOKEN="blank" wander
 such that anyone on the internal network can `ssh -p <your-port> <your-host>` and immediately access `wander` without
 installing or configuring anything.
 
-Optionally, users can pass in their own nomad token with `ssh -p <port> <host> -t <token>`. The `-t` argument does not stand for
+Optionally, users can pass in their own nomad token with `ssh -p <port> <host> -t <token>`. The `-t` argument does not
+stand for
 token - it forces `ssh` to allocate a pty.
 
 Serve the ssh app with `wander serve`.
