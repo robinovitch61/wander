@@ -4,7 +4,6 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
-	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -15,7 +14,7 @@ type arg struct {
 }
 
 var (
-	Version = ""
+	version, sha string
 
 	// Used for flags.
 	cfgFile string
@@ -93,11 +92,9 @@ func initConfig() {
 func mainEntrypoint(cmd *cobra.Command, args []string) {
 	nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
 	nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
-	program := tea.NewProgram(app.InitialModel(nomadAddr, nomadToken), tea.WithAltScreen())
+	program := tea.NewProgram(initialModel(nomadAddr, nomadToken), tea.WithAltScreen())
 
 	dev.Debug("~STARTING UP~")
-	dev.Debug(Version)
-	dev.Debug("HERE")
 	if err := program.Start(); err != nil {
 		fmt.Printf("Error on wander startup: %v", err)
 		os.Exit(1)

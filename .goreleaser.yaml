@@ -14,7 +14,7 @@ builds:
   - binary: wander
     env:
       - CGO_ENABLED=0
-    ldflags: -s -w -X main.Version=v{{ .Version }} -X main.CommitSHA={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
+    ldflags: -s -w -X github.com/robinovitch61/wander/cmd.Version=v{{ .Version }} -X github.com/robinovitch61/wander/cmd.CommitSHA={{ .Commit }}
     goos:
       - darwin
       - freebsd
