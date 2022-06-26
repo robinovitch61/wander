@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/wish"
 	bm "github.com/charmbracelet/wish/bubbletea"
 	"github.com/gliderlabs/ssh"
-	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -85,6 +84,6 @@ func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.
 		if sshCommands := s.Command(); len(sshCommands) == 1 {
 			nomadToken = strings.TrimSpace(sshCommands[0])
 		}
-		return app.InitialModel(nomadAddr, nomadToken), []tea.ProgramOption{tea.WithAltScreen()}
+		return initialModel(nomadAddr, nomadToken), []tea.ProgramOption{tea.WithAltScreen()}
 	}
 }

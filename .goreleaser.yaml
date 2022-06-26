@@ -14,6 +14,7 @@ builds:
   - binary: wander
     env:
       - CGO_ENABLED=0
+    ldflags: -s -w -X github.com/robinovitch61/wander/cmd.Version=v{{ .Version }} -X github.com/robinovitch61/wander/cmd.CommitSHA={{ .Commit }}
     goos:
       - darwin
       - freebsd
@@ -63,4 +64,3 @@ brews:
       email: goreleaserbot@theleo.zone
     install: |
       bin.install "wander"
-

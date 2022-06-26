@@ -4,12 +4,23 @@ import (
 	"fmt"
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
+	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
 	"strings"
 	"time"
+)
+
+var (
+	// Version contains the application version number. It's set via ldflags
+	// in the .goreleaser.yaml file when building
+	Version = ""
+
+	// CommitSHA contains the SHA of the commit that this application was built
+	// against. It's set via ldflags in the .goreleaser.yaml file when building
+	CommitSHA = ""
 )
 
 func retrieveAssertExists(cmd *cobra.Command, short, long string) string {
@@ -39,4 +50,12 @@ func CustomLoggingMiddleware() wish.Middleware {
 			log.Printf("%s disconnect %s\n", s.RemoteAddr().String(), time.Since(ct))
 		}
 	}
+}
+
+func initialModel(addr, token string) app.Model {
+	return app.InitialModel(Version, CommitSHA, addr, token)
+}
+
+func getVersion() string {
+	return Version
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
-	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -15,6 +14,8 @@ type arg struct {
 }
 
 var (
+	version, sha string
+
 	// Used for flags.
 	cfgFile string
 
@@ -34,10 +35,11 @@ view jobs, allocations, tasks, logs, and more, all from the terminal
 in a productivity-focused UI.`
 
 	rootCmd = &cobra.Command{
-		Use:   "wander",
-		Short: "A terminal application for Nomad by HashiCorp",
-		Long:  description,
-		Run:   mainEntrypoint,
+		Use:     "wander",
+		Short:   "A terminal application for Nomad by HashiCorp",
+		Long:    description,
+		Run:     mainEntrypoint,
+		Version: getVersion(),
 	}
 )
 
@@ -91,7 +93,7 @@ func initConfig() {
 func mainEntrypoint(cmd *cobra.Command, args []string) {
 	nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
 	nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
-	program := tea.NewProgram(app.InitialModel(nomadAddr, nomadToken), tea.WithAltScreen())
+	program := tea.NewProgram(initialModel(nomadAddr, nomadToken), tea.WithAltScreen())
 
 	dev.Debug("~STARTING UP~")
 	if err := program.Start(); err != nil {

@@ -34,9 +34,9 @@ type Model struct {
 	err           error
 }
 
-func InitialModel(url, token string) Model {
+func InitialModel(version, sha, url, token string) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, url, "")
+	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), "")
 
 	return Model{
 		nomadUrl:    url,
@@ -275,4 +275,11 @@ func (m Model) currentPageViewportSaving() bool {
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
 	return page.GetFilterPrefix(m.jobID, m.taskName, m.allocID)
+}
+
+func getVersionString(v, s string) string {
+	if v == "" {
+		return "built from source"
+	}
+	return fmt.Sprintf("%s (%s)", v, s[:7])
 }
