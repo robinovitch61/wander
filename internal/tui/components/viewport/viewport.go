@@ -604,7 +604,7 @@ func (m Model) getFooter() (string, int) {
 		denominator = totalNumLines
 	}
 
-	if totalNumLines > m.height-len(m.getHeader()) {
+	if totalNumLines >= m.height-len(m.getHeader()) {
 		percentScrolled := percent(numerator, denominator)
 		footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 		renderedFooterString := m.FooterStyle.Copy().MaxWidth(m.width).Render(footerString)
