@@ -1,11 +1,10 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/acarl005/stripansi"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
@@ -15,8 +14,8 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"io"
 	"os"
+	"strings"
 )
 
 type Model struct {
@@ -204,22 +203,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.execWebSocket = msg.WebSocketConnection
 		m.getCurrentPageModel().SetLoading(false)
 		m.inPty = true
-		ptyFile, err := getPty()
-		if err != nil {
-			return m, func() tea.Msg { return message.ErrMsg{Err: err} }
+		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+
+	case nomad.ExecWebSocketResponseMsg:
+		if msg.Close {
+			m.inPty = false
+			m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: "closed"}}, true)
+		} else {
+			stdOutRows := strings.Split(msg.StdOut, "\n")
+			stdErrRows := strings.Split(msg.StdErr, "\n")
+			for _, row := range append(stdOutRows, stdErrRows...) {
+				dev.Debug(row)
+				row = stripansi.Strip(row)
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: row}}, true)
+			}
+			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		}
-		m.execPty = ptyFile
-		_, err = m.execPty.Write([]byte("foo\n"))
-		if err != nil {
-			return m, func() tea.Msg { return message.ErrMsg{Err: err} }
-		}
-		m.execPty.Write([]byte("bar\n"))
-		m.execPty.Write([]byte("baz\n"))
-		m.execPty.Write([]byte{4}) // EOT
-		buf := new(bytes.Buffer)
-		io.Copy(buf, m.execPty)
-		dev.Debug(buf.String())
-		pty.Start()
 	}
 
 	currentPageModel = m.getCurrentPageModel()
@@ -229,38 +228,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
-}
-
-func getPty() (*os.File, error) {
-	pty, tty, err := pty.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = tty.Close() }() // Best effort.
-
-	// if sz != nil {
-	// 	if err := pty.Setsize(pty, sz); err != nil {
-	// 		_ = pty.Close() // Best effort.
-	// 		return nil, err
-	// 	}
-	// }
-	// if c.Stdout == nil {
-	// 	c.Stdout = tty
-	// }
-	// if c.Stderr == nil {
-	// 	c.Stderr = tty
-	// }
-	// if c.Stdin == nil {
-	// 	c.Stdin = tty
-	// }
-	//
-	// c.SysProcAttr = attrs
-	//
-	// if err := c.Start(); err != nil {
-	// 	_ = pty.Close() // Best effort.
-	// 	return nil, err
-	// }
-	return pty, err
 }
 
 func (m Model) View() string {

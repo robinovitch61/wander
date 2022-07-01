@@ -97,10 +97,11 @@ func send(ws *websocket.Conn, r string) error {
 }
 
 func readNext(ws *websocket.Conn) parsedWebSocketMessage {
-	// TODO LEO: with large responses, multiple messages per stdin :/
 	msgType, content, err := ws.ReadMessage()
 	if err != nil {
-		if strings.Contains(err.Error(), "use of closed network connection") {
+		closedConnUsed := strings.Contains(err.Error(), "use of closed network connection")
+		abnormalClosure := strings.Contains(err.Error(), "close 1006")
+		if closedConnUsed || abnormalClosure {
 			return parsedWebSocketMessage{Close: true}
 		}
 		return parsedWebSocketMessage{Err: err}

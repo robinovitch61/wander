@@ -326,6 +326,11 @@ func (m *Model) SetStringToHighlight(h string) {
 	m.stringToHighlight = h
 }
 
+func (m *Model) ScrollToBottom() {
+	m.selectedContentIdxDown(len(m.content))
+	m.viewDown(len(m.content))
+}
+
 func (m Model) SelectedContentIdx() int {
 	return m.selectedContentIdx
 }

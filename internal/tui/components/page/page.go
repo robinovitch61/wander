@@ -198,6 +198,23 @@ func (m *Model) HideToast() {
 	m.viewport.HideToast()
 }
 
+func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
+	var rowsWithContent []Row
+	for _, r := range rows {
+		if r.Row != "" {
+			rowsWithContent = append(rowsWithContent, r)
+		}
+	}
+	m.SetAllPageData(append(m.pageData.All, rowsWithContent...))
+	// maxHeight := m.height - m.filter.ViewHeight()
+	// if shownPageHeight := len(m.pageData.All); shownPageHeight < maxHeight {
+	// 	m.viewport.SetSize(m.width, shownPageHeight)
+	// } else {
+	// 	m.viewport.SetSize(m.width, maxHeight)
+	// }
+	m.viewport.ScrollToBottom()
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
