@@ -28,7 +28,7 @@ type Model struct {
 
 	doesRequestInput bool
 	textinput        textinput.Model
-	enteringInput    bool
+	needsNewInput    bool
 	inputPrefix      string
 	initialized      bool
 }
@@ -43,13 +43,13 @@ func New(
 	pageViewport.SetSelectionEnabled(selectionEnabled)
 	pageViewport.SetWrapText(wrapText)
 
-	enteringInput := false
+	needsNewInput := false
 	var pageTextInput textinput.Model
 	if requestInput {
 		pageTextInput = textinput.New()
 		pageTextInput.Focus()
 		pageTextInput.Prompt = ""
-		enteringInput = true
+		needsNewInput = true
 	}
 
 	model := Model{
@@ -61,7 +61,7 @@ func New(
 		loading:          true,
 		doesRequestInput: requestInput,
 		textinput:        pageTextInput,
-		enteringInput:    enteringInput,
+		needsNewInput:    needsNewInput,
 	}
 	return model
 }
@@ -72,22 +72,25 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
-	if !m.initialized && m.EnteringInput() {
-		m.initialized = true
-		return m, textinput.Blink
-	}
 
 	if m.EnteringInput() {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			if msg.String() == "enter" {
-				m.enteringInput = false
-				return m, func() tea.Msg { return message.PageInputReceivedMsg{Input: m.textinput.Value()} }
+		dev.Debug("HERE1")
+		if !m.initialized {
+			m.initialized = true
+			dev.Debug("HERE")
+			return m, textinput.Blink
+		} else {
+			switch msg := msg.(type) {
+			case tea.KeyMsg:
+				if msg.String() == "enter" && len(m.textinput.Value()) > 0 {
+					m.needsNewInput = false
+					return m, func() tea.Msg { return message.PageInputReceivedMsg{Input: m.textinput.Value()} }
+				}
 			}
-		}
 
-		m.textinput, cmd = m.textinput.Update(msg)
-		return m, cmd
+			m.textinput, cmd = m.textinput.Update(msg)
+			return m, cmd
+		}
 	}
 
 	if m.viewport.Saving() {
@@ -215,6 +218,14 @@ func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
 	m.viewport.ScrollToBottom()
 }
 
+func (m *Model) SetDoesNeedNewInput() {
+	if !m.doesRequestInput {
+		return
+	}
+	m.initialized = false
+	m.needsNewInput = true
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
@@ -228,7 +239,7 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 }
 
 func (m Model) EnteringInput() bool {
-	return m.doesRequestInput && m.enteringInput
+	return m.doesRequestInput && m.needsNewInput
 }
 
 func (m Model) FilterFocused() bool {

@@ -111,9 +111,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if !m.currentPageFilterApplied() {
-					prevPage := m.currentPage.Backward()
-					if prevPage != m.currentPage {
-						m.setPage(prevPage)
+
+					switch m.currentPage {
+					case nomad.ExecPage:
+						m.getCurrentPageModel().SetDoesNeedNewInput()
+					}
+
+					backPage := m.currentPage.Backward()
+					if backPage != m.currentPage {
+						m.setPage(backPage)
 						return m, m.getCurrentPageCmd()
 					}
 				}
@@ -225,7 +231,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.ExecWebSocketResponseMsg:
 		if msg.Close {
 			m.inPty = false
-			m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: "closed"}}, true)
+			m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
 		} else {
 			stdOutRows := strings.Split(msg.StdOut, "\n")
 			stdErrRows := strings.Split(msg.StdErr, "\n")
@@ -319,7 +325,9 @@ func (m *Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllocationsPage:
 		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
-		return func() tea.Msg { return nomad.PageLoadedMsg{nomad.ExecPage, []string{}, []page.Row{}} }
+		return func() tea.Msg {
+			return nomad.PageLoadedMsg{Page: nomad.ExecPage, TableHeader: []string{}, AllPageData: []page.Row{}}
+		}
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
 	case nomad.LogsPage:
