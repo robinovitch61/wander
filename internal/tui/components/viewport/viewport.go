@@ -217,12 +217,14 @@ func (m Model) View() string {
 		viewString += line + "\n"
 	}
 
-	for _, headerLine := range m.getHeader() {
+	header := m.getHeader()
+	for _, headerLine := range header {
 		headerViewLine := m.getVisiblePartOfLine(headerLine)
 		addLineToViewString(m.HeaderStyle.Render(headerViewLine))
 	}
 
 	visibleLines := m.getVisibleLines()
+	hasNoHighlight := runeCount(m.stringToHighlight) == 0
 	for idx, line := range visibleLines {
 		isSelected := m.selectionEnabled && m.getContentIdx(m.yOffset+idx) == m.selectedContentIdx
 		lineStyle := m.ContentStyle
@@ -231,7 +233,7 @@ func (m Model) View() string {
 		}
 		contentViewLine := m.getVisiblePartOfLine(line)
 
-		if runeCount(m.stringToHighlight) == 0 {
+		if hasNoHighlight {
 			addLineToViewString(lineStyle.Render(contentViewLine))
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
@@ -247,7 +249,7 @@ func (m Model) View() string {
 
 	if footerHeight > 0 {
 		// pad so footer shows up at bottom
-		padCount := max(0, m.contentHeight-len(visibleLines)-len(m.getHeader()))
+		padCount := max(0, m.contentHeight-len(visibleLines)-footerHeight)
 		viewString += strings.Repeat("\n", padCount)
 		viewString += footerString
 	}
