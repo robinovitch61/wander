@@ -92,7 +92,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					case nomad.JobsPage:
 						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 					case nomad.AllocationsPage:
-						m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+						if err != nil {
+							m.err = err
+							return m, nil
+						}
+						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
 					case nomad.LogsPage:
 						m.logline = selectedPageRow.Row
 					}
@@ -123,9 +128,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if key.Matches(msg, keymap.KeyMap.Exec) {
 				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 					if m.currentPage == nomad.AllocationsPage {
-						m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
-						m.setPage(nomad.ExecPage)
-						return m, m.getCurrentPageCmd()
+						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+						if err != nil {
+							m.err = err
+							return m, nil
+						}
+						if allocInfo.Running {
+							m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+							m.setPage(nomad.ExecPage)
+							return m, m.getCurrentPageCmd()
+						}
 					}
 				}
 			}
@@ -138,7 +150,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.setPage(nomad.JobSpecPage)
 						return m, m.getCurrentPageCmd()
 					case nomad.AllocationsPage:
-						m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+						if err != nil {
+							m.err = err
+							return m, nil
+						}
+						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
 						m.setPage(nomad.AllocSpecPage)
 						return m, m.getCurrentPageCmd()
 					}
