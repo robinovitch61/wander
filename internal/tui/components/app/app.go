@@ -33,9 +33,10 @@ type Model struct {
 	logline      string
 	logType      nomad.LogType
 
-	execWebSocket *websocket.Conn
-	execPty       *os.File
-	inPty         bool
+	execWebSocket       *websocket.Conn
+	execPty             *os.File
+	inPty               bool
+	lastCommandFinished struct{ stdOut, stdErr bool }
 
 	width, height int
 	initialized   bool
@@ -233,13 +234,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inPty = false
 			m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
 		} else {
-			stdOutRows := strings.Split(msg.StdOut, "\n")
-			stdErrRows := strings.Split(msg.StdErr, "\n")
-			for _, row := range append(stdOutRows, stdErrRows...) {
-				dev.Debug(row)
-				row = stripansi.Strip(row)
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: row}}, true)
-			}
+			m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
+			m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
+			m.updateLastCommandFinished(msg.StdOut, msg.StdErr)
+
 			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		}
 	}
@@ -336,6 +334,27 @@ func (m *Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchLogLine(m.logline)
 	default:
 		panic("page load command not found")
+	}
+}
+
+func (m *Model) appendToViewport(content string, startOnNewLine bool) {
+	stringRows := strings.Split(content, "\n")
+	var pageRows []page.Row
+	for _, row := range stringRows {
+		stripped := stripansi.Strip(row)
+		pageRows = append(pageRows, page.Row{Row: stripped})
+	}
+	m.getCurrentPageModel().AppendToViewport(pageRows, startOnNewLine)
+}
+
+func (m *Model) updateLastCommandFinished(stdOut, stdErr string) {
+	m.lastCommandFinished.stdOut = false
+	m.lastCommandFinished.stdErr = false
+	if strings.HasSuffix(stdOut, "\n") {
+		m.lastCommandFinished.stdOut = true
+	}
+	if strings.HasSuffix(stdErr, "\n") {
+		m.lastCommandFinished.stdErr = true
 	}
 }
 

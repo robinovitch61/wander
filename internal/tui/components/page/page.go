@@ -74,10 +74,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	)
 
 	if m.EnteringInput() {
-		dev.Debug("HERE1")
 		if !m.initialized {
 			m.initialized = true
-			dev.Debug("HERE")
 			return m, textinput.Blink
 		} else {
 			switch msg := msg.(type) {
@@ -202,13 +200,24 @@ func (m *Model) HideToast() {
 }
 
 func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
-	var rowsWithContent []Row
-	for _, r := range rows {
+	dev.Debug(fmt.Sprintf("Start on new line %t", startOnNewLine))
+	newPageData := m.pageData.All
+	for i, r := range rows {
 		if r.Row != "" {
-			rowsWithContent = append(rowsWithContent, r)
+			if i == 0 && !startOnNewLine {
+				allButLastEntry := newPageData[:max(0, len(newPageData)-1)]
+				currentLastEntry := Row{}
+				if len(m.pageData.All) > 0 {
+					currentLastEntry = m.pageData.All[len(m.pageData.All)-1]
+				}
+				newLastEntry := Row{Key: currentLastEntry.Key, Row: currentLastEntry.Row + r.Row}
+				newPageData = append(allButLastEntry, newLastEntry)
+			} else {
+				newPageData = append(newPageData, r)
+			}
 		}
 	}
-	m.SetAllPageData(append(m.pageData.All, rowsWithContent...))
+	m.SetAllPageData(newPageData)
 	// maxHeight := m.height - m.filter.ViewHeight()
 	// if shownPageHeight := len(m.pageData.All); shownPageHeight < maxHeight {
 	// 	m.viewport.SetSize(m.width, shownPageHeight)
@@ -277,4 +286,11 @@ func (m *Model) updateFilteredData() {
 		}
 		m.pageData.Filtered = filteredData
 	}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
