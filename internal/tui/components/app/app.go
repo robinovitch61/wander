@@ -347,6 +347,10 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 	m.getCurrentPageModel().AppendToViewport(pageRows, startOnNewLine)
 }
 
+// updateLastCommandFinished updates lastCommandFinished, which is necessary
+// because some data gets received in chunks in which a trailing \n indicates
+// finished content, otherwise more content is expected (e.g. the exec
+// websocket behaves this way when returning long content)
 func (m *Model) updateLastCommandFinished(stdOut, stdErr string) {
 	m.lastCommandFinished.stdOut = false
 	m.lastCommandFinished.stdErr = false
