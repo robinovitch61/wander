@@ -45,7 +45,7 @@ type Model struct {
 
 func InitialModel(version, sha, url, token string) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), "")
+	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage))
 
 	return Model{
 		nomadUrl:    url,
