@@ -17,7 +17,7 @@ func New(logo string, nomadUrl, version, keyHelp string) (m Model) {
 func (m Model) View() string {
 	logo := style.Logo.Render(m.logo)
 	clusterUrl := style.ClusterUrl.Render(m.nomadUrl)
-	left := style.Header.Render(lipgloss.JoinVertical(lipgloss.Center, logo, clusterUrl, m.version))
+	left := style.Header.Render(lipgloss.JoinVertical(lipgloss.Center, logo, m.version, clusterUrl))
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)
 	return lipgloss.JoinHorizontal(lipgloss.Center, left, styledKeyHelp)
 }

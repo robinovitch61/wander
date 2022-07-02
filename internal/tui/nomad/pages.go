@@ -122,35 +122,36 @@ func getShortHelp(bindings []key.Binding) string {
 }
 
 func GetPageKeyHelp(currentPage Page) string {
-	firstRow := []key.Binding{keymap.KeyMap.Exit, keymap.KeyMap.Wrap}
+	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
 	if currentPage.Loads() {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
 	viewportKeyMap := viewport.GetKeyMap()
-	secondRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Save}
+	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
+	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp}
 
-	var thirdRow []key.Binding
+	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
 		keymap.KeyMap.Forward.SetHelp(keymap.KeyMap.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
-		thirdRow = append(thirdRow, keymap.KeyMap.Forward)
+		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
 	if prevPage := currentPage.Backward(); prevPage != currentPage {
 		keymap.KeyMap.Back.SetHelp(keymap.KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
-		thirdRow = append(thirdRow, keymap.KeyMap.Back)
+		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
 	if currentPage == JobsPage || currentPage == AllocationsPage {
-		thirdRow = append(thirdRow, keymap.KeyMap.Spec)
+		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
-		thirdRow = append(thirdRow, keymap.KeyMap.StdOut)
-		thirdRow = append(thirdRow, keymap.KeyMap.StdErr)
+		fourthRow = append(fourthRow, keymap.KeyMap.StdOut)
+		fourthRow = append(fourthRow, keymap.KeyMap.StdErr)
 	}
 
 	var final string
-	for _, row := range [][]key.Binding{firstRow, secondRow, thirdRow} {
+	for _, row := range [][]key.Binding{firstRow, secondRow, thirdRow, fourthRow} {
 		final += getShortHelp(row) + "\n"
 	}
 
