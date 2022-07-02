@@ -1,11 +1,16 @@
 package nomad
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 )
 
 func get(url, token string, params map[string]string) ([]byte, error) {
+	if len(token) != 36 {
+		return nil, errors.New("token must be 36 characters")
+	}
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -27,6 +32,9 @@ func get(url, token string, params map[string]string) ([]byte, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+	if string(body) == "ACL token not found" {
+		return nil, errors.New("token not authorized")
 	}
 	return body, nil
 }
