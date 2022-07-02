@@ -18,6 +18,7 @@ const (
 	JobsPage
 	JobSpecPage
 	AllocationsPage
+	ExecPage
 	AllocSpecPage
 	LogsPage
 	LoglinePage
@@ -43,6 +44,8 @@ func (p Page) String() string {
 		return "job spec"
 	case AllocationsPage:
 		return "allocations"
+	case ExecPage:
+		return "exec"
 	case AllocSpecPage:
 		return "allocation spec"
 	case LogsPage:
@@ -75,6 +78,8 @@ func (p Page) Backward() Page {
 		return JobsPage
 	case AllocationsPage:
 		return JobsPage
+	case ExecPage:
+		return AllocationsPage
 	case AllocSpecPage:
 		return AllocationsPage
 	case LogsPage:
@@ -93,6 +98,8 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
 	case AllocationsPage:
 		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
+	case ExecPage:
+		return fmt.Sprintf("Exec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case AllocSpecPage:
 		return fmt.Sprintf("Allocation Spec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case LogsPage:

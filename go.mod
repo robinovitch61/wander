@@ -20,7 +20,9 @@ require (
 	github.com/caarlos0/sshmarshal v0.1.0 // indirect
 	github.com/charmbracelet/keygen v0.3.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
+	github.com/creack/pty v1.1.18 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect

@@ -2,8 +2,10 @@ package nomad
 
 import (
 	"errors"
+	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 func get(url, token string, params map[string]string) ([]byte, error) {
@@ -37,4 +39,29 @@ func get(url, token string, params map[string]string) ([]byte, error) {
 		return nil, errors.New("token not authorized")
 	}
 	return body, nil
+}
+
+func getWebSocketConnection(secure bool, host, path, token string, params map[string]string) (*websocket.Conn, error) {
+	urlParams := url.Values{}
+	for k, v := range params {
+		urlParams.Add(k, v)
+	}
+
+	scheme := "ws"
+	if secure {
+		scheme = "wss"
+	}
+
+	u := url.URL{
+		Scheme:   scheme,
+		Host:     host,
+		Path:     path,
+		RawQuery: urlParams.Encode(),
+	}
+
+	header := http.Header{}
+	header.Add("X-Nomad-Token", token)
+
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
+	return c, err
 }

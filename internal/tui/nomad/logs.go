@@ -24,7 +24,7 @@ func (p LogType) String() string {
 	case StdErr:
 		return "Stderr Logs"
 	}
-	return "Unknown"
+	return "unknown"
 }
 
 func (p LogType) ShortString() string {

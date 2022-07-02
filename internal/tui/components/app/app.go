@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gorilla/websocket"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
@@ -12,6 +13,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
+	"os"
 )
 
 type Model struct {
@@ -28,6 +30,9 @@ type Model struct {
 	taskName     string
 	logline      string
 	logType      nomad.LogType
+
+	execWebSocket *websocket.Conn
+	execPTY       *os.File
 
 	width, height int
 	initialized   bool
@@ -84,7 +89,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					nextPage := m.currentPage.Forward()
 					if nextPage != m.currentPage {
-						m.getCurrentPageModel().HideToast()
 						m.setPage(nextPage)
 						return m, m.getCurrentPageCmd()
 					}
@@ -94,7 +98,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if !m.currentPageFilterApplied() {
 					prevPage := m.currentPage.Backward()
 					if prevPage != m.currentPage {
-						m.getCurrentPageModel().HideToast()
 						m.setPage(prevPage)
 						return m, m.getCurrentPageCmd()
 					}
@@ -104,6 +107,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.currentPage.Loads() {
 					m.getCurrentPageModel().SetLoading(true)
 					return m, m.getCurrentPageCmd()
+				}
+			}
+
+			if key.Matches(msg, keymap.KeyMap.Exec) {
+				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+					if m.currentPage == nomad.AllocationsPage {
+						m.allocID, m.taskName = nomad.AllocIDAndTaskNameFromKey(selectedPageRow.Key)
+						m.setPage(nomad.ExecPage)
+						return m, m.getCurrentPageCmd()
+					}
 				}
 			}
 
@@ -158,7 +171,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.PageLoadedMsg:
-		m.setPage(msg.Page)
 		m.getCurrentPageModel().SetHeader(msg.TableHeader)
 		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
 		m.getCurrentPageModel().SetLoading(false)
@@ -166,6 +178,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.currentPage == nomad.LogsPage {
 			m.pageModels[nomad.LogsPage].SetViewportSelectionToBottom()
 		}
+
+	case nomad.ExecWebSocketConnectedMsg:
+		m.execWebSocket = msg.WebSocketConnection
+		m.getCurrentPageModel().SetLoading(false)
 	}
 
 	currentPageModel := m.getCurrentPageModel()
@@ -201,6 +217,9 @@ func (m *Model) initialize() {
 	allocationsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false)
 	m.pageModels[nomad.AllocationsPage] = &allocationsPage
 
+	execPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.ExecPage), nomad.ExecPage.LoadingString(), false, true)
+	m.pageModels[nomad.ExecPage] = &execPage
+
 	allocSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false, true)
 	m.pageModels[nomad.AllocSpecPage] = &allocSpecPage
 
@@ -220,6 +239,7 @@ func (m *Model) setPageWindowSize() {
 }
 
 func (m *Model) setPage(page nomad.Page) {
+	m.getCurrentPageModel().HideToast()
 	m.currentPage = page
 	m.header.KeyHelp = nomad.GetPageKeyHelp(page)
 	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(page))
@@ -242,6 +262,8 @@ func (m *Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchJobSpec(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
 	case nomad.AllocationsPage:
 		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
+	case nomad.ExecPage:
+		return nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, "echo hi") // TODO LEO: fixme
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
 	case nomad.LogsPage:
