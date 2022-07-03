@@ -46,7 +46,7 @@ type Model struct {
 
 func InitialModel(version, sha, url, token string) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage, false, false, false, false))
+	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false))
 
 	return Model{
 		nomadUrl:    url,
@@ -87,30 +87,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.inPty {
-			keypress := string(msg.Runes)
+			var keypress string
 			if key.Matches(msg, keymap.KeyMap.Back) {
 				m.setInPty(false)
 			} else {
-				switch msg.Type {
-				case tea.KeyEnter:
-					keypress = "\n"
-				case tea.KeySpace:
-					keypress = " "
-				case tea.KeyBackspace:
-					if msg.Alt {
-						keypress = string(rune(23))
-					} else {
-						keypress = string(rune(127))
-					}
-				case tea.KeyCtrlD:
-					keypress = string(rune(4))
-				case tea.KeyTab:
-					keypress = string(rune(9))
-				case tea.KeyUp:
-					keypress = string(rune(27)) + "[A"
-				case tea.KeyDown:
-					keypress = string(rune(27)) + "[B"
-				}
+				keypress = nomad.GetKeypress(msg)
 			}
 			return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
 		}
@@ -300,7 +281,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		*currentPageModel, cmd = currentPageModel.Update(msg)
 		cmds = append(cmds, cmd)
 	}
-	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
+	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
 
 	return m, tea.Batch(cmds...)
 }

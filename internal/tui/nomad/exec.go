@@ -114,6 +114,32 @@ func CloseWebSocket(ws *websocket.Conn) tea.Cmd {
 	}
 }
 
+func GetKeypress(msg tea.KeyMsg) (keypress string) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		keypress = "\n"
+	case tea.KeySpace:
+		keypress = " "
+	case tea.KeyBackspace:
+		if msg.Alt {
+			keypress = string(rune(23))
+		} else {
+			keypress = string(rune(127))
+		}
+	case tea.KeyCtrlD:
+		keypress = string(rune(4))
+	case tea.KeyTab:
+		keypress = string(rune(9))
+	case tea.KeyUp:
+		keypress = string(rune(27)) + "[A"
+	case tea.KeyDown:
+		keypress = string(rune(27)) + "[B"
+	default:
+		keypress = string(msg.Runes)
+	}
+	return keypress
+}
+
 type exitJSON struct {
 	ExitCode int `json:"exit_code"`
 }

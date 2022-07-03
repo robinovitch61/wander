@@ -142,10 +142,10 @@ func changeKeyHelp(k *key.Binding, h string) {
 	k.SetHelp(k.Help().Key, h)
 }
 
-func GetPageKeyHelp(currentPage Page, saving, enteringInput, inPty, webSocketConnected bool) string {
+func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool) string {
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
-	if currentPage.Reloads() && !saving {
+	if currentPage.Reloads() && !saving && !filterFocused {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
@@ -159,7 +159,10 @@ func GetPageKeyHelp(currentPage Page, saving, enteringInput, inPty, webSocketCon
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
-	if prevPage := currentPage.Backward(); prevPage != currentPage {
+	if filterApplied {
+		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
+		fourthRow = append(fourthRow, keymap.KeyMap.Back)
+	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
 		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("view %s", currentPage.Backward().String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
@@ -196,7 +199,14 @@ func GetPageKeyHelp(currentPage Page, saving, enteringInput, inPty, webSocketCon
 	if saving {
 		changeKeyHelp(&keymap.KeyMap.Forward, "confirm save")
 		changeKeyHelp(&keymap.KeyMap.Back, "cancel save")
-		secondRow = []key.Binding{keymap.KeyMap.Forward, keymap.KeyMap.Back}
+		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
+		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+	}
+
+	if filterFocused {
+		changeKeyHelp(&keymap.KeyMap.Forward, "apply filter")
+		changeKeyHelp(&keymap.KeyMap.Back, "cancel filter")
+		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
 		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 	}
 
