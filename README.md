@@ -1,38 +1,53 @@
-# wander: a terminal app for [Nomad by HashiCorp](https://www.nomadproject.io/)
+# Wander - a terminal app for [HashiCorp Nomad](https://www.nomadproject.io/)
 
-<p align="center"><strong>Click <a href="https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif">here</a> or any image to view full demo</strong></p>
+### Browse jobs
 
-Browse jobs, allocations, and tasks
-[![wander](./img/wander.jpg)](https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif)
-Navigate, search, and save logs
-[![wander](./img/logs.jpg)](https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif)
+![wander](./img/jobs.png)
 
-`wander` currently supports viewing jobs, allocations, tasks, and logs across a Nomad cluster.
+### View allocations and tasks
 
-It is written with the [Bubble Tea TUI framework from Charm](https://github.com/charmbracelet/bubbletea), and is in
-active development. Expect near term improvements. Feature requests in the form of issues are welcome.
+![wander](./img/allocations.png)
+
+### Exec to run commands in a running task
+
+![wander](./img/exec.png)
+
+### View and search logs
+
+![wander](./img/logs.png)
+
+### Save any view as a local file
+
+![wander](./img/save.png)
+
+### See full specs
+
+![wander](./img/spec.png)
+
+`wander` is written with tools from [Charm](https://charm.sh/).
+[Feature requests and bug reports for wander are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
 
 ## Installation
 
-### homebrew
+### > Using homebrew
 
 ```shell
 brew install robinovitch61/tap/wander
-````
+```
 
-### using [go installed on your machine](https://go.dev/doc/install)
+### > Download from GitHub
+
+Download the relevant binary for your operating system (macOS = Darwin) from
+the [latest Github release](https://github.com/robinovitch61/wander/releases). Unpack it, then move the binary to
+somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
+
+### > Using [go installed on your machine](https://go.dev/doc/install)
 
 ```shell
 go install github.com/robinovitch61/wander@latest
 ```
 
-### download from github
-
-Download the relevant asset for your operating system from
-the [latest Github release](https://github.com/robinovitch61/wander/releases). Unpack it, then move the binary to
-somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
-
-### build from source
+### > Build from source
 
 Clone this repo, build from source with `cd <cloned_repo> && go build`,
 then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
@@ -64,6 +79,18 @@ wander_port: 21324
 Alternatively, `wander` can be configured via environment variables (e.g. `wander_addr` in yaml above becomes the
 `WANDER_ADDR` environment variable), or via command line args visible by running `wander --help`.
 
+## SSH App
+
+`wander` can be served via ssh application. For example, you could host an internal ssh application for your company
+such that anyone on the internal network can `ssh -p <your-port> <your-host>` and immediately access `wander` without
+installing or configuring anything.
+
+Optionally, users can pass in their own nomad token with `ssh -p <port> <host> -t <token>`. The `-t` argument does not
+stand for
+token - it forces `ssh` to allocate a pty.
+
+Serve the ssh app with `wander serve`.
+
 ## Trying It Out
 
 You can try `wander` out by running a local nomad cluster in dev mode
@@ -78,20 +105,8 @@ nomad job init
 nomad job run example.nomad
 
 # run wander
-NOMAD_ADDR=http://localhost:4646 NOMAD_TOKEN="blank" wander
+wander -a http://localhost:4646 -t ""
 ```
-
-## SSH App
-
-`wander` can be served via ssh application. For example, you could host an internal ssh application for your company
-such that anyone on the internal network can `ssh -p <your-port> <your-host>` and immediately access `wander` without
-installing or configuring anything.
-
-Optionally, users can pass in their own nomad token with `ssh -p <port> <host> -t <token>`. The `-t` argument does not
-stand for
-token - it forces `ssh` to allocate a pty.
-
-Serve the ssh app with `wander serve`.
 
 ## Development
 

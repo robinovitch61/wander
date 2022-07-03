@@ -18,6 +18,7 @@ const (
 	JobsPage
 	JobSpecPage
 	AllocationsPage
+	ExecPage
 	AllocSpecPage
 	LogsPage
 	LoglinePage
@@ -27,6 +28,16 @@ func (p Page) Loads() bool {
 	noLoadPages := []Page{LoglinePage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
+			return false
+		}
+	}
+	return true
+}
+
+func (p Page) Reloads() bool {
+	noReloadPages := []Page{LoglinePage, ExecPage}
+	for _, noReloadPage := range noReloadPages {
+		if noReloadPage == p {
 			return false
 		}
 	}
@@ -43,6 +54,8 @@ func (p Page) String() string {
 		return "job spec"
 	case AllocationsPage:
 		return "allocations"
+	case ExecPage:
+		return "exec"
 	case AllocSpecPage:
 		return "allocation spec"
 	case LogsPage:
@@ -75,6 +88,8 @@ func (p Page) Backward() Page {
 		return JobsPage
 	case AllocationsPage:
 		return JobsPage
+	case ExecPage:
+		return AllocationsPage
 	case AllocSpecPage:
 		return AllocationsPage
 	case LogsPage:
@@ -93,6 +108,8 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
 	case AllocationsPage:
 		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
+	case ExecPage:
+		return fmt.Sprintf("Exec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case AllocSpecPage:
 		return fmt.Sprintf("Allocation Spec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
 	case LogsPage:
@@ -121,10 +138,14 @@ func getShortHelp(bindings []key.Binding) string {
 	return output
 }
 
-func GetPageKeyHelp(currentPage Page) string {
+func changeKeyHelp(k *key.Binding, h string) {
+	k.SetHelp(k.Help().Key, h)
+}
+
+func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool) string {
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
-	if currentPage.Loads() {
+	if currentPage.Reloads() && !saving && !filterFocused {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
@@ -134,12 +155,15 @@ func GetPageKeyHelp(currentPage Page) string {
 
 	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		keymap.KeyMap.Forward.SetHelp(keymap.KeyMap.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
+		changeKeyHelp(&keymap.KeyMap.Forward, fmt.Sprintf("view %s", currentPage.Forward().String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
-	if prevPage := currentPage.Backward(); prevPage != currentPage {
-		keymap.KeyMap.Back.SetHelp(keymap.KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
+	if filterApplied {
+		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
+		fourthRow = append(fourthRow, keymap.KeyMap.Back)
+	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("view %s", currentPage.Backward().String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
@@ -148,6 +172,42 @@ func GetPageKeyHelp(currentPage Page) string {
 	} else if currentPage == LogsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.StdOut)
 		fourthRow = append(fourthRow, keymap.KeyMap.StdErr)
+	}
+
+	if currentPage == AllocationsPage {
+		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
+	}
+
+	if currentPage == ExecPage {
+		if enteringInput {
+			changeKeyHelp(&keymap.KeyMap.Forward, "run command")
+			secondRow = append(fourthRow, keymap.KeyMap.Forward)
+			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		}
+		if inPty {
+			changeKeyHelp(&keymap.KeyMap.Back, "disable input")
+			secondRow = []key.Binding{keymap.KeyMap.Back}
+			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		} else {
+			if webSocketConnected {
+				changeKeyHelp(&keymap.KeyMap.Forward, "enable input")
+				fourthRow = append(fourthRow, keymap.KeyMap.Forward)
+			}
+		}
+	}
+
+	if saving {
+		changeKeyHelp(&keymap.KeyMap.Forward, "confirm save")
+		changeKeyHelp(&keymap.KeyMap.Back, "cancel save")
+		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
+		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+	}
+
+	if filterFocused {
+		changeKeyHelp(&keymap.KeyMap.Forward, "apply filter")
+		changeKeyHelp(&keymap.KeyMap.Back, "cancel filter")
+		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
+		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 	}
 
 	var final string

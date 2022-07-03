@@ -6,6 +6,7 @@ import (
 
 type keyMap struct {
 	Exit    key.Binding
+	Exec    key.Binding
 	Forward key.Binding
 	Back    key.Binding
 	Reload  key.Binding
@@ -19,7 +20,11 @@ type keyMap struct {
 var KeyMap = keyMap{
 	Exit: key.NewBinding(
 		key.WithKeys("q", "ctrl+c"),
-		key.WithHelp("q", "exit"),
+		key.WithHelp("q/ctrl+c", "exit"),
+	),
+	Exec: key.NewBinding(
+		key.WithKeys("e"),
+		key.WithHelp("e", "exec"),
 	),
 	Forward: key.NewBinding(
 		key.WithKeys("enter"),

@@ -2,13 +2,4 @@
 
 thisdir=${0:a:h}
 
-DEV_CMD=$(cat <<-EOM
-rm -f $GOPATH/bin/wander && \
-echo "building $(date +"%T")" && \
-go build $thisdir/.. && \
-mv $thisdir/../wander $GOPATH/bin && \
-echo "built"
-EOM
-)
-
-ls $thisdir/../**/*.go | entr -sr "${DEV_CMD}"
+ls $thisdir/../**/*.go | entr -src $thisdir/rebuild.sh

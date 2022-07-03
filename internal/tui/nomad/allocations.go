@@ -8,9 +8,12 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
+
+const keySeparator = " "
 
 // allocationResponseEntry is returned from GET /v1/job/:job_id/allocations
 // https://www.nomadproject.io/api-docs/jobs#list-job-allocations
@@ -152,10 +155,23 @@ func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row)
 }
 
 func toAllocationsKey(allocationRowEntry allocationRowEntry) string {
-	return allocationRowEntry.ID + " " + allocationRowEntry.TaskName
+	isRunning := "false"
+	if allocationRowEntry.State == "running" {
+		isRunning = "true"
+	}
+	return allocationRowEntry.ID + keySeparator + allocationRowEntry.TaskName + keySeparator + isRunning
 }
 
-func AllocIDAndTaskNameFromKey(key string) (string, string) {
-	split := strings.Split(key, " ")
-	return split[0], split[1]
+type AllocationInfo struct {
+	AllocID, TaskName string
+	Running           bool
+}
+
+func AllocationInfoFromKey(key string) (AllocationInfo, error) {
+	split := strings.Split(key, keySeparator)
+	running, err := strconv.ParseBool(split[2])
+	if err != nil {
+		return AllocationInfo{}, err
+	}
+	return AllocationInfo{split[0], split[1], running}, nil
 }

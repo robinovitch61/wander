@@ -6,9 +6,14 @@ import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 )
+
+const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var re = regexp.MustCompile(ansi)
 
 func prettyPrint(b []byte) ([]byte, error) {
 	var out bytes.Buffer
@@ -135,4 +140,17 @@ func FormatTimeNsSinceNow(t int64) string {
 		return pluralize(out, val)
 	}
 	return ""
+}
+
+func JsonEncodedTokenArray(s string) (string, error) {
+	tokens := strings.Fields(s)
+	tokensJson, err := json.Marshal(tokens)
+	if err != nil {
+		return "", err
+	}
+	return string(tokensJson), nil
+}
+
+func StripANSI(str string) string {
+	return re.ReplaceAllString(str, "")
 }

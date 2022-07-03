@@ -63,6 +63,8 @@ type Model struct {
 	saveDialog textinput.Model
 	toast      toast.Model
 
+	showPrompt bool
+
 	HeaderStyle          lipgloss.Style
 	SelectedContentStyle lipgloss.Style
 	HighlightStyle       lipgloss.Style
@@ -247,6 +249,10 @@ func (m Model) View() string {
 		}
 	}
 
+	if m.showPrompt {
+		viewString = strings.TrimRight(viewString, "\n") + style.PseudoPrompt.Render(" ") + "\n"
+	}
+
 	if footerHeight > 0 {
 		// pad so footer shows up at bottom
 		padCount := max(0, m.contentHeight-len(visibleLines)-footerHeight)
@@ -324,6 +330,15 @@ func (m *Model) SetXOffset(n int) {
 
 func (m *Model) SetStringToHighlight(h string) {
 	m.stringToHighlight = h
+}
+
+func (m *Model) ScrollToBottom() {
+	m.selectedContentIdxDown(len(m.content))
+	m.viewDown(len(m.content))
+}
+
+func (m *Model) SetShowPrompt(v bool) {
+	m.showPrompt = v
 }
 
 func (m Model) SelectedContentIdx() int {
