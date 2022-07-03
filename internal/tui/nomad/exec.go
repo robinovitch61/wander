@@ -6,14 +6,23 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"strings"
+	"time"
 )
 
 type ExecWebSocketConnectedMsg struct {
 	WebSocketConnection *websocket.Conn
 }
+
+type ExecWebSocketResponseMsg struct {
+	StdOut, StdErr string
+	Close          bool
+}
+
+type ExecWebSocketHeartbeatMsg struct{}
 
 func InitiateWebSocket(host, token, allocID, taskName, command string) tea.Cmd {
 	return func() tea.Msg {
@@ -45,11 +54,6 @@ func InitiateWebSocket(host, token, allocID, taskName, command string) tea.Cmd {
 	}
 }
 
-type ExecWebSocketResponseMsg struct {
-	StdOut, StdErr string
-	Close          bool
-}
-
 func ReadExecWebSocketNextMessage(ws *websocket.Conn) tea.Cmd {
 	return func() tea.Msg {
 		nextMsg := readNext(ws)
@@ -79,6 +83,21 @@ func ResizeTty(ws *websocket.Conn, width, height int) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 		return nil
+	}
+}
+
+func SendHeartbeatWithDelay() tea.Cmd {
+	return tea.Tick(constants.ExecWebSocketHeartbeatDuration, func(t time.Time) tea.Msg { return ExecWebSocketHeartbeatMsg{} })
+}
+
+func SendHeartbeat(ws *websocket.Conn) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		err = ws.WriteMessage(1, []byte("{}"))
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+		return SendHeartbeatWithDelay()
 	}
 }
 

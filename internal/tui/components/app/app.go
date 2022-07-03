@@ -1,8 +1,5 @@
 package app
 
-// TODO LEO: periodic {} heartbeat
-// TODO LEO: resize pty via websocket
-
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
@@ -269,12 +266,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setInPty(true)
 		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, m.getCurrentPageModel().ViewportHeight()))
 		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+		cmds = append(cmds, nomad.SendHeartbeatWithDelay())
+
+	case nomad.ExecWebSocketHeartbeatMsg:
+		if m.currentPage == nomad.ExecPage {
+			cmds = append(cmds, nomad.SendHeartbeat(m.execWebSocket))
+			cmds = append(cmds, nomad.SendHeartbeatWithDelay())
+			return m, tea.Batch(cmds...)
+		}
+		return m, nil
 
 	case nomad.ExecWebSocketResponseMsg:
 		if m.currentPage == nomad.ExecPage {
 			if msg.Close {
 				m.setInPty(false)
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebSocketClosed}}, true)
 			} else {
 				m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
 				m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
