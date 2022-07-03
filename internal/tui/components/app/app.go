@@ -254,7 +254,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, nomad.SendHeartbeatWithDelay())
 
 	case nomad.ExecWebSocketHeartbeatMsg:
-		if m.currentPage == nomad.ExecPage {
+		if m.currentPage == nomad.ExecPage && m.webSocketConnected {
 			cmds = append(cmds, nomad.SendHeartbeat(m.execWebSocket))
 			cmds = append(cmds, nomad.SendHeartbeatWithDelay())
 			return m, tea.Batch(cmds...)
@@ -288,7 +288,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("Error: %v", m.err) + "\n\nconsider opening an issue here: https://github.com/robinovitch61/wander/issues/new/choose" + "\n\nq/ctrl+c to quit"
+		return fmt.Sprintf("Error: %v", m.err) + "\n\nif this seems wrong, consider opening an issue here: https://github.com/robinovitch61/wander/issues/new/choose" + "\n\nq/ctrl+c to quit"
 	} else if !m.initialized {
 		return ""
 	}
