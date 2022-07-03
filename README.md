@@ -2,27 +2,27 @@
 
 ### Browse jobs
 
-![wander](./img/jobs.jpg)
+![wander](./img/jobs.png)
 
 ### View allocations and tasks
 
-![wander](./img/allocations.jpg)
+![wander](./img/allocations.png)
 
 ### Exec to run commands in a running task
 
-![wander](./img/exec.jpg)
+![wander](./img/exec.png)
 
 ### View and search logs
 
-![wander](./img/logs.jpg)
+![wander](./img/logs.png)
 
 ### Save any view as a local file
 
-![wander](./img/save.jpg)
+![wander](./img/save.png)
 
 ### See full specs
 
-![wander](./img/spec.jpg)
+![wander](./img/spec.png)
 
 `wander` is written with tools from [Charm](https://charm.sh/).
 [Feature requests and bug reports for wander are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
