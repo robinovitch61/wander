@@ -49,6 +49,7 @@ func New(
 		pageTextInput = textinput.New()
 		pageTextInput.Focus()
 		pageTextInput.Prompt = ""
+		pageTextInput.SetValue("/bin/sh")
 		needsNewInput = true
 	}
 
@@ -268,6 +269,10 @@ func (m Model) FilterApplied() bool {
 
 func (m Model) ViewportSaving() bool {
 	return m.viewport.Saving()
+}
+
+func (m Model) ViewportHeight() int {
+	return lipgloss.Height(m.viewport.View())
 }
 
 func (m *Model) clearFilter() {

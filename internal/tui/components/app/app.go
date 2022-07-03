@@ -239,6 +239,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.getCurrentPageCmd())
 		} else {
 			m.setPageWindowSize()
+			if m.currentPage == nomad.ExecPage {
+				cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, m.getCurrentPageModel().ViewportHeight()))
+			}
 		}
 
 	case nomad.PageLoadedMsg:
@@ -264,6 +267,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.execWebSocket = msg.WebSocketConnection
 		m.getCurrentPageModel().SetLoading(false)
 		m.setInPty(true)
+		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, m.getCurrentPageModel().ViewportHeight()))
 		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 
 	case nomad.ExecWebSocketResponseMsg:

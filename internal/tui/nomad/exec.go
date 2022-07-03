@@ -63,7 +63,18 @@ func ReadExecWebSocketNextMessage(ws *websocket.Conn) tea.Cmd {
 func SendWebSocketMessage(ws *websocket.Conn, keyPress string) tea.Cmd {
 	return func() tea.Msg {
 		var err error
-		err = send(ws, keyPress)
+		err = sendStdInData(ws, keyPress)
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+		return nil
+	}
+}
+
+func ResizeTty(ws *websocket.Conn, width, height int) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		err = sendTtyResize(ws, width, height)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -74,7 +85,7 @@ func SendWebSocketMessage(ws *websocket.Conn, keyPress string) tea.Cmd {
 func CloseWebSocket(ws *websocket.Conn) tea.Cmd {
 	return func() tea.Msg {
 		var err error
-		err = send(ws, string(rune(4)))
+		err = sendStdInData(ws, string(rune(4)))
 		if err != nil {
 			if !strings.Contains(err.Error(), "write: broken pipe") {
 				return message.ErrMsg{Err: err}
@@ -100,9 +111,14 @@ type execResponseJSON struct {
 	Exited bool                 `json:"exited"`
 }
 
-func send(ws *websocket.Conn, r string) error {
+func sendStdInData(ws *websocket.Conn, r string) error {
 	encoded := b64.StdEncoding.EncodeToString([]byte(r))
 	toSend := fmt.Sprintf(`{"stdin":{"data":"%s"}}`, encoded)
+	return ws.WriteMessage(1, []byte(toSend))
+}
+
+func sendTtyResize(ws *websocket.Conn, width, height int) error {
+	toSend := fmt.Sprintf(`{"tty_size": {"height": %d, "width": %d}}`, height, width)
 	return ws.WriteMessage(1, []byte(toSend))
 }
 
