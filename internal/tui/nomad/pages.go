@@ -182,12 +182,12 @@ func GetPageKeyHelp(currentPage Page, saving, enteringInput, inPty, webSocketCon
 			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 		}
 		if inPty {
-			changeKeyHelp(&keymap.KeyMap.Back, "pause interaction")
+			changeKeyHelp(&keymap.KeyMap.Back, "disable input")
 			secondRow = []key.Binding{keymap.KeyMap.Back}
 			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 		} else {
 			if webSocketConnected {
-				changeKeyHelp(&keymap.KeyMap.Forward, "continue interaction")
+				changeKeyHelp(&keymap.KeyMap.Forward, "enable input")
 				fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 			}
 		}
