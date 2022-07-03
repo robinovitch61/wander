@@ -138,10 +138,14 @@ func getShortHelp(bindings []key.Binding) string {
 	return output
 }
 
-func GetPageKeyHelp(currentPage Page) string {
+func changeKeyHelp(k *key.Binding, h string) {
+	k.SetHelp(k.Help().Key, h)
+}
+
+func GetPageKeyHelp(currentPage Page, saving, enteringInput, inPty, webSocketConnected bool) string {
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
-	if currentPage.Reloads() {
+	if currentPage.Reloads() && !saving {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
@@ -151,12 +155,12 @@ func GetPageKeyHelp(currentPage Page) string {
 
 	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		keymap.KeyMap.Forward.SetHelp(keymap.KeyMap.Forward.Help().Key, fmt.Sprintf("view %s", currentPage.Forward().String()))
+		changeKeyHelp(&keymap.KeyMap.Forward, fmt.Sprintf("view %s", currentPage.Forward().String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
 	if prevPage := currentPage.Backward(); prevPage != currentPage {
-		keymap.KeyMap.Back.SetHelp(keymap.KeyMap.Back.Help().Key, fmt.Sprintf("view %s", currentPage.Backward().String()))
+		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("view %s", currentPage.Backward().String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
@@ -165,6 +169,35 @@ func GetPageKeyHelp(currentPage Page) string {
 	} else if currentPage == LogsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.StdOut)
 		fourthRow = append(fourthRow, keymap.KeyMap.StdErr)
+	}
+
+	if currentPage == AllocationsPage {
+		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
+	}
+
+	if currentPage == ExecPage {
+		if enteringInput {
+			changeKeyHelp(&keymap.KeyMap.Forward, "run command")
+			secondRow = append(fourthRow, keymap.KeyMap.Forward)
+			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		}
+		if inPty {
+			changeKeyHelp(&keymap.KeyMap.Back, "pause interaction")
+			secondRow = []key.Binding{keymap.KeyMap.Back}
+			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		} else {
+			if webSocketConnected {
+				changeKeyHelp(&keymap.KeyMap.Forward, "continue interaction")
+				fourthRow = append(fourthRow, keymap.KeyMap.Forward)
+			}
+		}
+	}
+
+	if saving {
+		changeKeyHelp(&keymap.KeyMap.Forward, "confirm save")
+		changeKeyHelp(&keymap.KeyMap.Back, "cancel save")
+		secondRow = []key.Binding{keymap.KeyMap.Forward, keymap.KeyMap.Back}
+		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 	}
 
 	var final string

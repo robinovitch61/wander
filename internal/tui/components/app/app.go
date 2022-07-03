@@ -36,6 +36,7 @@ type Model struct {
 	execWebSocket       *websocket.Conn
 	execPty             *os.File
 	inPty               bool
+	webSocketConnected  bool
 	lastCommandFinished struct{ stdOut, stdErr bool }
 
 	width, height int
@@ -45,7 +46,7 @@ type Model struct {
 
 func InitialModel(version, sha, url, token string) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage))
+	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage, false, false, false, false))
 
 	return Model{
 		nomadUrl:    url,
@@ -129,7 +130,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
 					case nomad.ExecPage:
-						if !m.getCurrentPageModel().EnteringInput() {
+						if !m.getCurrentPageModel().EnteringInput() && m.webSocketConnected {
 							m.setInPty(true)
 						}
 					case nomad.LogsPage:
@@ -147,8 +148,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if !m.currentPageFilterApplied() {
 					switch m.currentPage {
 					case nomad.ExecPage:
+						if !m.getCurrentPageModel().EnteringInput() {
+							cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
+						}
 						m.getCurrentPageModel().SetDoesNeedNewInput()
-						cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
 					}
 
 					backPage := m.currentPage.Backward()
@@ -262,6 +265,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.ExecWebSocketConnectedMsg:
 		m.execWebSocket = msg.WebSocketConnection
+		m.webSocketConnected = true
 		m.getCurrentPageModel().SetLoading(false)
 		m.setInPty(true)
 		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, m.getCurrentPageModel().ViewportHeight()))
@@ -279,6 +283,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.ExecWebSocketResponseMsg:
 		if m.currentPage == nomad.ExecPage {
 			if msg.Close {
+				m.webSocketConnected = false
 				m.setInPty(false)
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebSocketClosed}}, true)
 			} else {
@@ -295,6 +300,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		*currentPageModel, cmd = currentPageModel.Update(msg)
 		cmds = append(cmds, cmd)
 	}
+	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
 
 	return m, tea.Batch(cmds...)
 }
@@ -349,7 +355,6 @@ func (m *Model) setPageWindowSize() {
 func (m *Model) setPage(page nomad.Page) {
 	m.getCurrentPageModel().HideToast()
 	m.currentPage = page
-	m.header.KeyHelp = nomad.GetPageKeyHelp(page)
 	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(page))
 	if page.Loads() {
 		m.getCurrentPageModel().SetLoading(true)
