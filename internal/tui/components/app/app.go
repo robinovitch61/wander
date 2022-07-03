@@ -79,10 +79,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			addingQToFilter := m.currentPageFilterFocused()
 			saving := m.currentPageViewportSaving()
 			enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
-			typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput)
+			typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
 			if !typingQLegitimately {
 				return m, tea.Quit
 			}
+		}
+
+		if m.inPty {
+			keypress := string(msg.Runes)
+			if key.Matches(msg, keymap.KeyMap.Back) {
+				m.inPty = false
+			} else {
+				switch msg.Type {
+				case tea.KeyEnter:
+					keypress = "\n"
+				case tea.KeyBackspace:
+					if msg.Alt {
+						keypress = string(rune(23))
+					} else {
+						keypress = string(rune(127))
+					}
+				case tea.KeySpace:
+					keypress = " "
+				}
+			}
+			return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
 		}
 
 		if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
@@ -99,6 +120,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						}
 						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+					case nomad.ExecPage:
+						if !m.getCurrentPageModel().EnteringInput() {
+							m.inPty = true
+						}
 					case nomad.LogsPage:
 						m.logline = selectedPageRow.Row
 					}
@@ -112,7 +137,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case key.Matches(msg, keymap.KeyMap.Back):
 				if !m.currentPageFilterApplied() {
-
 					switch m.currentPage {
 					case nomad.ExecPage:
 						m.getCurrentPageModel().SetDoesNeedNewInput()
@@ -220,6 +244,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			m.getCurrentPageModel().SetLoading(true)
+			dev.Debug(msg.Input)
 			return m, nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Input)
 		}
 
@@ -234,6 +259,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inPty = false
 			m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
 		} else {
+			dev.Debug(msg.StdOut)
 			m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
 			m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
 			m.updateLastCommandFinished(msg.StdOut, msg.StdErr)

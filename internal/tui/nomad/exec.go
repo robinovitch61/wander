@@ -31,6 +31,7 @@ func InitiateWebSocket(host, token, allocID, taskName, command string) tea.Cmd {
 		host = strings.Split(host, "://")[1]
 
 		path := fmt.Sprintf("/v1/client/allocation/%s/exec", allocID)
+		dev.Debug(jsonCommand)
 		params := map[string]string{
 			"command": jsonCommand,
 			"task":    taskName,
