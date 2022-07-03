@@ -1,7 +1,5 @@
 # Wander - a terminal app for [HashiCorp Nomad](https://www.nomadproject.io/)
 
-## Tour
-
 ### Browse jobs
 
 ![wander](./img/jobs.png)
@@ -31,25 +29,25 @@
 
 ## Installation
 
-### Using homebrew
+### > Using homebrew
 
 ```shell
 brew install robinovitch61/tap/wander
 ```
 
-### Download from GitHub
+### > Download from GitHub
 
 Download the relevant binary for your operating system (macOS = Darwin) from
 the [latest Github release](https://github.com/robinovitch61/wander/releases). Unpack it, then move the binary to
 somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
-### Using [go installed on your machine](https://go.dev/doc/install)
+### > Using [go installed on your machine](https://go.dev/doc/install)
 
 ```shell
 go install github.com/robinovitch61/wander@latest
 ```
 
-### Build from source
+### > Build from source
 
 Clone this repo, build from source with `cd <cloned_repo> && go build`,
 then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
