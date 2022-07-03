@@ -222,12 +222,6 @@ func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
 		}
 	}
 	m.SetAllPageData(newPageData)
-	// maxHeight := m.height - m.filter.ViewHeight()
-	// if shownPageHeight := len(m.pageData.All); shownPageHeight < maxHeight {
-	// 	m.viewport.SetSize(m.width, shownPageHeight)
-	// } else {
-	// 	m.viewport.SetSize(m.width, maxHeight)
-	// }
 	m.viewport.ScrollToBottom()
 }
 
