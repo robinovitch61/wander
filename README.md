@@ -1,16 +1,31 @@
-# wander: a terminal app for [Nomad by HashiCorp](https://www.nomadproject.io/)
+# Wander - a terminal app for [HashiCorp Nomad](https://www.nomadproject.io/)
 
-<p align="center"><strong>Click <a href="https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif">here</a> or any image to view full demo</strong></p>
+### Browse jobs
 
-Browse jobs, allocations, and tasks
-[![wander](./img/wander.jpg)](https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif)
-Navigate, search, and save logs
-[![wander](./img/logs.jpg)](https://robinovitch61-cdn.s3.us-west-2.amazonaws.com/wander.gif)
+![wander](./img/jobs.jpg)
 
-`wander` currently supports viewing jobs, allocations, tasks, and logs across a Nomad cluster.
+### View allocations and tasks
 
-It is written with the [Bubble Tea TUI framework from Charm](https://github.com/charmbracelet/bubbletea), and is in
-active development. Expect near term improvements. Feature requests in the form of issues are welcome.
+![wander](./img/allocations.jpg)
+
+### Exec to run commands in a running task
+
+![wander](./img/exec.jpg)
+
+### View and search logs
+
+![wander](./img/logs.jpg)
+
+### Save any view as a local file
+
+![wander](./img/save.jpg)
+
+### See full specs
+
+![wander](./img/spec.jpg)
+
+`wander` is written with tools from [Charm](https://charm.sh/).
+[Feature requests and bug reports for wander are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
 
 ## Installation
 
@@ -18,7 +33,7 @@ active development. Expect near term improvements. Feature requests in the form 
 
 ```shell
 brew install robinovitch61/tap/wander
-````
+```
 
 ### using [go installed on your machine](https://go.dev/doc/install)
 
