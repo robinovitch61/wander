@@ -191,6 +191,10 @@ func (m *Model) SetViewportSelectionToBottom() {
 	m.viewport.SetSelectedContentIdx(len(m.pageData.Filtered) - 1)
 }
 
+func (m *Model) ScrollViewportToBottom() {
+	m.viewport.ScrollToBottom()
+}
+
 func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
 }
@@ -233,6 +237,10 @@ func (m *Model) SetDoesNeedNewInput() {
 	}
 	m.initialized = false
 	m.needsNewInput = true
+}
+
+func (m *Model) SetViewportPromptVisible(v bool) {
+	m.viewport.SetShowPrompt(v)
 }
 
 func (m Model) Loading() bool {

@@ -88,19 +88,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.inPty {
 			keypress := string(msg.Runes)
 			if key.Matches(msg, keymap.KeyMap.Back) {
-				m.inPty = false
+				m.setInPty(false)
 			} else {
 				switch msg.Type {
 				case tea.KeyEnter:
 					keypress = "\n"
+				case tea.KeySpace:
+					keypress = " "
 				case tea.KeyBackspace:
 					if msg.Alt {
 						keypress = string(rune(23))
 					} else {
 						keypress = string(rune(127))
 					}
-				case tea.KeySpace:
-					keypress = " "
+				case tea.KeyCtrlD:
+					keypress = string(rune(4))
+				case tea.KeyTab:
+					keypress = string(rune(9))
 				}
 			}
 			return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
@@ -122,7 +126,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
 					case nomad.ExecPage:
 						if !m.getCurrentPageModel().EnteringInput() {
-							m.inPty = true
+							m.setInPty(true)
 						}
 					case nomad.LogsPage:
 						m.logline = selectedPageRow.Row
@@ -140,17 +144,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					switch m.currentPage {
 					case nomad.ExecPage:
 						m.getCurrentPageModel().SetDoesNeedNewInput()
+						cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
 					}
 
 					backPage := m.currentPage.Backward()
 					if backPage != m.currentPage {
 						m.setPage(backPage)
-						return m, m.getCurrentPageCmd()
+						cmds = append(cmds, m.getCurrentPageCmd())
 					}
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Reload):
-				if m.currentPage.Loads() {
+				if m.currentPage.Reloads() {
 					m.getCurrentPageModel().SetLoading(true)
 					return m, m.getCurrentPageCmd()
 				}
@@ -244,27 +249,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			m.getCurrentPageModel().SetLoading(true)
-			dev.Debug(msg.Input)
 			return m, nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Input)
 		}
 
 	case nomad.ExecWebSocketConnectedMsg:
 		m.execWebSocket = msg.WebSocketConnection
 		m.getCurrentPageModel().SetLoading(false)
-		m.inPty = true
+		m.setInPty(true)
 		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 
 	case nomad.ExecWebSocketResponseMsg:
-		if msg.Close {
-			m.inPty = false
-			m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
-		} else {
-			dev.Debug(msg.StdOut)
-			m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
-			m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
-			m.updateLastCommandFinished(msg.StdOut, msg.StdErr)
-
-			cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+		if m.currentPage == nomad.ExecPage {
+			if msg.Close {
+				m.setInPty(false)
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
+			} else {
+				dev.Debug(msg.StdOut)
+				m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
+				m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
+				m.updateLastCommandFinished(msg.StdOut, msg.StdErr)
+				cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+			}
 		}
 	}
 
@@ -385,6 +390,14 @@ func (m *Model) updateLastCommandFinished(stdOut, stdErr string) {
 	}
 	if strings.HasSuffix(stdErr, "\n") {
 		m.lastCommandFinished.stdErr = true
+	}
+}
+
+func (m *Model) setInPty(inPty bool) {
+	m.inPty = inPty
+	m.getCurrentPageModel().SetViewportPromptVisible(inPty)
+	if inPty {
+		m.getCurrentPageModel().ScrollViewportToBottom()
 	}
 }
 

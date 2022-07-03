@@ -34,6 +34,16 @@ func (p Page) Loads() bool {
 	return true
 }
 
+func (p Page) Reloads() bool {
+	noReloadPages := []Page{LoglinePage, ExecPage}
+	for _, noReloadPage := range noReloadPages {
+		if noReloadPage == p {
+			return false
+		}
+	}
+	return true
+}
+
 func (p Page) String() string {
 	switch p {
 	case Unset:
@@ -131,7 +141,7 @@ func getShortHelp(bindings []key.Binding) string {
 func GetPageKeyHelp(currentPage Page) string {
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
-	if currentPage.Loads() {
+	if currentPage.Reloads() {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 

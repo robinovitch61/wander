@@ -11,6 +11,7 @@ var (
 	KeyHelpKey                 = Regular.Copy().Foreground(lipgloss.Color("6")).Bold(true)
 	KeyHelpDescription         = Regular.Copy().Foreground(lipgloss.Color("7"))
 	Header                     = Regular.Copy().Padding(0, 1).Border(lipgloss.RoundedBorder(), true)
+	PseudoPrompt               = lipgloss.NewStyle().Background(lipgloss.Color("3"))
 	Viewport                   = Regular.Copy().Background(lipgloss.Color("#000000"))
 	ViewportHeaderStyle        = Bold.Copy()
 	ViewportSelectedRowStyle   = Regular.Copy().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("6"))

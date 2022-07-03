@@ -69,9 +69,18 @@ func SendWebSocketMessage(ws *websocket.Conn, keyPress string) tea.Cmd {
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
-		dev.Debug(fmt.Sprintf("SENT %s", keyPress))
 		return nil
-		// return ExecWebSocketResponseMsg{StdOut: finalMsg.StdOut, StdErr: finalMsg.StdErr, Close: finalMsg.Close}
+	}
+}
+
+func CloseWebSocket(ws *websocket.Conn) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		err = send(ws, string(rune(4)))
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+		return nil
 	}
 }
 
