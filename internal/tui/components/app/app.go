@@ -1,8 +1,10 @@
 package app
 
+// TODO LEO: periodic {} heartbeat
+// TODO LEO: resize pty via websocket
+
 import (
 	"fmt"
-	"github.com/acarl005/stripansi"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
@@ -10,6 +12,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/constants"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
@@ -105,6 +108,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					keypress = string(rune(4))
 				case tea.KeyTab:
 					keypress = string(rune(9))
+				case tea.KeyUp:
+					keypress = string(rune(27)) + "[A"
+				case tea.KeyDown:
+					keypress = string(rune(27)) + "[B"
 				}
 			}
 			return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
@@ -151,6 +158,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if backPage != m.currentPage {
 						m.setPage(backPage)
 						cmds = append(cmds, m.getCurrentPageCmd())
+						return m, tea.Batch(cmds...)
 					}
 				}
 
@@ -264,7 +272,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.setInPty(false)
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebsocketClosed}}, true)
 			} else {
-				dev.Debug(msg.StdOut)
 				m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
 				m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
 				m.updateLastCommandFinished(msg.StdOut, msg.StdErr)
@@ -372,7 +379,7 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 	stringRows := strings.Split(content, "\n")
 	var pageRows []page.Row
 	for _, row := range stringRows {
-		stripped := stripansi.Strip(row)
+		stripped := formatter.StripANSI(row)
 		pageRows = append(pageRows, page.Row{Row: stripped})
 	}
 	m.getCurrentPageModel().AppendToViewport(pageRows, startOnNewLine)

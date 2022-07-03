@@ -2,7 +2,6 @@ package nomad
 
 import (
 	"fmt"
-	"github.com/acarl005/stripansi"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
@@ -52,7 +51,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		logRows := strings.Split(stripansi.Strip(string(body)), "\n")
+		logRows := strings.Split(formatter.StripANSI(string(body)), "\n")
 
 		tableHeader, allPageData := logsAsTable(logRows, logType)
 		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageData: allPageData}

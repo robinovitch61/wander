@@ -6,7 +6,6 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
-	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"strings"
@@ -31,7 +30,6 @@ func InitiateWebSocket(host, token, allocID, taskName, command string) tea.Cmd {
 		host = strings.Split(host, "://")[1]
 
 		path := fmt.Sprintf("/v1/client/allocation/%s/exec", allocID)
-		dev.Debug(jsonCommand)
 		params := map[string]string{
 			"command": jsonCommand,
 			"task":    taskName,
@@ -78,7 +76,9 @@ func CloseWebSocket(ws *websocket.Conn) tea.Cmd {
 		var err error
 		err = send(ws, string(rune(4)))
 		if err != nil {
-			return message.ErrMsg{Err: err}
+			if !strings.Contains(err.Error(), "write: broken pipe") {
+				return message.ErrMsg{Err: err}
+			}
 		}
 		return nil
 	}

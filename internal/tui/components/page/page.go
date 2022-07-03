@@ -204,7 +204,6 @@ func (m *Model) HideToast() {
 }
 
 func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
-	dev.Debug(fmt.Sprintf("Start on new line %t", startOnNewLine))
 	newPageData := m.pageData.All
 	for i, r := range rows {
 		if r.Row != "" {
