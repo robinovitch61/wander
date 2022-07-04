@@ -234,8 +234,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Page == m.currentPage {
 			m.getCurrentPageModel().SetHeader(msg.TableHeader)
 			m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
+			if m.currentPageLoading() {
+				m.getCurrentPageModel().SetViewportXOffset(0)
+			}
 			m.getCurrentPageModel().SetLoading(false)
-			m.getCurrentPageModel().SetViewportXOffset(0)
 
 			switch m.currentPage {
 			case nomad.LogsPage:
