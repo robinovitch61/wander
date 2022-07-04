@@ -115,6 +115,9 @@ func FetchAllocations(url, token, jobID, jobNamespace string) tea.Cmd {
 			secondTask := allocationRowEntries[y]
 			if firstTask.TaskName == secondTask.TaskName {
 				if firstTask.Name == secondTask.Name {
+					if firstTask.State == secondTask.State {
+						return firstTask.StartedAt.After(secondTask.StartedAt)
+					}
 					return firstTask.State > secondTask.State
 				}
 				return firstTask.Name < secondTask.Name
