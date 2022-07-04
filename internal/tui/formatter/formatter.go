@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/olekukonko/tablewriter"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"math"
 	"regexp"
 	"strings"
@@ -60,7 +61,7 @@ func createTableConfig(numCols int) tableConfig {
 	table.SetColumnSeparator("")
 	table.SetBorder(false)
 	if numCols > 1 {
-		table.SetTablePadding("    ")
+		table.SetTablePadding(constants.TablePadding)
 	}
 	table.SetNoWhiteSpace(true)
 	table.SetAutoWrapText(false)

@@ -37,11 +37,13 @@ func New(
 	width, height int,
 	filterPrefix, loadingString string,
 	selectionEnabled, wrapText, requestInput bool,
+	viewportConditionalStyle map[string]lipgloss.Style,
 ) Model {
 	pageFilter := filter.New(filterPrefix)
 	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
 	pageViewport.SetSelectionEnabled(selectionEnabled)
 	pageViewport.SetWrapText(wrapText)
+	pageViewport.ConditionalStyle = viewportConditionalStyle
 
 	needsNewInput := false
 	var pageTextInput textinput.Model

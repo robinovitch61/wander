@@ -70,6 +70,8 @@ type Model struct {
 	HighlightStyle       lipgloss.Style
 	ContentStyle         lipgloss.Style
 	FooterStyle          lipgloss.Style
+	// ConditionalStyle styles lines containing key with corresponding style in value
+	ConditionalStyle map[string]lipgloss.Style
 }
 
 func New(width, height int) (m Model) {
@@ -230,6 +232,11 @@ func (m Model) View() string {
 	for idx, line := range visibleLines {
 		isSelected := m.selectionEnabled && m.getContentIdx(m.yOffset+idx) == m.selectedContentIdx
 		lineStyle := m.ContentStyle
+		for k, v := range m.ConditionalStyle {
+			if strings.Contains(line, k) {
+				lineStyle = v
+			}
+		}
 		if isSelected {
 			lineStyle = m.SelectedContentStyle
 		}
