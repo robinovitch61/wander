@@ -29,10 +29,10 @@ var (
 		cliLong:  "token",
 		config:   "wander_token",
 	}
-	pollSecondsArg = arg{
-		cliShort: "p",
-		cliLong:  "poll",
-		config:   "wander_poll_seconds",
+	updateSecondsArg = arg{
+		cliShort: "u",
+		cliLong:  "update",
+		config:   "wander_update_seconds",
 	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
@@ -65,8 +65,8 @@ func init() {
 	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
 	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "nomad address, e.g. http://localhost:4646")
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
-	rootCmd.PersistentFlags().StringP(pollSecondsArg.cliLong, pollSecondsArg.cliShort, "", "number of seconds between page updates")
-	viper.BindPFlag(pollSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(pollSecondsArg.config))
+	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "number of seconds between page updates")
+	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
 
 	// serve
 	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "host for wander ssh server")
@@ -102,8 +102,8 @@ func initConfig() {
 func mainEntrypoint(cmd *cobra.Command, args []string) {
 	nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
 	nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
-	pollSeconds := retrievePollSeconds(cmd)
-	program := tea.NewProgram(initialModel(nomadAddr, nomadToken, pollSeconds), tea.WithAltScreen())
+	updateSeconds := retrieveUpdateSeconds(cmd)
+	program := tea.NewProgram(initialModel(nomadAddr, nomadToken, updateSeconds), tea.WithAltScreen())
 
 	dev.Debug("~STARTING UP~")
 	if err := program.Start(); err != nil {

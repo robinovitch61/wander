@@ -48,14 +48,14 @@ func retrieveWithDefault(cmd *cobra.Command, short, long, defaultVal string) str
 	return val
 }
 
-func retrievePollSeconds(cmd *cobra.Command) int {
-	pollSecondsString := retrieveWithDefault(cmd, pollSecondsArg.cliLong, pollSecondsArg.config, constants.DefaultPollSeconds)
-	pollSeconds, err := strconv.Atoi(pollSecondsString)
+func retrieveUpdateSeconds(cmd *cobra.Command) int {
+	updateSecondsString := retrieveWithDefault(cmd, updateSecondsArg.cliLong, updateSecondsArg.config, constants.DefaultUpdateSeconds)
+	updateSeconds, err := strconv.Atoi(updateSecondsString)
 	if err != nil {
-		fmt.Println(fmt.Errorf("poll value %s cannot be converted to an integer", pollSecondsString))
+		fmt.Println(fmt.Errorf("update value %s cannot be converted to an integer", updateSecondsString))
 		os.Exit(1)
 	}
-	return pollSeconds
+	return updateSeconds
 }
 
 // CustomLoggingMiddleware provides basic connection logging. Connects are logged with the
@@ -75,8 +75,8 @@ func CustomLoggingMiddleware() wish.Middleware {
 	}
 }
 
-func initialModel(addr, token string, pollSeconds int) app.Model {
-	return app.InitialModel(Version, CommitSHA, addr, token, pollSeconds)
+func initialModel(addr, token string, updateSeconds int) app.Model {
+	return app.InitialModel(Version, CommitSHA, addr, token, updateSeconds)
 }
 
 func getVersion() string {

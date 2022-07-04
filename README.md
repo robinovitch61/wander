@@ -69,6 +69,9 @@ wander_addr: http://localhost:4646
 # required: nomad token
 wander_token: nomad_token
 
+# optional (default 2): update interval for jobs and allocations data. Disable by setting to -1
+wander_update_seconds: 1
+
 # only relevant for `wander serve` - the host of the machine serving the ssh app
 wander_host: localhost
 

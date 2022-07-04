@@ -20,7 +20,7 @@ const ExecWebSocketClosed = "> connection closed <"
 
 const ExecWebSocketHeartbeatDuration = time.Second * 10
 
-const DefaultPollSeconds = "2"
+const DefaultUpdateSeconds = "2"
 
 const TablePadding = "    "
 

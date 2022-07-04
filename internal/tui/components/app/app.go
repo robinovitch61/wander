@@ -40,24 +40,24 @@ type Model struct {
 	webSocketConnected  bool
 	lastCommandFinished struct{ stdOut, stdErr bool }
 
-	pollInterval time.Duration
+	updateInterval time.Duration
 
 	width, height int
 	initialized   bool
 	err           error
 }
 
-func InitialModel(version, sha, url, token string, pollSeconds int) Model {
+func InitialModel(version, sha, url, token string, updateSeconds int) Model {
 	firstPage := nomad.JobsPage
 	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false))
-	pollInterval := time.Second * time.Duration(pollSeconds)
+	updateInterval := time.Second * time.Duration(updateSeconds)
 
 	return Model{
-		nomadUrl:     url,
-		nomadToken:   token,
-		header:       initialHeader,
-		currentPage:  firstPage,
-		pollInterval: pollInterval,
+		nomadUrl:       url,
+		nomadToken:     token,
+		header:         initialHeader,
+		currentPage:    firstPage,
+		updateInterval: updateInterval,
 	}
 }
 
@@ -149,7 +149,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case key.Matches(msg, keymap.KeyMap.Reload):
-				if m.currentPage.Reloads() {
+				if m.currentPage.DoesReload() {
 					m.getCurrentPageModel().SetLoading(true)
 					return m, m.getCurrentPageCmd()
 				}
@@ -243,10 +243,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 			}
-			cmds = append(cmds, nomad.PollPageDataWithDelay(m.currentPage, m.pollInterval))
+			cmds = append(cmds, nomad.UpdatePageDataWithDelay(m.currentPage, m.updateInterval))
 		}
 
-	case nomad.PollPageDataMsg:
+	case nomad.UpdatePageDataMsg:
 		if msg.Page == m.currentPage {
 			cmds = append(cmds, m.getCurrentPageCmd())
 		}
@@ -350,7 +350,7 @@ func (m *Model) setPage(page nomad.Page) {
 	m.getCurrentPageModel().HideToast()
 	m.currentPage = page
 	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(page))
-	if page.Loads() {
+	if page.DoesLoad() {
 		m.getCurrentPageModel().SetLoading(true)
 	} else {
 		m.getCurrentPageModel().SetLoading(false)

@@ -26,7 +26,7 @@ const (
 	LoglinePage
 )
 
-func (p Page) Loads() bool {
+func (p Page) DoesLoad() bool {
 	noLoadPages := []Page{LoglinePage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
@@ -36,7 +36,7 @@ func (p Page) Loads() bool {
 	return true
 }
 
-func (p Page) Reloads() bool {
+func (p Page) DoesReload() bool {
 	noReloadPages := []Page{LoglinePage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
@@ -46,16 +46,16 @@ func (p Page) Reloads() bool {
 	return true
 }
 
-func (p Page) polls() bool {
-	noPollPages := []Page{
+func (p Page) doesUpdate() bool {
+	noUpdatePages := []Page{
 		LoglinePage,   // doesn't load
 		ExecPage,      // doesn't reload
 		LogsPage,      // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
 		JobSpecPage,   // would require changes to make scrolling possible
 		AllocSpecPage, // would require changes to make scrolling possible
 	}
-	for _, noPollPage := range noPollPages {
-		if noPollPage == p {
+	for _, noUpdatePage := range noUpdatePages {
+		if noUpdatePage == p {
 			return false
 		}
 	}
@@ -145,11 +145,11 @@ type PageLoadedMsg struct {
 	AllPageData []page.Row
 }
 
-type PollPageDataMsg struct{ Page Page }
+type UpdatePageDataMsg struct{ Page Page }
 
-func PollPageDataWithDelay(p Page, d time.Duration) tea.Cmd {
-	if p.polls() && d > 0 {
-		return tea.Tick(d, func(t time.Time) tea.Msg { return PollPageDataMsg{p} })
+func UpdatePageDataWithDelay(p Page, d time.Duration) tea.Cmd {
+	if p.doesUpdate() && d > 0 {
+		return tea.Tick(d, func(t time.Time) tea.Msg { return UpdatePageDataMsg{p} })
 	}
 	return nil
 }
@@ -170,7 +170,7 @@ func changeKeyHelp(k *key.Binding, h string) {
 func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool) string {
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
-	if currentPage.Reloads() && !saving && !filterFocused {
+	if currentPage.DoesReload() && !saving && !filterFocused {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
