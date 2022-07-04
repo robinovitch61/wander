@@ -148,7 +148,7 @@ type PageLoadedMsg struct {
 type PollPageDataMsg struct{ Page Page }
 
 func PollPageDataWithDelay(p Page, d time.Duration) tea.Cmd {
-	if p.polls() {
+	if p.polls() && d > 0 {
 		return tea.Tick(d, func(t time.Time) tea.Msg { return PollPageDataMsg{p} })
 	}
 	return nil
