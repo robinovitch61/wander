@@ -59,6 +59,8 @@ func init() {
 	// root
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.wander.yaml)")
 	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
+
+	// NOTE: default values here are unused even if default exists as they break the desired priority of cli args > env vars > config file > default if exists
 	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "nomad token for HTTP API auth")
 	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
 	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "nomad address, e.g. http://localhost:4646")
