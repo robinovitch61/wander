@@ -65,7 +65,7 @@ func init() {
 	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
 	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "nomad address, e.g. http://localhost:4646")
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
-	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "number of seconds between page updates")
+	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "number of seconds between page updates (-1 to disable)")
 	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
 
 	// serve
