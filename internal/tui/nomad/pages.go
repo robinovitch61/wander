@@ -3,12 +3,14 @@ package nomad
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/components/viewport"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
+	"time"
 )
 
 type Page int8
@@ -38,6 +40,22 @@ func (p Page) Reloads() bool {
 	noReloadPages := []Page{LoglinePage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
+			return false
+		}
+	}
+	return true
+}
+
+func (p Page) polls() bool {
+	noPollPages := []Page{
+		LoglinePage,   // doesn't load
+		ExecPage,      // doesn't reload
+		LogsPage,      // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
+		JobSpecPage,   // would require changes to make scrolling possible
+		AllocSpecPage, // would require changes to make scrolling possible
+	}
+	for _, noPollPage := range noPollPages {
+		if noPollPage == p {
 			return false
 		}
 	}
@@ -127,7 +145,14 @@ type PageLoadedMsg struct {
 	AllPageData []page.Row
 }
 
-type ChangePageMsg struct{ NewPage Page }
+type PollPageDataMsg struct{ Page Page }
+
+func PollPageDataWithDelay(p Page, d time.Duration) tea.Cmd {
+	if p.polls() {
+		return tea.Tick(d, func(t time.Time) tea.Msg { return PollPageDataMsg{p} })
+	}
+	return nil
+}
 
 func getShortHelp(bindings []key.Binding) string {
 	var output string

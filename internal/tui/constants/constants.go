@@ -17,3 +17,5 @@ const SaveDialogPlaceholder = "Output file name (path optional)"
 const ExecWebSocketClosed = "> connection closed <"
 
 const ExecWebSocketHeartbeatDuration = time.Second * 10
+
+const DefaultPollSeconds = "2"
