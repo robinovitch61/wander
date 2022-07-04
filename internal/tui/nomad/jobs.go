@@ -89,6 +89,12 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) 
 		if row.Status == "running" {
 			uptime = formatter.FormatTimeNsSinceNow(row.SubmitTime)
 		}
+		num, denom := 0, 0
+		for _, v := range row.JobSummary.Summary {
+			num += v.Running
+			denom += v.Running + v.Starting + v.Queued
+		}
+		count := strconv.Itoa(num) + "/" + strconv.Itoa(denom)
 
 		jobResponseRows = append(jobResponseRows, []string{
 			row.ID,
@@ -96,13 +102,14 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) 
 			row.Namespace,
 			strconv.Itoa(row.Priority),
 			row.Status,
+			count,
 			formatter.FormatTimeNs(row.SubmitTime),
 			uptime,
 		})
 		keys = append(keys, toJobsKey(row))
 	}
 
-	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Submit Time", "Uptime"}
+	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Count", "Submit Time", "Uptime"}
 	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
 
 	var rows []page.Row
