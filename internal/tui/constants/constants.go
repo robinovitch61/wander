@@ -1,6 +1,8 @@
 package constants
 
 import (
+	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 	"time"
 )
@@ -19,3 +21,12 @@ const ExecWebSocketClosed = "> connection closed <"
 const ExecWebSocketHeartbeatDuration = time.Second * 10
 
 const DefaultPollSeconds = "2"
+
+const TablePadding = "    "
+
+var JobsViewportConditionalStyle = map[string]lipgloss.Style{
+	TablePadding + "pending" + TablePadding: style.JobRowPending,
+	TablePadding + "dead" + TablePadding:    style.JobRowDead,
+}
+
+var AllocationsViewportConditionalStyle = JobsViewportConditionalStyle
