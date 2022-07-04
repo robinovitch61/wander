@@ -5,10 +5,12 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,6 +37,27 @@ func retrieveAssertExists(cmd *cobra.Command, short, long string) string {
 	return val
 }
 
+func retrieveWithDefault(cmd *cobra.Command, short, long, defaultVal string) string {
+	val := cmd.Flag(short).Value.String()
+	if val == "" {
+		val = viper.GetString(long)
+	}
+	if val == "" {
+		return defaultVal
+	}
+	return val
+}
+
+func retrievePollSeconds(cmd *cobra.Command) int {
+	pollSecondsString := retrieveWithDefault(cmd, pollSecondsArg.cliLong, pollSecondsArg.config, constants.DefaultPollSeconds)
+	pollSeconds, err := strconv.Atoi(pollSecondsString)
+	if err != nil {
+		fmt.Println(fmt.Errorf("poll value %s cannot be converted to an integer", pollSecondsString))
+		os.Exit(1)
+	}
+	return pollSeconds
+}
+
 // CustomLoggingMiddleware provides basic connection logging. Connects are logged with the
 // remote address, invoked command, TERM setting, window dimensions and if the
 // auth was public key based. Disconnect will log the remote address and
@@ -52,8 +75,8 @@ func CustomLoggingMiddleware() wish.Middleware {
 	}
 }
 
-func initialModel(addr, token string) app.Model {
-	return app.InitialModel(Version, CommitSHA, addr, token)
+func initialModel(addr, token string, pollSeconds int) app.Model {
+	return app.InitialModel(Version, CommitSHA, addr, token, pollSeconds)
 }
 
 func getVersion() string {

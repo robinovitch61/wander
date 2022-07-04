@@ -16,6 +16,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"os"
 	"strings"
+	"time"
 )
 
 type Model struct {
@@ -39,20 +40,24 @@ type Model struct {
 	webSocketConnected  bool
 	lastCommandFinished struct{ stdOut, stdErr bool }
 
+	pollInterval time.Duration
+
 	width, height int
 	initialized   bool
 	err           error
 }
 
-func InitialModel(version, sha, url, token string) Model {
+func InitialModel(version, sha, url, token string, pollSeconds int) Model {
 	firstPage := nomad.JobsPage
 	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false))
+	pollInterval := time.Second * time.Duration(pollSeconds)
 
 	return Model{
-		nomadUrl:    url,
-		nomadToken:  token,
-		header:      initialHeader,
-		currentPage: firstPage,
+		nomadUrl:     url,
+		nomadToken:   token,
+		header:       initialHeader,
+		currentPage:  firstPage,
+		pollInterval: pollInterval,
 	}
 }
 
@@ -226,16 +231,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.PageLoadedMsg:
-		m.getCurrentPageModel().SetHeader(msg.TableHeader)
-		m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
-		m.getCurrentPageModel().SetLoading(false)
-		m.getCurrentPageModel().SetViewportXOffset(0)
+		if msg.Page == m.currentPage {
+			m.getCurrentPageModel().SetHeader(msg.TableHeader)
+			m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
+			m.getCurrentPageModel().SetLoading(false)
+			m.getCurrentPageModel().SetViewportXOffset(0)
 
-		switch m.currentPage {
-		case nomad.LogsPage:
-			m.getCurrentPageModel().SetViewportSelectionToBottom()
-		case nomad.ExecPage:
-			m.getCurrentPageModel().SetInputPrefix("Enter command: ")
+			switch m.currentPage {
+			case nomad.LogsPage:
+				m.getCurrentPageModel().SetViewportSelectionToBottom()
+			case nomad.ExecPage:
+				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
+			}
+			cmds = append(cmds, nomad.PollPageDataWithDelay(m.currentPage, m.pollInterval))
+		}
+
+	case nomad.PollPageDataMsg:
+		if msg.Page == m.currentPage {
+			cmds = append(cmds, m.getCurrentPageCmd())
 		}
 
 	case message.PageInputReceivedMsg:
