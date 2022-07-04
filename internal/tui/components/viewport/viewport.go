@@ -230,10 +230,13 @@ func (m Model) View() string {
 	visibleLines := m.getVisibleLines()
 	hasNoHighlight := runeCount(m.stringToHighlight) == 0
 	for idx, line := range visibleLines {
-		isSelected := m.selectionEnabled && m.getContentIdx(m.yOffset+idx) == m.selectedContentIdx
+		contentIdx := m.getContentIdx(m.yOffset + idx)
+		isSelected := m.selectionEnabled && contentIdx == m.selectedContentIdx
+
 		lineStyle := m.ContentStyle
 		for k, v := range m.ConditionalStyle {
-			if strings.Contains(line, k) {
+			entireLine := m.content[contentIdx]
+			if strings.Contains(entireLine, k) {
 				lineStyle = v
 			}
 		}
