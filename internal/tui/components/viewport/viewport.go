@@ -507,6 +507,10 @@ func (m *Model) updateSaveDialogPlaceholder() {
 	m.saveDialog.Placeholder = placeholder[:min(runeCount(placeholder), m.width)]
 }
 
+func (m Model) SelectionEnabled() bool {
+	return m.selectionEnabled
+}
+
 func (m Model) getHeader() []string {
 	if m.wrapText {
 		return m.wrappedHeader

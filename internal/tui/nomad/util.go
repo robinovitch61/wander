@@ -9,10 +9,6 @@ import (
 )
 
 func get(url, token string, params map[string]string) ([]byte, error) {
-	if len(token) != 36 {
-		return nil, errors.New("token must be 36 characters")
-	}
-
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

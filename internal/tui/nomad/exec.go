@@ -221,7 +221,7 @@ func parseWebSocketMessage(msgType int, content []byte) parsedWebSocketMessage {
 		return parsedWebSocketMessage{Close: true}
 
 	default:
-		panic(fmt.Sprintf("Unhandled websocket response: %s (msgType %d)", content, msgType))
+		panic(fmt.Sprintf("unhandled websocket response: %s (msgType %d)", content, msgType))
 	}
 
 	return parsedWebSocketMessage{

@@ -58,16 +58,22 @@ Run the app by running `wander` in a terminal. See `wander --help` and config se
 
 ## Configuration
 
-`wander` can be configured in a yaml file at `$HOME/.wander.yaml` or a file path passed to the `--config` argument.
+`wander` can be configured in three ways:
 
-Example yaml file:
+- command line arguments, visible by running `wander --help`
+- environment variables. These map to the configuration file below (e.g. `nomad_addr` in yaml is the `NOMAD_ADDR` environment variable)
+- a yaml config file at `$HOME/.wander.yaml`, or a custom config file path passed to the `--config` argument (example below)
+
+Priority in order of highest to lowest is command line arguments, then environment variables, then the config file.
+
+Example yaml file showing all options:
 
 ```shell
 # required: nomad address
-wander_addr: http://localhost:4646
+nomad_addr: http://localhost:4646
 
-# required: nomad token
-wander_token: nomad_token
+# optional: nomad token (default "")
+nomad_token: <your-nomad-token>
 
 # optional (default 2): update interval for jobs and allocations data. Disable by setting to -1
 wander_update_seconds: 1
@@ -78,9 +84,6 @@ wander_host: localhost
 # only relevant for `wander serve` - the port for the ssh app
 wander_port: 21324
 ```
-
-Alternatively, `wander` can be configured via environment variables (e.g. `wander_addr` in yaml above becomes the
-`WANDER_ADDR` environment variable), or via command line args visible by running `wander --help`.
 
 ## SSH App
 
@@ -108,7 +111,7 @@ nomad job init
 nomad job run example.nomad
 
 # run wander
-wander -a http://localhost:4646 -t ""
+wander -a http://localhost:4646
 ```
 
 ## Development
