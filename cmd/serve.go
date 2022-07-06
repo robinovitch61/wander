@@ -40,11 +40,20 @@ var (
 )
 
 func serveEntrypoint(cmd *cobra.Command, args []string) {
-	host := retrieveAssertExists(cmd, hostArg.cliLong, hostArg.config)
-	portStr := retrieveAssertExists(cmd, portArg.cliLong, portArg.config)
+	host, err := retrieve(cmd, hostArg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	portStr, err := retrieve(cmd, portArg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	s, err := wish.NewServer(
@@ -78,8 +87,8 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 
 func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-		nomadAddr := retrieveAssertExists(cmd, addrArg.cliLong, addrArg.config)
-		nomadToken := retrieveAssertExists(cmd, tokenArg.cliLong, tokenArg.config)
+		nomadAddr := retrieveAddress(cmd)
+		nomadToken := retrieveToken(cmd)
 		updateSeconds := retrieveUpdateSeconds(cmd)
 		// optionally override token - MUST run with `-t` flag to force pty, e.g. ssh -p 20000 localhost -t <token>
 		if sshCommands := s.Command(); len(sshCommands) == 1 {

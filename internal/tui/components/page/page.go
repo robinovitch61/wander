@@ -239,16 +239,23 @@ func (m *Model) SetViewportPromptVisible(v bool) {
 	m.viewport.SetShowPrompt(v)
 }
 
+func (m *Model) SetViewportSelectionEnabled(v bool) {
+	m.viewport.SetSelectionEnabled(v)
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
 
 func (m Model) GetSelectedPageRow() (Row, error) {
+	if !m.viewport.SelectionEnabled() {
+		return Row{}, fmt.Errorf("selection disabled")
+	}
 	selectedRow := m.viewport.SelectedContentIdx()
 	if filtered := m.pageData.Filtered; len(filtered) > 0 && selectedRow >= 0 && selectedRow < len(filtered) {
 		return filtered[selectedRow], nil
 	}
-	return Row{}, fmt.Errorf("bad thing")
+	return Row{}, fmt.Errorf("selection invalid")
 }
 
 func (m Model) EnteringInput() bool {

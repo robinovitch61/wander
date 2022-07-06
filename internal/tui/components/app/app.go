@@ -240,6 +240,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.getCurrentPageModel().SetLoading(false)
 
 			switch m.currentPage {
+			case nomad.JobsPage:
+				if m.currentPage == nomad.JobsPage && len(msg.AllPageData) == 0 {
+					// oddly, nomad http api errors when one provides the wrong token, but returns empty results when one provides an empty token
+					m.getCurrentPageModel().SetAllPageData([]page.Row{
+						{"", "No job results. Is the cluster empty or no nomad token provided?"},
+						{"", "Press q or ctrl+c to quit."},
+					})
+					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
+				}
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
 			case nomad.ExecPage:

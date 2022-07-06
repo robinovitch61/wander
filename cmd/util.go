@@ -25,16 +25,28 @@ var (
 	CommitSHA = ""
 )
 
-func retrieveAssertExists(cmd *cobra.Command, short, long string) string {
-	val := cmd.Flag(short).Value.String()
+func retrieve(cmd *cobra.Command, a arg) (string, error) {
+	val := cmd.Flag(a.cliLong).Value.String()
 	if val == "" {
-		val = viper.GetString(long)
+		val = viper.GetString(a.config)
 	}
 	if val == "" {
-		fmt.Println(fmt.Errorf("error: set %s env variable, %s in config file, or --%s argument", strings.ToUpper(long), long, short))
-		os.Exit(1)
+		return "", fmt.Errorf("error: set %s env variable, %s in config file, or --%s argument", strings.ToUpper(a.config), a.config, a.cliLong)
 	}
-	return val
+	return val, nil
+}
+
+func retrieveAssertExistsWithFallback(cmd *cobra.Command, currArg, oldArg arg) (string, error) {
+	val, err := retrieve(cmd, currArg)
+	if err != nil {
+		val, _ = retrieve(cmd, oldArg)
+		if val == "" {
+			return "", err
+		}
+		fmt.Printf("\nwarning: use of %s env variable or %s in config file will be removed in a future release\n", strings.ToUpper(oldArg.config), oldArg.config)
+		fmt.Printf("use %s env variable or %s in config file instead\n", strings.ToUpper(currArg.config), currArg.config)
+	}
+	return val, nil
 }
 
 func retrieveWithDefault(cmd *cobra.Command, short, long, defaultVal string) string {
@@ -44,6 +56,27 @@ func retrieveWithDefault(cmd *cobra.Command, short, long, defaultVal string) str
 	}
 	if val == "" {
 		return defaultVal
+	}
+	return val
+}
+
+func retrieveAddress(cmd *cobra.Command) string {
+	val, err := retrieveAssertExistsWithFallback(cmd, addrArg, oldAddrArg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return val
+}
+
+func retrieveToken(cmd *cobra.Command) string {
+	val, err := retrieveAssertExistsWithFallback(cmd, tokenArg, oldTokenArg)
+	if err != nil {
+		return ""
+	}
+	if len(val) > 0 && len(val) != 36 {
+		fmt.Println("token must be 36 characters")
+		os.Exit(1)
 	}
 	return val
 }
