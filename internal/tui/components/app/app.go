@@ -226,7 +226,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.setPageWindowSize()
 			if m.currentPage == nomad.ExecPage {
-				cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, m.getCurrentPageModel().ViewportHeight()))
+				viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1 // hardcoded as known today, has to change if footer expands
+				cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, viewportHeightWithoutFooter))
 			}
 		}
 
@@ -273,7 +274,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.webSocketConnected = true
 		m.getCurrentPageModel().SetLoading(false)
 		m.setInPty(true)
-		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, m.getCurrentPageModel().ViewportHeight()))
+		viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1 // hardcoded as known today, has to change if footer expands
+		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, viewportHeightWithoutFooter))
 		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
 		cmds = append(cmds, nomad.SendHeartbeatWithDelay())
 

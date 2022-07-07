@@ -12,12 +12,11 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
-	"unicode/utf8"
 )
 
 const lineContinuationIndicator = "..."
 
-var lenLineContinuationIndicator = runeCount(lineContinuationIndicator)
+var lenLineContinuationIndicator = stringWidth(lineContinuationIndicator)
 
 type SaveStatusMsg struct {
 	SuccessMessage, Err string
@@ -228,7 +227,7 @@ func (m Model) View() string {
 	}
 
 	visibleLines := m.getVisibleLines()
-	hasNoHighlight := runeCount(m.stringToHighlight) == 0
+	hasNoHighlight := stringWidth(m.stringToHighlight) == 0
 	for idx, line := range visibleLines {
 		contentIdx := m.getContentIdx(m.yOffset + idx)
 		isSelected := m.selectionEnabled && contentIdx == m.selectedContentIdx
@@ -413,7 +412,7 @@ func (m *Model) updateForWrapText() {
 
 func (m *Model) updateMaxLineLength() {
 	for _, line := range append(m.getHeader(), m.getContent()...) {
-		if lineLength := runeCount(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
+		if lineLength := stringWidth(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
 			m.maxLineLength = lineLength
 		}
 	}
@@ -501,10 +500,10 @@ func (m *Model) viewRight(n int) {
 }
 
 func (m *Model) updateSaveDialogPlaceholder() {
-	padding := m.width - runeCount(constants.SaveDialogPlaceholder) - runeCount(m.saveDialog.Prompt)
+	padding := m.width - stringWidth(constants.SaveDialogPlaceholder) - stringWidth(m.saveDialog.Prompt)
 	padding = max(0, padding)
 	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
-	m.saveDialog.Placeholder = placeholder[:min(runeCount(placeholder), m.width)]
+	m.saveDialog.Placeholder = placeholder[:min(stringWidth(placeholder), m.width)]
 }
 
 func (m Model) SelectionEnabled() bool {
@@ -558,16 +557,16 @@ func (m Model) getVisibleLines() []string {
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
-	rightTrimmedLineLength := runeCount(strings.TrimRight(line, " "))
-	end := min(runeCount(line), m.xOffset+m.width)
+	rightTrimmedLineLength := stringWidth(strings.TrimRight(line, " "))
+	end := min(stringWidth(line), m.xOffset+m.width)
 	start := min(end, m.xOffset)
 	line = line[start:end]
 	if m.xOffset+m.width < rightTrimmedLineLength {
-		truncate := max(0, runeCount(line)-lenLineContinuationIndicator)
+		truncate := max(0, stringWidth(line)-lenLineContinuationIndicator)
 		line = line[:truncate] + lineContinuationIndicator
 	}
 	if m.xOffset > 0 {
-		line = lineContinuationIndicator + line[min(runeCount(line), lenLineContinuationIndicator):]
+		line = lineContinuationIndicator + line[min(stringWidth(line), lenLineContinuationIndicator):]
 	}
 	return line
 }
@@ -587,7 +586,7 @@ func (m Model) getCurrentLineIdx() int {
 }
 
 func (m Model) getWrappedLines(line string) []string {
-	if runeCount(line) < m.width {
+	if stringWidth(line) < m.width {
 		return []string{line}
 	}
 	line = strings.TrimRight(line, " ")
@@ -681,7 +680,7 @@ func percent(a, b int) int {
 func splitLineIntoSizedChunks(line string, chunkSize int) []string {
 	var wrappedLines []string
 	for {
-		lineWidth := runeCount(line)
+		lineWidth := stringWidth(line)
 		if lineWidth == 0 {
 			break
 		}
@@ -697,10 +696,7 @@ func splitLineIntoSizedChunks(line string, chunkSize int) []string {
 	return wrappedLines
 }
 
-func runeCount(a string) int {
-	return utf8.RuneCountInString(a)
+// stringWidth is a function in case in the future something like utf8.RuneCountInString or lipgloss.Width is better
+func stringWidth(s string) int {
+	return len(s)
 }
-
-// func normalizeLineEndings(s string) string {
-// 	return strings.ReplaceAll(s, "\r\n", "\n")
-// }
