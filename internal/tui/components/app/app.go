@@ -86,19 +86,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			saving := m.currentPageViewportSaving()
 			enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
 			typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
-			if !typingQLegitimately {
+			if !typingQLegitimately || m.err != nil {
 				return m, tea.Quit
 			}
 		}
 
-		if m.inPty {
+		if m.currentPage == nomad.ExecPage {
 			var keypress string
-			if key.Matches(msg, keymap.KeyMap.Back) {
-				m.setInPty(false)
-			} else {
-				keypress = nomad.GetKeypress(msg)
+			if m.inPty {
+				if key.Matches(msg, keymap.KeyMap.Back) {
+					m.setInPty(false)
+					return m, nil
+				} else {
+					keypress = nomad.GetKeypress(msg)
+					return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
+				}
+			} else if key.Matches(msg, keymap.KeyMap.Forward) && m.webSocketConnected && !m.currentPageViewportSaving() {
+				m.setInPty(true)
 			}
-			return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
 		}
 
 		if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
@@ -115,10 +120,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						}
 						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
-					case nomad.ExecPage:
-						if !m.getCurrentPageModel().EnteringInput() && m.webSocketConnected {
-							m.setInPty(true)
-						}
 					case nomad.LogsPage:
 						m.logline = selectedPageRow.Row
 					}
@@ -307,7 +308,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		*currentPageModel, cmd = currentPageModel.Update(msg)
 		cmds = append(cmds, cmd)
 	}
-	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
+	m.updateKeyHelp()
 
 	return m, tea.Batch(cmds...)
 }
@@ -428,6 +429,11 @@ func (m *Model) setInPty(inPty bool) {
 	if inPty {
 		m.getCurrentPageModel().ScrollViewportToBottom()
 	}
+	m.updateKeyHelp()
+}
+
+func (m *Model) updateKeyHelp() {
+	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
 }
 
 func (m Model) getPageHeight() int {
