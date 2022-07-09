@@ -69,19 +69,19 @@ Priority in order of highest to lowest is command line arguments, then environme
 Example yaml file showing all options:
 
 ```shell
-# required: nomad address
+# Nomad address. Default 'http://localhost:4646'
 nomad_addr: http://localhost:4646
 
-# optional: nomad token (default "")
+# Nomad token. Default ''
 nomad_token: <your-nomad-token>
 
-# optional (default 2): update interval for jobs and allocations data. Disable by setting to -1
+# Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'
 wander_update_seconds: 1
 
-# only relevant for `wander serve` - the host of the machine serving the ssh app
+# For `wander serve`. Hostname of the machine hosting the ssh server. Default 'localhost'
 wander_host: localhost
 
-# only relevant for `wander serve` - the port for the ssh app
+# For `wander serve`. Port for the ssh server. Default '21324'
 wander_port: 21324
 ```
 
@@ -111,7 +111,7 @@ nomad job init
 nomad job run example.nomad
 
 # run wander
-wander -a http://localhost:4646
+wander
 ```
 
 ## Development

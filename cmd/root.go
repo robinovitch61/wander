@@ -70,21 +70,21 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// root
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "Config file (default is $HOME/.wander.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "Config file path. Default '$HOME/.wander.yaml'")
 	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
 
 	// NOTE: default values here are unused even if default exists as they break the desired priority of cli args > env vars > config file > default if exists
-	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "Nomad token for HTTP API auth (default '')")
+	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "Nomad token. Default ''")
 	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
-	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "Nomad address, e.g. http://localhost:4646")
+	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "Nomad address. Default 'http://localhost:4646'")
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
-	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "Number of seconds between page updates (-1 to disable)")
+	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'")
 	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
 
 	// serve
-	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "Host for wander ssh server")
+	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "Host for wander ssh server. Default 'localhost'")
 	viper.BindPFlag(hostArg.cliLong, serveCmd.PersistentFlags().Lookup(hostArg.config))
-	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", "Port for wander ssh server")
+	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", "Port for wander ssh server. Default '21324'")
 	viper.BindPFlag(portArg.cliLong, serveCmd.PersistentFlags().Lookup(portArg.config))
 
 	rootCmd.AddCommand(serveCmd)

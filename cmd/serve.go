@@ -40,19 +40,11 @@ var (
 )
 
 func serveEntrypoint(cmd *cobra.Command, args []string) {
-	host, err := retrieve(cmd, hostArg)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	portStr, err := retrieve(cmd, portArg)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	host := retrieveWithDefault(cmd, hostArg, "localhost")
+	portStr := retrieveWithDefault(cmd, portArg, "21324")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(fmt.Errorf("could not convert %s to integer", portStr))
 		os.Exit(1)
 	}
 

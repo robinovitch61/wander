@@ -20,8 +20,6 @@ const ExecWebSocketClosed = "> connection closed <"
 
 const ExecWebSocketHeartbeatDuration = time.Second * 10
 
-const DefaultUpdateSeconds = "2"
-
 const TablePadding = "    "
 
 var JobsViewportConditionalStyle = map[string]lipgloss.Style{

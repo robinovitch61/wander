@@ -5,7 +5,6 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
-	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -36,7 +35,7 @@ func retrieve(cmd *cobra.Command, a arg) (string, error) {
 	return val, nil
 }
 
-func retrieveAssertExistsWithFallback(cmd *cobra.Command, currArg, oldArg arg) (string, error) {
+func retrieveWithFallback(cmd *cobra.Command, currArg, oldArg arg) (string, error) {
 	val, err := retrieve(cmd, currArg)
 	if err != nil {
 		val, _ = retrieve(cmd, oldArg)
@@ -49,10 +48,10 @@ func retrieveAssertExistsWithFallback(cmd *cobra.Command, currArg, oldArg arg) (
 	return val, nil
 }
 
-func retrieveWithDefault(cmd *cobra.Command, short, long, defaultVal string) string {
-	val := cmd.Flag(short).Value.String()
+func retrieveWithDefault(cmd *cobra.Command, a arg, defaultVal string) string {
+	val := cmd.Flag(a.cliLong).Value.String()
 	if val == "" {
-		val = viper.GetString(long)
+		val = viper.GetString(a.config)
 	}
 	if val == "" {
 		return defaultVal
@@ -61,16 +60,15 @@ func retrieveWithDefault(cmd *cobra.Command, short, long, defaultVal string) str
 }
 
 func retrieveAddress(cmd *cobra.Command) string {
-	val, err := retrieveAssertExistsWithFallback(cmd, addrArg, oldAddrArg)
+	val, err := retrieveWithFallback(cmd, addrArg, oldAddrArg)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return "http://localhost:4646"
 	}
 	return val
 }
 
 func retrieveToken(cmd *cobra.Command) string {
-	val, err := retrieveAssertExistsWithFallback(cmd, tokenArg, oldTokenArg)
+	val, err := retrieveWithFallback(cmd, tokenArg, oldTokenArg)
 	if err != nil {
 		return ""
 	}
@@ -82,7 +80,7 @@ func retrieveToken(cmd *cobra.Command) string {
 }
 
 func retrieveUpdateSeconds(cmd *cobra.Command) int {
-	updateSecondsString := retrieveWithDefault(cmd, updateSecondsArg.cliLong, updateSecondsArg.config, constants.DefaultUpdateSeconds)
+	updateSecondsString := retrieveWithDefault(cmd, updateSecondsArg, "2")
 	updateSeconds, err := strconv.Atoi(updateSecondsString)
 	if err != nil {
 		fmt.Println(fmt.Errorf("update value %s cannot be converted to an integer", updateSecondsString))
