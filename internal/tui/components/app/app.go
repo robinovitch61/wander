@@ -79,6 +79,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case message.CleanupCompleteMsg:
+		return m, tea.Quit
+
 	case tea.KeyMsg:
 		// always exit if desired, or don't respond if typing "q" legitimately in some text input
 		if key.Matches(msg, keymap.KeyMap.Exit) {
@@ -87,7 +90,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
 			typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
 			if !typingQLegitimately || m.err != nil {
-				return m, tea.Quit
+				return m, m.cleanupCmd()
 			}
 		}
 
@@ -352,6 +355,15 @@ func (m *Model) initialize() {
 	m.pageModels[nomad.LoglinePage] = &loglinePage
 
 	m.initialized = true
+}
+
+func (m *Model) cleanupCmd() tea.Cmd {
+	return func() tea.Msg {
+		if m.execWebSocket != nil {
+			nomad.CloseWebSocket(m.execWebSocket)()
+		}
+		return message.CleanupCompleteMsg{}
+	}
 }
 
 func (m *Model) setPageWindowSize() {
