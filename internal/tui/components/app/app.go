@@ -19,9 +19,13 @@ import (
 	"time"
 )
 
+type Config struct {
+	Version, SHA, URL, Token, EventTopics, EventNamespace string
+	UpdateSeconds                                         time.Duration
+}
+
 type Model struct {
-	nomadUrl   string
-	nomadToken string
+	config Config
 
 	header      header.Model
 	currentPage nomad.Page
@@ -34,30 +38,28 @@ type Model struct {
 	logline      string
 	logType      nomad.LogType
 
+	eventsStream nomad.PersistentConnection
+	event        string
+
 	execWebSocket       *websocket.Conn
 	execPty             *os.File
 	inPty               bool
 	webSocketConnected  bool
 	lastCommandFinished struct{ stdOut, stdErr bool }
 
-	updateInterval time.Duration
-
 	width, height int
 	initialized   bool
 	err           error
 }
 
-func InitialModel(version, sha, url, token string, updateSeconds int) Model {
+func InitialModel(c Config) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, url, getVersionString(version, sha), nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false))
-	updateInterval := time.Second * time.Duration(updateSeconds)
+	initialHeader := header.New(constants.LogoString, c.URL, getVersionString(c.Version, c.SHA), nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false))
 
 	return Model{
-		nomadUrl:       url,
-		nomadToken:     token,
-		header:         initialHeader,
-		currentPage:    firstPage,
-		updateInterval: updateInterval,
+		config:      c,
+		header:      initialHeader,
+		currentPage: firstPage,
 	}
 }
 
@@ -116,6 +118,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					switch m.currentPage {
 					case nomad.JobsPage:
 						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+					case nomad.EventsPage:
+						m.event = selectedPageRow.Row
 					case nomad.AllocationsPage:
 						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
 						if err != nil {
@@ -196,6 +200,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
+			if key.Matches(msg, keymap.KeyMap.Events) && m.currentPage == nomad.JobsPage {
+				m.setPage(nomad.EventsPage)
+				return m, m.getCurrentPageCmd()
+			}
+
 			if m.currentPage == nomad.LogsPage {
 				switch {
 				case key.Matches(msg, keymap.KeyMap.StdOut):
@@ -238,7 +247,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.PageLoadedMsg:
 		if msg.Page == m.currentPage {
 			m.getCurrentPageModel().SetHeader(msg.TableHeader)
-			m.getCurrentPageModel().SetAllPageData(msg.AllPageData)
+			m.getCurrentPageModel().SetAllPageData(msg.AllPageRows)
 			if m.currentPageLoading() {
 				m.getCurrentPageModel().SetViewportXOffset(0)
 			}
@@ -246,7 +255,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			switch m.currentPage {
 			case nomad.JobsPage:
-				if m.currentPage == nomad.JobsPage && len(msg.AllPageData) == 0 {
+				if m.currentPage == nomad.JobsPage && len(msg.AllPageRows) == 0 {
 					// oddly, nomad http api errors when one provides the wrong token, but returns empty results when one provides an empty token
 					m.getCurrentPageModel().SetAllPageData([]page.Row{
 						{"", "No job results. Is the cluster empty or no nomad token provided?"},
@@ -254,12 +263,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					})
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
+			case nomad.EventsPage:
+				if m.eventsStream.Body != nil {
+					err := m.eventsStream.Body.Close()
+					if err != nil {
+						m.err = err
+						return m, nil
+					}
+				}
+				m.eventsStream = msg.Connection
+				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream.Reader))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 			}
-			cmds = append(cmds, nomad.UpdatePageDataWithDelay(m.currentPage, m.updateInterval))
+			cmds = append(cmds, nomad.UpdatePageDataWithDelay(m.currentPage, m.config.UpdateSeconds))
+		}
+
+	case nomad.EventsStreamMsg:
+		if m.currentPage == nomad.EventsPage {
+			if !msg.Closed {
+				if msg.Value != "{}" {
+					scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+					m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
+					if scrollDown {
+						m.getCurrentPageModel().ScrollViewportToBottom()
+					}
+				}
+				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream.Reader))
+			}
 		}
 
 	case nomad.UpdatePageDataMsg:
@@ -270,7 +303,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			m.getCurrentPageModel().SetLoading(true)
-			return m, nomad.InitiateWebSocket(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, msg.Input)
+			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.allocID, m.taskName, msg.Input)
 		}
 
 	case nomad.ExecWebSocketConnectedMsg:
@@ -297,6 +330,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.webSocketConnected = false
 				m.setInPty(false)
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebSocketClosed}}, true)
+				m.getCurrentPageModel().ScrollViewportToBottom()
 			} else {
 				m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
 				m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
@@ -339,6 +373,12 @@ func (m *Model) initialize() {
 	jobSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false, true, false, nil)
 	m.pageModels[nomad.JobSpecPage] = &jobSpecPage
 
+	eventsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.EventsPage), nomad.EventsPage.LoadingString(), true, false, false, nil)
+	m.pageModels[nomad.EventsPage] = &eventsPage
+
+	eventPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.EventPage), nomad.EventPage.LoadingString(), false, true, false, nil)
+	m.pageModels[nomad.EventPage] = &eventPage
+
 	allocationsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false, false, constants.AllocationsViewportConditionalStyle)
 	m.pageModels[nomad.AllocationsPage] = &allocationsPage
 
@@ -359,6 +399,9 @@ func (m *Model) initialize() {
 
 func (m *Model) cleanupCmd() tea.Cmd {
 	return func() tea.Msg {
+		if m.eventsStream.Body != nil {
+			_ = m.eventsStream.Body.Close()
+		}
 		if m.execWebSocket != nil {
 			nomad.CloseWebSocket(m.execWebSocket)()
 		}
@@ -390,21 +433,23 @@ func (m *Model) getCurrentPageModel() *page.Model {
 func (m *Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
-		return nomad.FetchJobs(m.nomadUrl, m.nomadToken)
+		return nomad.FetchJobs(m.config.URL, m.config.Token)
 	case nomad.JobSpecPage:
-		return nomad.FetchJobSpec(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
+		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+	case nomad.EventsPage:
+		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace)
+	case nomad.EventPage:
+		return nomad.PrettifyLine(m.event, nomad.EventPage)
 	case nomad.AllocationsPage:
-		return nomad.FetchAllocations(m.nomadUrl, m.nomadToken, m.jobID, m.jobNamespace)
+		return nomad.FetchAllocations(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
-		return func() tea.Msg {
-			return nomad.PageLoadedMsg{Page: nomad.ExecPage, TableHeader: []string{}, AllPageData: []page.Row{}}
-		}
+		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:
-		return nomad.FetchAllocSpec(m.nomadUrl, m.nomadToken, m.allocID)
+		return nomad.FetchAllocSpec(m.config.URL, m.config.Token, m.allocID)
 	case nomad.LogsPage:
-		return nomad.FetchLogs(m.nomadUrl, m.nomadToken, m.allocID, m.taskName, m.logType)
+		return nomad.FetchLogs(m.config.URL, m.config.Token, m.allocID, m.taskName, m.logType)
 	case nomad.LoglinePage:
-		return nomad.FetchLogLine(m.logline)
+		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	default:
 		panic("page load command not found")
 	}
@@ -418,6 +463,7 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 		pageRows = append(pageRows, page.Row{Row: stripped})
 	}
 	m.getCurrentPageModel().AppendToViewport(pageRows, startOnNewLine)
+	m.getCurrentPageModel().ScrollViewportToBottom()
 }
 
 // updateLastCommandFinished updates lastCommandFinished, which is necessary
@@ -469,7 +515,7 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.jobID, m.taskName, m.allocID)
+	return page.GetFilterPrefix(m.jobID, m.taskName, m.allocID, m.config.EventTopics, m.config.EventNamespace)
 }
 
 func getVersionString(v, s string) string {

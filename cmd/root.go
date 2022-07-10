@@ -47,6 +47,16 @@ var (
 		cliLong:  "update",
 		config:   "wander_update_seconds",
 	}
+	eventTopicsArg = arg{
+		cliShort: "",
+		cliLong:  "event-topics",
+		config:   "wander_event_topics",
+	}
+	eventNamespaceArg = arg{
+		cliShort: "",
+		cliLong:  "event-namespace",
+		config:   "wander_event_namespace",
+	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
 view jobs, allocations, tasks, logs, and more, all from the terminal
@@ -80,6 +90,10 @@ func init() {
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
 	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'")
 	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
+	rootCmd.PersistentFlags().StringP(eventTopicsArg.cliLong, eventTopicsArg.cliShort, "", "Topics to follow in event stream, comma-separated. Default 'Job,Allocation,Deployment,Evaluation'")
+	viper.BindPFlag(eventTopicsArg.cliLong, rootCmd.PersistentFlags().Lookup(eventTopicsArg.config))
+	rootCmd.PersistentFlags().StringP(eventNamespaceArg.cliLong, eventNamespaceArg.cliShort, "", "Namespace in event stream. '*' for all namespaces. Default 'default'")
+	viper.BindPFlag(eventNamespaceArg.cliLong, rootCmd.PersistentFlags().Lookup(eventNamespaceArg.config))
 
 	// serve
 	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "Host for wander ssh server. Default 'localhost'")
@@ -123,10 +137,8 @@ func initConfig() {
 }
 
 func mainEntrypoint(cmd *cobra.Command, args []string) {
-	nomadAddr := retrieveAddress(cmd)
-	nomadToken := retrieveToken(cmd)
-	updateSeconds := retrieveUpdateSeconds(cmd)
-	program := tea.NewProgram(initialModel(nomadAddr, nomadToken, updateSeconds), tea.WithAltScreen())
+	initialModel, options := setup(cmd, "")
+	program := tea.NewProgram(initialModel, options...)
 
 	dev.Debug("~STARTING UP~")
 	if err := program.Start(); err != nil {

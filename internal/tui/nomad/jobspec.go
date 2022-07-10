@@ -10,8 +10,8 @@ import (
 
 func FetchJobSpec(url, token, jobID, jobNamespace string) tea.Cmd {
 	return func() tea.Msg {
-		params := map[string]string{
-			"namespace": jobNamespace,
+		params := [][2]string{
+			{"namespace", jobNamespace},
 		}
 		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/job/", jobID)
 		body, err := get(fullPath, token, params)
@@ -29,7 +29,7 @@ func FetchJobSpec(url, token, jobID, jobNamespace string) tea.Cmd {
 		return PageLoadedMsg{
 			Page:        JobSpecPage,
 			TableHeader: []string{},
-			AllPageData: jobSpecPageData,
+			AllPageRows: jobSpecPageData,
 		}
 	}
 }

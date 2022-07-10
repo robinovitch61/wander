@@ -2,6 +2,7 @@ package nomad
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
@@ -53,13 +54,16 @@ type jobResponseEntry struct {
 
 func FetchJobs(url, token string) tea.Cmd {
 	return func() tea.Msg {
-		params := map[string]string{
-			"namespace": "*",
+		params := [][2]string{
+			{"namespace", "*"},
 		}
 		fullPath := fmt.Sprintf("%s%s", url, "/v1/jobs")
 		body, err := get(fullPath, token, params)
 		if err != nil {
 			return message.ErrMsg{Err: err}
+		}
+		if strings.Contains(string(body), "UUID must be 36 characters") {
+			return message.ErrMsg{Err: errors.New("token must be 36 characters")}
 		}
 
 		var jobResponse []jobResponseEntry
@@ -77,7 +81,7 @@ func FetchJobs(url, token string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
-		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageData: allPageData}
+		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 

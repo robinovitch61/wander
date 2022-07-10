@@ -26,7 +26,7 @@ func FetchAllocSpec(url, token, allocID string) tea.Cmd {
 		return PageLoadedMsg{
 			Page:        AllocSpecPage,
 			TableHeader: []string{},
-			AllPageData: allocSpecPageData,
+			AllPageRows: allocSpecPageData,
 		}
 	}
 }

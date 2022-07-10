@@ -224,7 +224,6 @@ func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
 		}
 	}
 	m.SetAllPageData(newPageData)
-	m.viewport.ScrollToBottom()
 }
 
 func (m *Model) SetDoesNeedNewInput() {
@@ -256,6 +255,13 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 		return filtered[selectedRow], nil
 	}
 	return Row{}, fmt.Errorf("selection invalid")
+}
+
+func (m Model) ViewportSelectionAtBottom() bool {
+	if !m.viewport.SelectionEnabled() {
+		return false
+	}
+	return m.viewport.SelectedContentIdx() == len(m.pageData.Filtered)-1
 }
 
 func (m Model) EnteringInput() bool {

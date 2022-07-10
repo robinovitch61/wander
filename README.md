@@ -16,6 +16,10 @@
 
 ![wander](./img/logs.png)
 
+### Tail events
+
+![wander](./img/events.png)
+
 ### Save any view as a local file
 
 ![wander](./img/save.png)
@@ -77,6 +81,12 @@ nomad_token: <your-nomad-token>
 
 # Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'
 wander_update_seconds: 1
+
+# Topics to follow in event stream, comma-separated. Default 'Job,Allocation,Deployment,Evaluation'
+wander_event_topics: Job:my-job,Job:my-other-job,Allocation:my-job,Evaluation,Deployment:* # see https://www.nomadproject.io/api-docs/events#event-stream
+
+#  Namespace in event stream. '*' for all namespaces. Default 'default'
+wander_event_namespace: '*' # * needs surrounding '' in yaml
 
 # For `wander serve`. Hostname of the machine hosting the ssh server. Default 'localhost'
 wander_host: localhost

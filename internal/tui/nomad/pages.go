@@ -1,6 +1,7 @@
 package nomad
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,6 +10,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
+	"io"
 	"strings"
 	"time"
 )
@@ -19,6 +21,8 @@ const (
 	Unset Page = iota
 	JobsPage
 	JobSpecPage
+	EventsPage
+	EventPage
 	AllocationsPage
 	ExecPage
 	AllocSpecPage
@@ -27,7 +31,7 @@ const (
 )
 
 func (p Page) DoesLoad() bool {
-	noLoadPages := []Page{LoglinePage}
+	noLoadPages := []Page{LoglinePage, EventPage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
 			return false
@@ -37,7 +41,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, ExecPage}
+	noReloadPages := []Page{LoglinePage, EventsPage, EventPage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -53,6 +57,8 @@ func (p Page) doesUpdate() bool {
 		LogsPage,      // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
 		JobSpecPage,   // would require changes to make scrolling possible
 		AllocSpecPage, // would require changes to make scrolling possible
+		EventsPage,    // constant connection, streams data
+		EventPage,     // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -70,6 +76,10 @@ func (p Page) String() string {
 		return "jobs"
 	case JobSpecPage:
 		return "job spec"
+	case EventsPage:
+		return "events"
+	case EventPage:
+		return "event"
 	case AllocationsPage:
 		return "allocations"
 	case ExecPage:
@@ -92,6 +102,8 @@ func (p Page) Forward() Page {
 	switch p {
 	case JobsPage:
 		return AllocationsPage
+	case EventsPage:
+		return EventPage
 	case AllocationsPage:
 		return LogsPage
 	case LogsPage:
@@ -104,6 +116,10 @@ func (p Page) Backward() Page {
 	switch p {
 	case JobSpecPage:
 		return JobsPage
+	case EventsPage:
+		return JobsPage
+	case EventPage:
+		return EventsPage
 	case AllocationsPage:
 		return JobsPage
 	case ExecPage:
@@ -118,12 +134,16 @@ func (p Page) Backward() Page {
 	return p
 }
 
-func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
+func (p Page) GetFilterPrefix(jobID, taskName, allocID, eventTopics, eventNamespace string) string {
 	switch p {
 	case JobsPage:
 		return "Jobs"
 	case JobSpecPage:
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
+	case EventsPage:
+		return fmt.Sprintf("Events in %s for %s", eventNamespace, formatEventTopics(eventTopics))
+	case EventPage:
+		return fmt.Sprintf("Event")
 	case AllocationsPage:
 		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
 	case ExecPage:
@@ -139,10 +159,16 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string) string {
 	}
 }
 
+type PersistentConnection struct {
+	Reader *bufio.Reader
+	Body   io.ReadCloser
+}
+
 type PageLoadedMsg struct {
 	Page        Page
 	TableHeader []string
-	AllPageData []page.Row
+	AllPageRows []page.Row
+	Connection  PersistentConnection
 }
 
 type UpdatePageDataMsg struct{ Page Page }
@@ -197,6 +223,10 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	} else if currentPage == LogsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.StdOut)
 		fourthRow = append(fourthRow, keymap.KeyMap.StdErr)
+	}
+
+	if currentPage == JobsPage {
+		fourthRow = append(fourthRow, keymap.KeyMap.Events)
 	}
 
 	if currentPage == AllocationsPage {

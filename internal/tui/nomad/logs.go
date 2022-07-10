@@ -38,12 +38,12 @@ func (p LogType) ShortString() string {
 
 func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 	return func() tea.Msg {
-		params := map[string]string{
-			"task":   taskName,
-			"type":   logType.ShortString(),
-			"origin": "end",
-			"offset": "1000000",
-			"plain":  "true",
+		params := [][2]string{
+			{"task", taskName},
+			{"type", logType.ShortString()},
+			{"origin", "end"},
+			{"offset", "1000000"},
+			{"plain", "true"},
 		}
 		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocID)
 		body, err := get(fullPath, token, params)
@@ -55,7 +55,7 @@ func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
 		logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
 
 		tableHeader, allPageData := logsAsTable(logRows, logType)
-		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageData: allPageData}
+		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 
