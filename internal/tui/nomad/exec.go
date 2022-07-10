@@ -6,6 +6,7 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
@@ -23,6 +24,13 @@ type ExecWebSocketResponseMsg struct {
 }
 
 type ExecWebSocketHeartbeatMsg struct{}
+
+func LoadExecPage() tea.Cmd {
+	return func() tea.Msg {
+		// this does no real work as the command input is requested before the exec websocket connects
+		return PageLoadedMsg{Page: ExecPage, TableHeader: []string{}, AllPageRows: []page.Row{}}
+	}
+}
 
 func InitiateWebSocket(host, token, allocID, taskName, command string) tea.Cmd {
 	return func() tea.Msg {

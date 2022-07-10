@@ -79,13 +79,11 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 
 func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-		nomadAddr := retrieveAddress(cmd)
-		nomadToken := retrieveToken(cmd)
-		updateSeconds := retrieveUpdateSeconds(cmd)
 		// optionally override token - MUST run with `-t` flag to force pty, e.g. ssh -p 20000 localhost -t <token>
+		var overrideToken string
 		if sshCommands := s.Command(); len(sshCommands) == 1 {
-			nomadToken = strings.TrimSpace(sshCommands[0])
+			overrideToken = strings.TrimSpace(sshCommands[0])
 		}
-		return initialModel(nomadAddr, nomadToken, updateSeconds), []tea.ProgramOption{tea.WithAltScreen()}
+		return setup(cmd, overrideToken)
 	}
 }

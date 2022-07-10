@@ -81,8 +81,8 @@ type allocationRowEntry struct {
 
 func FetchAllocations(url, token, jobID, jobNamespace string) tea.Cmd {
 	return func() tea.Msg {
-		params := map[string]string{
-			"namespace": jobNamespace,
+		params := [][2]string{
+			{"namespace", jobNamespace},
 		}
 		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
 		body, err := get(fullPath, token, params)
@@ -129,7 +129,7 @@ func FetchAllocations(url, token, jobID, jobNamespace string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := allocationsAsTable(allocationRowEntries)
-		return PageLoadedMsg{Page: AllocationsPage, TableHeader: tableHeader, AllPageData: allPageData}
+		return PageLoadedMsg{Page: AllocationsPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 

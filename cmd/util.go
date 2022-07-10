@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
@@ -23,6 +25,13 @@ var (
 	// against. It's set via ldflags in the .goreleaser.yaml file when building
 	CommitSHA = ""
 )
+
+func validateToken(token string) error {
+	if len(token) > 0 && len(token) != 36 {
+		return errors.New("token must be 36 characters")
+	}
+	return nil
+}
 
 func retrieve(cmd *cobra.Command, a arg) (string, error) {
 	val := cmd.Flag(a.cliLong).Value.String()
@@ -72,11 +81,20 @@ func retrieveToken(cmd *cobra.Command) string {
 	if err != nil {
 		return ""
 	}
-	if len(val) > 0 && len(val) != 36 {
-		fmt.Println("token must be 36 characters")
+	err = validateToken(val)
+	if err != nil {
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 	return val
+}
+
+func retrieveEventTopics(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, eventTopicsArg, "Job,Allocation,Deployment,Evaluation")
+}
+
+func retrieveEventNamespace(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, eventNamespaceArg, "default")
 }
 
 func retrieveUpdateSeconds(cmd *cobra.Command) int {
@@ -106,8 +124,30 @@ func CustomLoggingMiddleware() wish.Middleware {
 	}
 }
 
-func initialModel(addr, token string, updateSeconds int) app.Model {
-	return app.InitialModel(Version, CommitSHA, addr, token, updateSeconds)
+func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOption) {
+	nomadAddr := retrieveAddress(cmd)
+	nomadToken := retrieveToken(cmd)
+	if overrideToken != "" {
+		err := validateToken(overrideToken)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		nomadToken = overrideToken
+	}
+	eventTopics := retrieveEventTopics(cmd)
+	eventNamespace := retrieveEventNamespace(cmd)
+	updateSeconds := retrieveUpdateSeconds(cmd)
+
+	initialModel := app.InitialModel(app.Config{
+		Version:        Version,
+		SHA:            CommitSHA,
+		URL:            nomadAddr,
+		Token:          nomadToken,
+		EventTopics:    eventTopics,
+		EventNamespace: eventNamespace,
+		UpdateSeconds:  time.Second * time.Duration(updateSeconds),
+	})
+	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }
 
 func getVersion() string {
