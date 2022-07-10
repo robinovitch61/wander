@@ -93,6 +93,17 @@ wander_host: localhost
 
 # For `wander serve`. Port for the ssh server. Default '21324'
 wander_port: 21324
+
+# For `wander serve`. Host key path for wander ssh server. Default none, i.e. ''
+wander_host_key_path: .ssh/term_info_ed25519
+
+# For `wander serve`. Host key PEM block for wander ssh server. Default none, i.e. ''
+wander_host_key_pem: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    b3BlbnNzaD1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAACFwAAAAdzc2gtcm
+    ...
+    XBMuWaiQMCZjAwAAAAp3YW5kZXItc3NoAQIEBAUGBw==
+    -----END OPENSSH PRIVATE KEY-----
 ```
 
 ## SSH App

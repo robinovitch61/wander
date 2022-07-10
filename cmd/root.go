@@ -100,6 +100,10 @@ func init() {
 	viper.BindPFlag(hostArg.cliLong, serveCmd.PersistentFlags().Lookup(hostArg.config))
 	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", "Port for wander ssh server. Default '21324'")
 	viper.BindPFlag(portArg.cliLong, serveCmd.PersistentFlags().Lookup(portArg.config))
+	serveCmd.PersistentFlags().StringP(hostKeyPathArg.cliLong, hostKeyPathArg.cliShort, "", "Host key path for wander ssh server. Default none, i.e. ''")
+	viper.BindPFlag(hostKeyPathArg.cliLong, serveCmd.PersistentFlags().Lookup(hostKeyPathArg.config))
+	serveCmd.PersistentFlags().StringP(hostKeyPEMArg.cliLong, hostKeyPEMArg.cliShort, "", "Host key PEM block for wander ssh server. Default none, i.e. ''")
+	viper.BindPFlag(hostKeyPEMArg.cliLong, serveCmd.PersistentFlags().Lookup(hostKeyPEMArg.config))
 
 	rootCmd.AddCommand(serveCmd)
 }
