@@ -28,6 +28,16 @@ var (
 		cliLong:  "port",
 		config:   "wander_port",
 	}
+	hostKeyPathArg = arg{
+		cliShort: "k",
+		cliLong:  "host-key-path",
+		config:   "wander_host_key_path",
+	}
+	hostKeyPEMArg = arg{
+		cliShort: "m",
+		cliLong:  "host-key-pem",
+		config:   "wander_host_key_pem",
+	}
 
 	serveDescription = `Starts an ssh server hosting wander.`
 
@@ -47,14 +57,23 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Errorf("could not convert %s to integer", portStr))
 		os.Exit(1)
 	}
+	hostKeyPath := retrieveWithDefault(cmd, hostKeyPathArg, "")
+	hostKeyPEM := retrieveWithDefault(cmd, hostKeyPEMArg, "")
 
-	s, err := wish.NewServer(
-		wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
-		wish.WithMiddleware(
-			bm.Middleware(generateTeaHandler(cmd)),
-			CustomLoggingMiddleware(),
-		),
+	options := []ssh.Option{wish.WithAddress(fmt.Sprintf("%s:%d", host, port))}
+	if hostKeyPath != "" {
+		options = append(options, wish.WithHostKeyPath(hostKeyPath))
+	}
+	if hostKeyPEM != "" {
+		options = append(options, wish.WithHostKeyPEM([]byte(hostKeyPEM)))
+	}
+	middleware := wish.WithMiddleware(
+		bm.Middleware(generateTeaHandler(cmd)),
+		CustomLoggingMiddleware(),
 	)
+	options = append(options, middleware)
+
+	s, err := wish.NewServer(options...)
 	if err != nil {
 		log.Fatalln(err)
 	}
