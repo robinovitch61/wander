@@ -12,9 +12,15 @@ import (
 	"time"
 )
 
-const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+const (
+	ansi  = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+	osCmd = "[\u001B]]0.*[\a\u001B](?:\\\\)?"
+)
 
-var re = regexp.MustCompile(ansi)
+var (
+	ansiRe  = regexp.MustCompile(ansi)
+	osCmdRe = regexp.MustCompile(osCmd)
+)
 
 func prettyPrint(b []byte) ([]byte, error) {
 	var out bytes.Buffer
@@ -153,5 +159,13 @@ func JsonEncodedTokenArray(s string) (string, error) {
 }
 
 func StripANSI(str string) string {
-	return re.ReplaceAllString(str, "")
+	return ansiRe.ReplaceAllString(str, "")
+}
+
+func StripOSCommandSequences(str string) string {
+	// https://wezfurlong.org/wezterm/escape-sequences.html#operating-system-command-sequences
+	// examples:
+	// \x1b]0;me@123: /home/test\a
+	// \x1b]0;title\x1b\\
+	return osCmdRe.ReplaceAllString(str, "")
 }

@@ -433,8 +433,12 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 	stringRows := strings.Split(content, "\n")
 	var pageRows []page.Row
 	for _, row := range stringRows {
-		stripped := formatter.StripANSI(row)
-		pageRows = append(pageRows, page.Row{Row: stripped})
+		stripOS := formatter.StripOSCommandSequences(row)
+		stripped := formatter.StripANSI(stripOS)
+		// bell seems to mess with parent terminal
+		if stripped != "\a" {
+			pageRows = append(pageRows, page.Row{Row: stripped})
+		}
 	}
 	m.getCurrentPageModel().AppendToViewport(pageRows, startOnNewLine)
 	m.getCurrentPageModel().ScrollViewportToBottom()
