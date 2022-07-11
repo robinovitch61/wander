@@ -2,6 +2,7 @@ package page
 
 import (
 	"fmt"
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,6 +16,13 @@ import (
 	"strings"
 )
 
+type Config struct {
+	Width, Height                                          int
+	FilterPrefix, LoadingString                            string
+	CopySavePath, SelectionEnabled, WrapText, RequestInput bool
+	ViewportConditionalStyle                               map[string]lipgloss.Style
+}
+
 type Model struct {
 	width, height int
 
@@ -26,6 +34,8 @@ type Model struct {
 	loadingString string
 	loading       bool
 
+	copySavePath bool
+
 	doesRequestInput bool
 	textinput        textinput.Model
 	needsNewInput    bool
@@ -33,21 +43,16 @@ type Model struct {
 	initialized      bool
 }
 
-func New(
-	width, height int,
-	filterPrefix, loadingString string,
-	selectionEnabled, wrapText, requestInput bool,
-	viewportConditionalStyle map[string]lipgloss.Style,
-) Model {
-	pageFilter := filter.New(filterPrefix)
-	pageViewport := viewport.New(width, height-pageFilter.ViewHeight())
-	pageViewport.SetSelectionEnabled(selectionEnabled)
-	pageViewport.SetWrapText(wrapText)
-	pageViewport.ConditionalStyle = viewportConditionalStyle
+func New(c Config) Model {
+	pageFilter := filter.New(c.FilterPrefix)
+	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight())
+	pageViewport.SetSelectionEnabled(c.SelectionEnabled)
+	pageViewport.SetWrapText(c.WrapText)
+	pageViewport.ConditionalStyle = c.ViewportConditionalStyle
 
 	needsNewInput := false
 	var pageTextInput textinput.Model
-	if requestInput {
+	if c.RequestInput {
 		pageTextInput = textinput.New()
 		pageTextInput.Focus()
 		pageTextInput.Prompt = ""
@@ -56,13 +61,14 @@ func New(
 	}
 
 	model := Model{
-		width:            width,
-		height:           height,
+		width:            c.Width,
+		height:           c.Height,
 		viewport:         pageViewport,
 		filter:           pageFilter,
-		loadingString:    loadingString,
+		loadingString:    c.LoadingString,
 		loading:          true,
-		doesRequestInput: requestInput,
+		copySavePath:     c.CopySavePath,
+		doesRequestInput: c.RequestInput,
 		textinput:        pageTextInput,
 		needsNewInput:    needsNewInput,
 	}
@@ -102,6 +108,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case viewport.SaveStatusMsg:
+		if m.copySavePath {
+			cmds = append(cmds, func() tea.Msg {
+				_ = clipboard.WriteAll(msg.FullPath)
+				return nil
+			})
+		}
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 

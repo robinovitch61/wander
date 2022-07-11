@@ -68,6 +68,14 @@ func retrieveWithDefault(cmd *cobra.Command, a arg, defaultVal string) string {
 	return val
 }
 
+func retrieveNonCLIWithDefault(a arg, defaultVal string) string {
+	val := viper.GetString(a.config)
+	if val == "" {
+		return defaultVal
+	}
+	return val
+}
+
 func retrieveAddress(cmd *cobra.Command) string {
 	val, err := retrieveWithFallback(cmd, addrArg, oldAddrArg)
 	if err != nil {
@@ -89,6 +97,14 @@ func retrieveToken(cmd *cobra.Command) string {
 	return val
 }
 
+func retrieveCopySavePath(cmd *cobra.Command) bool {
+	v := retrieveWithDefault(cmd, copySavePathArg, "false")
+	if strings.ToLower(strings.TrimSpace(v)) == "true" {
+		return true
+	}
+	return false
+}
+
 func retrieveEventTopics(cmd *cobra.Command) string {
 	return retrieveWithDefault(cmd, eventTopicsArg, "Job,Allocation,Deployment,Evaluation")
 }
@@ -105,6 +121,16 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 		os.Exit(1)
 	}
 	return updateSeconds
+}
+
+func retrieveLogOffset(cmd *cobra.Command) int {
+	logOffsetString := retrieveWithDefault(cmd, logOffsetArg, "1000000")
+	logOffset, err := strconv.Atoi(logOffsetString)
+	if err != nil {
+		fmt.Println(fmt.Errorf("log offset %s cannot be converted to an integer", logOffsetString))
+		os.Exit(1)
+	}
+	return logOffset
 }
 
 // CustomLoggingMiddleware provides basic connection logging. Connects are logged with the
@@ -134,18 +160,24 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		}
 		nomadToken = overrideToken
 	}
+	logOffset := retrieveLogOffset(cmd)
+	copySavePath := retrieveCopySavePath(cmd)
 	eventTopics := retrieveEventTopics(cmd)
 	eventNamespace := retrieveEventNamespace(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
+	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 
 	initialModel := app.InitialModel(app.Config{
 		Version:        Version,
 		SHA:            CommitSHA,
 		URL:            nomadAddr,
 		Token:          nomadToken,
+		LogOffset:      logOffset,
+		CopySavePath:   copySavePath,
 		EventTopics:    eventTopics,
 		EventNamespace: eventNamespace,
 		UpdateSeconds:  time.Second * time.Duration(updateSeconds),
+		LogoColor:      logoColor,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }

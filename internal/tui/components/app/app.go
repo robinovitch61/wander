@@ -21,7 +21,10 @@ import (
 
 type Config struct {
 	Version, SHA, URL, Token, EventTopics, EventNamespace string
+	LogOffset                                             int
+	CopySavePath                                          bool
 	UpdateSeconds                                         time.Duration
+	LogoColor                                             string
 }
 
 type Model struct {
@@ -56,7 +59,13 @@ type Model struct {
 
 func InitialModel(c Config) Model {
 	firstPage := nomad.JobsPage
-	initialHeader := header.New(constants.LogoString, c.URL, getVersionString(c.Version, c.SHA), nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false))
+	initialHeader := header.New(
+		constants.LogoString,
+		c.LogoColor,
+		c.URL,
+		getVersionString(c.Version, c.SHA),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false),
+	)
 
 	return Model{
 		config:      c,
@@ -88,146 +97,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case tea.KeyMsg:
-		// always exit if desired, or don't respond if typing "q" legitimately in some text input
-		if key.Matches(msg, keymap.KeyMap.Exit) {
-			addingQToFilter := m.currentPageFilterFocused()
-			saving := m.currentPageViewportSaving()
-			enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
-			typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
-			if !typingQLegitimately || m.err != nil {
-				return m, m.cleanupCmd()
-			}
-		}
-
-		if m.currentPage == nomad.ExecPage {
-			var keypress string
-			if m.inPty {
-				if key.Matches(msg, keymap.KeyMap.Back) {
-					m.setInPty(false)
-					return m, nil
-				} else {
-					keypress = nomad.GetKeypress(msg)
-					return m, nomad.SendWebSocketMessage(m.execWebSocket, keypress)
-				}
-			} else if key.Matches(msg, keymap.KeyMap.Forward) && m.webSocketConnected && !m.currentPageViewportSaving() {
-				m.setInPty(true)
-			}
-		}
-
-		if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
-			switch {
-			case key.Matches(msg, keymap.KeyMap.Forward):
-				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-					switch m.currentPage {
-					case nomad.JobsPage:
-						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
-					case nomad.EventsPage:
-						m.event = selectedPageRow.Row
-					case nomad.AllocationsPage:
-						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
-						if err != nil {
-							m.err = err
-							return m, nil
-						}
-						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
-					case nomad.LogsPage:
-						m.logline = selectedPageRow.Row
-					}
-
-					nextPage := m.currentPage.Forward()
-					if nextPage != m.currentPage {
-						m.setPage(nextPage)
-						return m, m.getCurrentPageCmd()
-					}
-				}
-
-			case key.Matches(msg, keymap.KeyMap.Back):
-				if !m.currentPageFilterApplied() {
-					switch m.currentPage {
-					case nomad.ExecPage:
-						if !m.getCurrentPageModel().EnteringInput() {
-							cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
-						}
-						m.getCurrentPageModel().SetDoesNeedNewInput()
-					}
-
-					backPage := m.currentPage.Backward()
-					if backPage != m.currentPage {
-						m.setPage(backPage)
-						cmds = append(cmds, m.getCurrentPageCmd())
-						return m, tea.Batch(cmds...)
-					}
-				}
-
-			case key.Matches(msg, keymap.KeyMap.Reload):
-				if m.currentPage.DoesReload() {
-					m.getCurrentPageModel().SetLoading(true)
-					return m, m.getCurrentPageCmd()
-				}
-			}
-
-			if key.Matches(msg, keymap.KeyMap.Exec) {
-				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-					if m.currentPage == nomad.AllocationsPage {
-						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
-						if err != nil {
-							m.err = err
-							return m, nil
-						}
-						if allocInfo.Running {
-							m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
-							m.setPage(nomad.ExecPage)
-							return m, m.getCurrentPageCmd()
-						}
-					}
-				}
-			}
-
-			if key.Matches(msg, keymap.KeyMap.Spec) {
-				if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-					switch m.currentPage {
-					case nomad.JobsPage:
-						m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
-						m.setPage(nomad.JobSpecPage)
-						return m, m.getCurrentPageCmd()
-					case nomad.AllocationsPage:
-						allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
-						if err != nil {
-							m.err = err
-							return m, nil
-						}
-						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
-						m.setPage(nomad.AllocSpecPage)
-						return m, m.getCurrentPageCmd()
-					}
-				}
-			}
-
-			if key.Matches(msg, keymap.KeyMap.Events) && m.currentPage == nomad.JobsPage {
-				m.setPage(nomad.EventsPage)
-				return m, m.getCurrentPageCmd()
-			}
-
-			if m.currentPage == nomad.LogsPage {
-				switch {
-				case key.Matches(msg, keymap.KeyMap.StdOut):
-					if !m.currentPageLoading() && m.logType != nomad.StdOut {
-						m.logType = nomad.StdOut
-						m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
-						m.getCurrentPageModel().SetLoading(true)
-						return m, m.getCurrentPageCmd()
-					}
-
-				case key.Matches(msg, keymap.KeyMap.StdErr):
-					if !m.currentPageLoading() && m.logType != nomad.StdErr {
-						m.logType = nomad.StdErr
-						stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
-						m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
-						m.getCurrentPageModel().SetLoading(true)
-						return m, m.getCurrentPageCmd()
-					}
-				}
-			}
+		cmd = m.handleKeyMsg(msg)
+		if cmd != nil {
+			return m, cmd
 		}
 
 	case message.ErrMsg:
@@ -367,37 +239,11 @@ func (m Model) View() string {
 }
 
 func (m *Model) initialize() {
-	pageHeight := m.getPageHeight()
-
 	m.pageModels = make(map[nomad.Page]*page.Model)
-
-	jobsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobsPage), nomad.JobsPage.LoadingString(), true, false, false, constants.JobsViewportConditionalStyle)
-	m.pageModels[nomad.JobsPage] = &jobsPage
-
-	jobSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.JobSpecPage), nomad.JobSpecPage.LoadingString(), false, true, false, nil)
-	m.pageModels[nomad.JobSpecPage] = &jobSpecPage
-
-	eventsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.EventsPage), nomad.EventsPage.LoadingString(), true, false, false, nil)
-	m.pageModels[nomad.EventsPage] = &eventsPage
-
-	eventPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.EventPage), nomad.EventPage.LoadingString(), false, true, false, nil)
-	m.pageModels[nomad.EventPage] = &eventPage
-
-	allocationsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocationsPage), nomad.AllocationsPage.LoadingString(), true, false, false, constants.AllocationsViewportConditionalStyle)
-	m.pageModels[nomad.AllocationsPage] = &allocationsPage
-
-	execPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.ExecPage), nomad.ExecPage.LoadingString(), false, true, true, nil)
-	m.pageModels[nomad.ExecPage] = &execPage
-
-	allocSpecPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.AllocSpecPage), nomad.AllocSpecPage.LoadingString(), false, true, false, nil)
-	m.pageModels[nomad.AllocSpecPage] = &allocSpecPage
-
-	logsPage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LogsPage), nomad.LogsPage.LoadingString(), true, false, false, nil)
-	m.pageModels[nomad.LogsPage] = &logsPage
-
-	loglinePage := page.New(m.width, pageHeight, m.getFilterPrefix(nomad.LoglinePage), nomad.LoglinePage.LoadingString(), false, true, false, nil)
-	m.pageModels[nomad.LoglinePage] = &loglinePage
-
+	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath) {
+		p := page.New(c)
+		m.pageModels[k] = &p
+	}
 	m.initialized = true
 }
 
@@ -419,6 +265,155 @@ func (m *Model) setPageWindowSize() {
 	}
 }
 
+func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
+	var cmds []tea.Cmd
+	currentPageModel := m.getCurrentPageModel()
+
+	// always exit if desired, or don't respond if typing "q" legitimately in some text input
+	if key.Matches(msg, keymap.KeyMap.Exit) {
+		addingQToFilter := m.currentPageFilterFocused()
+		saving := m.currentPageViewportSaving()
+		enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
+		typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
+		if !typingQLegitimately || m.err != nil {
+			return m.cleanupCmd()
+		}
+	}
+
+	if m.currentPage == nomad.ExecPage {
+		var keypress string
+		if m.inPty {
+			if key.Matches(msg, keymap.KeyMap.Back) {
+				m.setInPty(false)
+				return nil
+			} else {
+				keypress = nomad.GetKeypress(msg)
+				return nomad.SendWebSocketMessage(m.execWebSocket, keypress)
+			}
+		} else if key.Matches(msg, keymap.KeyMap.Forward) && m.webSocketConnected && !m.currentPageViewportSaving() {
+			m.setInPty(true)
+		}
+	}
+
+	if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
+		switch {
+		case key.Matches(msg, keymap.KeyMap.Forward):
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				switch m.currentPage {
+				case nomad.JobsPage:
+					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+				case nomad.EventsPage:
+					m.event = selectedPageRow.Row
+				case nomad.AllocationsPage:
+					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+					if err != nil {
+						m.err = err
+						return nil
+					}
+					m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+				case nomad.LogsPage:
+					m.logline = selectedPageRow.Row
+				}
+
+				nextPage := m.currentPage.Forward()
+				if nextPage != m.currentPage {
+					m.setPage(nextPage)
+					return m.getCurrentPageCmd()
+				}
+			}
+
+		case key.Matches(msg, keymap.KeyMap.Back):
+			if !m.currentPageFilterApplied() {
+				switch m.currentPage {
+				case nomad.ExecPage:
+					if !m.getCurrentPageModel().EnteringInput() {
+						cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
+					}
+					m.getCurrentPageModel().SetDoesNeedNewInput()
+				}
+
+				backPage := m.currentPage.Backward()
+				if backPage != m.currentPage {
+					m.setPage(backPage)
+					cmds = append(cmds, m.getCurrentPageCmd())
+					return tea.Batch(cmds...)
+				}
+			}
+
+		case key.Matches(msg, keymap.KeyMap.Reload):
+			if m.currentPage.DoesReload() {
+				m.getCurrentPageModel().SetLoading(true)
+				return m.getCurrentPageCmd()
+			}
+		}
+
+		if key.Matches(msg, keymap.KeyMap.Exec) {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				if m.currentPage == nomad.AllocationsPage {
+					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+					if err != nil {
+						m.err = err
+						return nil
+					}
+					if allocInfo.Running {
+						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+						m.setPage(nomad.ExecPage)
+						return m.getCurrentPageCmd()
+					}
+				}
+			}
+		}
+
+		if key.Matches(msg, keymap.KeyMap.Spec) {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				switch m.currentPage {
+				case nomad.JobsPage:
+					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+					m.setPage(nomad.JobSpecPage)
+					return m.getCurrentPageCmd()
+				case nomad.AllocationsPage:
+					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+					if err != nil {
+						m.err = err
+						return nil
+					}
+					m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+					m.setPage(nomad.AllocSpecPage)
+					return m.getCurrentPageCmd()
+				}
+			}
+		}
+
+		if key.Matches(msg, keymap.KeyMap.Events) && m.currentPage == nomad.JobsPage {
+			m.setPage(nomad.EventsPage)
+			return m.getCurrentPageCmd()
+		}
+
+		if m.currentPage == nomad.LogsPage {
+			switch {
+			case key.Matches(msg, keymap.KeyMap.StdOut):
+				if !m.currentPageLoading() && m.logType != nomad.StdOut {
+					m.logType = nomad.StdOut
+					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
+					m.getCurrentPageModel().SetLoading(true)
+					return m.getCurrentPageCmd()
+				}
+
+			case key.Matches(msg, keymap.KeyMap.StdErr):
+				if !m.currentPageLoading() && m.logType != nomad.StdErr {
+					m.logType = nomad.StdErr
+					stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
+					m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
+					m.getCurrentPageModel().SetLoading(true)
+					return m.getCurrentPageCmd()
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (m *Model) setPage(page nomad.Page) {
 	m.getCurrentPageModel().HideToast()
 	m.currentPage = page
@@ -432,31 +427,6 @@ func (m *Model) setPage(page nomad.Page) {
 
 func (m *Model) getCurrentPageModel() *page.Model {
 	return m.pageModels[m.currentPage]
-}
-
-func (m *Model) getCurrentPageCmd() tea.Cmd {
-	switch m.currentPage {
-	case nomad.JobsPage:
-		return nomad.FetchJobs(m.config.URL, m.config.Token)
-	case nomad.JobSpecPage:
-		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
-	case nomad.EventsPage:
-		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace)
-	case nomad.EventPage:
-		return nomad.PrettifyLine(m.event, nomad.EventPage)
-	case nomad.AllocationsPage:
-		return nomad.FetchAllocations(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
-	case nomad.ExecPage:
-		return nomad.LoadExecPage()
-	case nomad.AllocSpecPage:
-		return nomad.FetchAllocSpec(m.config.URL, m.config.Token, m.allocID)
-	case nomad.LogsPage:
-		return nomad.FetchLogs(m.config.URL, m.config.Token, m.allocID, m.taskName, m.logType)
-	case nomad.LoglinePage:
-		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
-	default:
-		panic("page load command not found")
-	}
 }
 
 func (m *Model) appendToViewport(content string, startOnNewLine bool) {
@@ -496,6 +466,31 @@ func (m *Model) setInPty(inPty bool) {
 
 func (m *Model) updateKeyHelp() {
 	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
+}
+
+func (m Model) getCurrentPageCmd() tea.Cmd {
+	switch m.currentPage {
+	case nomad.JobsPage:
+		return nomad.FetchJobs(m.config.URL, m.config.Token)
+	case nomad.JobSpecPage:
+		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+	case nomad.EventsPage:
+		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace)
+	case nomad.EventPage:
+		return nomad.PrettifyLine(m.event, nomad.EventPage)
+	case nomad.AllocationsPage:
+		return nomad.FetchAllocations(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+	case nomad.ExecPage:
+		return nomad.LoadExecPage()
+	case nomad.AllocSpecPage:
+		return nomad.FetchAllocSpec(m.config.URL, m.config.Token, m.allocID)
+	case nomad.LogsPage:
+		return nomad.FetchLogs(m.config.URL, m.config.Token, m.allocID, m.taskName, m.logType, m.config.LogOffset)
+	case nomad.LoglinePage:
+		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
+	default:
+		panic("page load command not found")
+	}
 }
 
 func (m Model) getPageHeight() int {

@@ -6,6 +6,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
+	"strconv"
 	"strings"
 )
 
@@ -36,13 +37,13 @@ func (p LogType) ShortString() string {
 	return "unknown"
 }
 
-func FetchLogs(url, token, allocID, taskName string, logType LogType) tea.Cmd {
+func FetchLogs(url, token, allocID, taskName string, logType LogType, logOffset int) tea.Cmd {
 	return func() tea.Msg {
 		params := [][2]string{
 			{"task", taskName},
 			{"type", logType.ShortString()},
 			{"origin", "end"},
-			{"offset", "1000000"},
+			{"offset", strconv.Itoa(logOffset)},
 			{"plain", "true"},
 		}
 		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocID)

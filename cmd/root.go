@@ -47,15 +47,26 @@ var (
 		cliLong:  "update",
 		config:   "wander_update_seconds",
 	}
+	logOffsetArg = arg{
+		cliShort: "o",
+		cliLong:  "log-offset",
+		config:   "wander_log_offset",
+	}
+	copySavePathArg = arg{
+		cliShort: "s",
+		cliLong:  "copy-save-path",
+		config:   "wander_copy_save_path",
+	}
 	eventTopicsArg = arg{
-		cliShort: "",
-		cliLong:  "event-topics",
-		config:   "wander_event_topics",
+		cliLong: "event-topics",
+		config:  "wander_event_topics",
 	}
 	eventNamespaceArg = arg{
-		cliShort: "",
-		cliLong:  "event-namespace",
-		config:   "wander_event_namespace",
+		cliLong: "event-namespace",
+		config:  "wander_event_namespace",
+	}
+	logoColorArg = arg{
+		config: "wander_logo_color",
 	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
@@ -90,10 +101,17 @@ func init() {
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
 	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'")
 	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
+	rootCmd.PersistentFlags().StringP(logOffsetArg.cliLong, logOffsetArg.cliShort, "", "Log byte offset from which logs start. Default '1000000'")
+	viper.BindPFlag(logOffsetArg.cliLong, rootCmd.PersistentFlags().Lookup(logOffsetArg.config))
+	rootCmd.PersistentFlags().StringP(copySavePathArg.cliLong, copySavePathArg.cliShort, "", "If 'true', copy the full path to file after save. Default 'false'")
+	viper.BindPFlag(copySavePathArg.cliLong, rootCmd.PersistentFlags().Lookup(copySavePathArg.config))
 	rootCmd.PersistentFlags().StringP(eventTopicsArg.cliLong, eventTopicsArg.cliShort, "", "Topics to follow in event stream, comma-separated. Default 'Job,Allocation,Deployment,Evaluation'")
 	viper.BindPFlag(eventTopicsArg.cliLong, rootCmd.PersistentFlags().Lookup(eventTopicsArg.config))
 	rootCmd.PersistentFlags().StringP(eventNamespaceArg.cliLong, eventNamespaceArg.cliShort, "", "Namespace in event stream. '*' for all namespaces. Default 'default'")
 	viper.BindPFlag(eventNamespaceArg.cliLong, rootCmd.PersistentFlags().Lookup(eventNamespaceArg.config))
+
+	// colors
+	viper.BindPFlag(logoColorArg.cliLong, rootCmd.PersistentFlags().Lookup(logoColorArg.config))
 
 	// serve
 	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "Host for wander ssh server. Default 'localhost'")

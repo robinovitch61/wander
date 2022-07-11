@@ -7,15 +7,19 @@ import (
 )
 
 type Model struct {
-	logo, nomadUrl, version, KeyHelp string
+	logo, logoColor, nomadUrl, version, KeyHelp string
 }
 
-func New(logo string, nomadUrl, version, keyHelp string) (m Model) {
-	return Model{logo: logo, nomadUrl: nomadUrl, version: version, KeyHelp: keyHelp}
+func New(logo string, logoColor string, nomadUrl, version, keyHelp string) (m Model) {
+	return Model{logo: logo, logoColor: logoColor, nomadUrl: nomadUrl, version: version, KeyHelp: keyHelp}
 }
 
 func (m Model) View() string {
-	logo := style.Logo.Render(m.logo)
+	logoStyle := style.Logo
+	if m.logoColor != "" {
+		logoStyle.Foreground(lipgloss.Color(m.logoColor))
+	}
+	logo := logoStyle.Render(m.logo)
 	clusterUrl := style.ClusterUrl.Render(m.nomadUrl)
 	left := style.Header.Render(lipgloss.JoinVertical(lipgloss.Center, logo, m.version, clusterUrl))
 	styledKeyHelp := style.KeyHelp.Render(m.KeyHelp)

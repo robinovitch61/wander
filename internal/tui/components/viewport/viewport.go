@@ -19,7 +19,7 @@ const lineContinuationIndicator = "..."
 var lenLineContinuationIndicator = stringWidth(lineContinuationIndicator)
 
 type SaveStatusMsg struct {
-	SuccessMessage, Err string
+	FullPath, SuccessMessage, Err string
 }
 
 type Model struct {
@@ -645,17 +645,17 @@ func (m Model) getFooter() (string, int) {
 }
 
 func (m Model) getSaveCommand() tea.Cmd {
-	var content string
-	for _, line := range append(m.getHeader(), m.getContent()...) {
-		content += strings.TrimRight(line, " ") + "\n"
-	}
-
 	return func() tea.Msg {
+		var content string
+		for _, line := range append(m.getHeader(), m.getContent()...) {
+			content += strings.TrimRight(line, " ") + "\n"
+		}
+
 		savePathWithFileName, err := fileio.SaveToFile(m.saveDialog.Value(), content)
 		if err != nil {
 			return SaveStatusMsg{Err: err.Error()}
 		}
-		return SaveStatusMsg{SuccessMessage: fmt.Sprintf("Success: saved to %s", savePathWithFileName)}
+		return SaveStatusMsg{FullPath: savePathWithFileName, SuccessMessage: fmt.Sprintf("Success: saved to %s", savePathWithFileName)}
 	}
 }
 

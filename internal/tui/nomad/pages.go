@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/components/viewport"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
@@ -29,6 +30,58 @@ const (
 	LogsPage
 	LoglinePage
 )
+
+func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Config {
+	return map[Page]page.Config{
+		JobsPage: {
+			Width: width, Height: height,
+			FilterPrefix: "Jobs", LoadingString: JobsPage.LoadingString(),
+			CopySavePath: copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			ViewportConditionalStyle: constants.JobsViewportConditionalStyle,
+		},
+		JobSpecPage: {
+			Width: width, Height: height,
+			LoadingString: JobSpecPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+		EventsPage: {
+			Width: width, Height: height,
+			LoadingString: EventsPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		EventPage: {
+			Width: width, Height: height,
+			LoadingString: EventPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+		AllocationsPage: {
+			Width: width, Height: height,
+			LoadingString: AllocationsPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			ViewportConditionalStyle: constants.AllocationsViewportConditionalStyle,
+		},
+		ExecPage: {
+			Width: width, Height: height,
+			LoadingString: ExecPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: true,
+		},
+		AllocSpecPage: {
+			Width: width, Height: height,
+			LoadingString: AllocSpecPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+		LogsPage: {
+			Width: width, Height: height,
+			LoadingString: LogsPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		LoglinePage: {
+			Width: width, Height: height,
+			LoadingString: LoglinePage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+	}
+}
 
 func (p Page) DoesLoad() bool {
 	noLoadPages := []Page{LoglinePage, EventPage}
