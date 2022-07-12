@@ -38,6 +38,8 @@ type Model struct {
 	logline      string
 	logType      nomad.LogType
 
+	updateID int
+
 	eventsStream nomad.PersistentConnection
 	event        string
 
@@ -60,6 +62,7 @@ func InitialModel(c Config) Model {
 		config:      c,
 		header:      initialHeader,
 		currentPage: firstPage,
+		updateID:    nextUpdateID(),
 	}
 }
 
@@ -278,7 +281,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 			}
-			cmds = append(cmds, nomad.UpdatePageDataWithDelay(m.currentPage, m.config.UpdateSeconds))
+			cmds = append(cmds, nomad.UpdatePageDataWithDelay(m.updateID, m.currentPage, m.config.UpdateSeconds))
 		}
 
 	case nomad.EventsStreamMsg:
@@ -296,8 +299,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.UpdatePageDataMsg:
-		if msg.Page == m.currentPage {
+		if msg.ID == m.updateID && msg.Page == m.currentPage {
 			cmds = append(cmds, m.getCurrentPageCmd())
+			m.updateID = nextUpdateID()
 		}
 
 	case message.PageInputReceivedMsg:

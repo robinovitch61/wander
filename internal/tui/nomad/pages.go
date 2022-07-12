@@ -171,11 +171,14 @@ type PageLoadedMsg struct {
 	Connection  PersistentConnection
 }
 
-type UpdatePageDataMsg struct{ Page Page }
+type UpdatePageDataMsg struct {
+	ID   int
+	Page Page
+}
 
-func UpdatePageDataWithDelay(p Page, d time.Duration) tea.Cmd {
+func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 	if p.doesUpdate() && d > 0 {
-		return tea.Tick(d, func(t time.Time) tea.Msg { return UpdatePageDataMsg{p} })
+		return tea.Tick(d, func(t time.Time) tea.Msg { return UpdatePageDataMsg{id, p} })
 	}
 	return nil
 }
