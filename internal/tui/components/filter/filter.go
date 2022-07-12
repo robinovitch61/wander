@@ -66,6 +66,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				if len(msg.String()) == 1 {
 					m.setFilter(m.Filter + msg.String())
 				}
+			case tea.KeySpace:
+				m.setFilter(m.Filter + msg.String())
 			}
 		}
 	}
