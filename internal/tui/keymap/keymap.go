@@ -5,17 +5,18 @@ import (
 )
 
 type keyMap struct {
-	Back    key.Binding
-	Exec    key.Binding
-	Exit    key.Binding
-	Events  key.Binding
-	Filter  key.Binding
-	Forward key.Binding
-	Reload  key.Binding
-	StdOut  key.Binding
-	StdErr  key.Binding
-	Spec    key.Binding
-	Wrap    key.Binding
+	Back      key.Binding
+	Exec      key.Binding
+	Exit      key.Binding
+	JobEvents key.Binding
+	AllEvents key.Binding
+	Filter    key.Binding
+	Forward   key.Binding
+	Reload    key.Binding
+	StdOut    key.Binding
+	StdErr    key.Binding
+	Spec      key.Binding
+	Wrap      key.Binding
 }
 
 var KeyMap = keyMap{
@@ -31,9 +32,13 @@ var KeyMap = keyMap{
 		key.WithKeys("q", "ctrl+c"),
 		key.WithHelp("q/ctrl+c", "exit"),
 	),
-	Events: key.NewBinding(
+	JobEvents: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "events"),
+	),
+	AllEvents: key.NewBinding(
+		key.WithKeys("E"),
+		key.WithHelp("E", "all events"),
 	),
 	Filter: key.NewBinding(
 		key.WithKeys("/"),
@@ -57,7 +62,7 @@ var KeyMap = keyMap{
 	),
 	Spec: key.NewBinding(
 		key.WithKeys("p"),
-		key.WithHelp("p", "view spec"),
+		key.WithHelp("p", "spec"),
 	),
 	Wrap: key.NewBinding(
 		key.WithKeys("ctrl+w"),
