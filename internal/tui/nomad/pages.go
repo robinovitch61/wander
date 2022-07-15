@@ -216,11 +216,11 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID, eventTopics, eventNamesp
 	case JobSpecPage:
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
 	case JobEventsPage:
-		return fmt.Sprintf("JobEvents for %s (%s)", jobID, topicPrefixes(eventTopics))
+		return fmt.Sprintf("Events for %s (%s)", jobID, topicPrefixes(eventTopics))
 	case JobEventPage:
 		return fmt.Sprintf("Event for %s", jobID)
 	case AllEventsPage:
-		return fmt.Sprintf("All JobEvents in %s (%s)", eventNamespace, formatEventTopics(eventTopics))
+		return fmt.Sprintf("All Events in %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
 		return fmt.Sprintf("Event")
 	case AllocationsPage:
