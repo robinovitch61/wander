@@ -91,36 +91,36 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// root
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "Config file path. Default '$HOME/.wander.yaml'")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", `Config file path. Default "$HOME/.wander.yaml"`)
 	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
 
 	// NOTE: default values here are unused even if default exists as they break the desired priority of cli args > env vars > config file > default if exists
-	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", "Nomad token. Default ''")
-	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
-	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", "Nomad address. Default 'http://localhost:4646'")
+	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", `Nomad address. Default "http://localhost:4646"`)
 	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
-	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", "Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'")
+	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", `Nomad token. Default ""`)
+	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
+	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", `Seconds between updates for job & allocation pages. Disable with "-1". Default "2"`)
 	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
-	rootCmd.PersistentFlags().StringP(logOffsetArg.cliLong, logOffsetArg.cliShort, "", "Log byte offset from which logs start. Default '1000000'")
+	rootCmd.PersistentFlags().StringP(logOffsetArg.cliLong, logOffsetArg.cliShort, "", `Log byte offset from which logs start. Default "1000000"`)
 	viper.BindPFlag(logOffsetArg.cliLong, rootCmd.PersistentFlags().Lookup(logOffsetArg.config))
-	rootCmd.PersistentFlags().StringP(copySavePathArg.cliLong, copySavePathArg.cliShort, "", "If 'true', copy the full path to file after save. Default 'false'")
+	rootCmd.PersistentFlags().StringP(copySavePathArg.cliLong, copySavePathArg.cliShort, "", `If "true", copy the full path to file after save. Default "false"`)
 	viper.BindPFlag(copySavePathArg.cliLong, rootCmd.PersistentFlags().Lookup(copySavePathArg.config))
-	rootCmd.PersistentFlags().StringP(eventTopicsArg.cliLong, eventTopicsArg.cliShort, "", "Topics to follow in event stream, comma-separated. Default 'Job,Allocation,Deployment,Evaluation'")
+	rootCmd.PersistentFlags().StringP(eventTopicsArg.cliLong, eventTopicsArg.cliShort, "", `Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"`)
 	viper.BindPFlag(eventTopicsArg.cliLong, rootCmd.PersistentFlags().Lookup(eventTopicsArg.config))
-	rootCmd.PersistentFlags().StringP(eventNamespaceArg.cliLong, eventNamespaceArg.cliShort, "", "Namespace in event stream. '*' for all namespaces. Default 'default'")
+	rootCmd.PersistentFlags().StringP(eventNamespaceArg.cliLong, eventNamespaceArg.cliShort, "", `Namespace used in stream for all events. "*" for all namespaces. Default "default"`)
 	viper.BindPFlag(eventNamespaceArg.cliLong, rootCmd.PersistentFlags().Lookup(eventNamespaceArg.config))
 
 	// colors
 	viper.BindPFlag(logoColorArg.cliLong, rootCmd.PersistentFlags().Lookup(logoColorArg.config))
 
 	// serve
-	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", "Host for wander ssh server. Default 'localhost'")
+	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", `Host for wander ssh server. Default "localhost"`)
 	viper.BindPFlag(hostArg.cliLong, serveCmd.PersistentFlags().Lookup(hostArg.config))
-	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", "Port for wander ssh server. Default '21324'")
+	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", `Port for wander ssh server. Default "21324"`)
 	viper.BindPFlag(portArg.cliLong, serveCmd.PersistentFlags().Lookup(portArg.config))
-	serveCmd.PersistentFlags().StringP(hostKeyPathArg.cliLong, hostKeyPathArg.cliShort, "", "Host key path for wander ssh server. Default none, i.e. ''")
+	serveCmd.PersistentFlags().StringP(hostKeyPathArg.cliLong, hostKeyPathArg.cliShort, "", `Host key path for wander ssh server. Default none, i.e. ""`)
 	viper.BindPFlag(hostKeyPathArg.cliLong, serveCmd.PersistentFlags().Lookup(hostKeyPathArg.config))
-	serveCmd.PersistentFlags().StringP(hostKeyPEMArg.cliLong, hostKeyPEMArg.cliShort, "", "Host key PEM block for wander ssh server. Default none, i.e. ''")
+	serveCmd.PersistentFlags().StringP(hostKeyPEMArg.cliLong, hostKeyPEMArg.cliShort, "", `Host key PEM block for wander ssh server. Default none, i.e. ""`)
 	viper.BindPFlag(hostKeyPEMArg.cliLong, serveCmd.PersistentFlags().Lookup(hostKeyPEMArg.config))
 
 	rootCmd.AddCommand(serveCmd)

@@ -73,38 +73,38 @@ Priority in order of highest to lowest is command line arguments, then environme
 Example yaml file showing all options:
 
 ```shell
-# Nomad address. Default 'http://localhost:4646'
+# Nomad address. Default "http://localhost:4646"
 nomad_addr: http://localhost:4646
 
-# Nomad token. Default ''
+# Nomad token. Default ""
 nomad_token: <your-nomad-token>
 
-# Seconds between updates for job & allocation pages. Disable with '-1'. Default '2'
+# Seconds between updates for job & allocation pages. Disable with "-1". Default "2"
 wander_update_seconds: 1
 
-# Log byte offset from which logs start. Default '1000000'
+# Log byte offset from which logs start. Default "1000000"
 wander_log_offset: 1000000
 
-# If 'true', copy the full path to file after save. Default 'false'
+# If "true", copy the full path to file after save. Default "false"
 wander_copy_save_path: true
 
-# Topics to follow in event stream, comma-separated. Default 'Job,Allocation,Deployment,Evaluation'
+# Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"
 # see https://www.nomadproject.io/api-docs/events#event-stream
 wander_event_topics: Job:my-job,Job:my-other-job,Allocation:my-job,Evaluation,Deployment:*
 
-#  Namespace in event stream. '*' for all namespaces. Default 'default'
-wander_event_namespace: '*' # * needs surrounding '' in yaml
+#  Namespace used in stream for all events. "*" for all namespaces. Default "default"
+wander_event_namespace: "*" # * needs surrounding "" in yaml
 
-# For `wander serve`. Hostname of the machine hosting the ssh server. Default 'localhost'
+# For `wander serve`. Hostname of the machine hosting the ssh server. Default "localhost"
 wander_host: localhost
 
-# For `wander serve`. Port for the ssh server. Default '21324'
+# For `wander serve`. Port for the ssh server. Default "21324"
 wander_port: 21324
 
-# For `wander serve`. Host key path for wander ssh server. Default none, i.e. ''
+# For `wander serve`. Host key path for wander ssh server. Default none, i.e. ""
 wander_host_key_path: .ssh/term_info_ed25519
 
-# For `wander serve`. Host key PEM block for wander ssh server. Default none, i.e. ''
+# For `wander serve`. Host key PEM block for wander ssh server. Default none, i.e. ""
 wander_host_key_pem: |
     -----BEGIN OPENSSH PRIVATE KEY-----
     b3BlbnNzaD1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAACFwAAAAdzc2gtcm
@@ -112,7 +112,7 @@ wander_host_key_pem: |
     XBMuWaiQMCZjAwAAAAp3YW5kZXItc3NoAQIEBAUGBw==
     -----END OPENSSH PRIVATE KEY-----
 
-# custom colors
+# Custom colors
 wander_logo_color: "#DBBD70"
 ```
 

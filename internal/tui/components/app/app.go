@@ -43,7 +43,7 @@ type Model struct {
 
 	updateID int
 
-	eventsStream nomad.PersistentConnection
+	eventsStream nomad.EventStreamConnection
 	event        string
 
 	execWebSocket       *websocket.Conn
@@ -138,7 +138,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					})
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
-			case nomad.EventsPage:
+			case nomad.JobEventsPage, nomad.AllEventsPage:
 				if m.eventsStream.Body != nil {
 					err := m.eventsStream.Body.Close()
 					if err != nil {
@@ -147,7 +147,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				m.eventsStream = msg.Connection
-				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream.Reader))
+				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
 			case nomad.ExecPage:
@@ -157,7 +157,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.EventsStreamMsg:
-		if m.currentPage == nomad.EventsPage {
+		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllEventsPage {
 			if !msg.Closed {
 				if msg.Value != "{}" {
 					scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
@@ -166,7 +166,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.getCurrentPageModel().ScrollViewportToBottom()
 					}
 				}
-				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream.Reader))
+				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			}
 		}
 
@@ -302,7 +302,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				switch m.currentPage {
 				case nomad.JobsPage:
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
-				case nomad.EventsPage:
+				case nomad.JobEventsPage, nomad.AllEventsPage:
 					m.event = selectedPageRow.Row
 				case nomad.AllocationsPage:
 					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
@@ -384,8 +384,16 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
-		if key.Matches(msg, keymap.KeyMap.Events) && m.currentPage == nomad.JobsPage {
-			m.setPage(nomad.EventsPage)
+		if key.Matches(msg, keymap.KeyMap.JobEvents) && m.currentPage == nomad.JobsPage {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+				m.setPage(nomad.JobEventsPage)
+				return m.getCurrentPageCmd()
+			}
+		}
+
+		if key.Matches(msg, keymap.KeyMap.AllEvents) && m.currentPage == nomad.JobsPage {
+			m.setPage(nomad.AllEventsPage)
 			return m.getCurrentPageCmd()
 		}
 
@@ -478,10 +486,14 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchJobs(m.config.URL, m.config.Token)
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
-	case nomad.EventsPage:
-		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace)
-	case nomad.EventPage:
-		return nomad.PrettifyLine(m.event, nomad.EventPage)
+	case nomad.JobEventsPage:
+		return nomad.FetchEventsStream(m.config.URL, m.config.Token, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
+	case nomad.JobEventPage:
+		return nomad.PrettifyLine(m.event, nomad.JobEventPage)
+	case nomad.AllEventsPage:
+		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
+	case nomad.AllEventPage:
+		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.AllocationsPage:
 		return nomad.FetchAllocations(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:

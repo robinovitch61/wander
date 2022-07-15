@@ -22,8 +22,10 @@ const (
 	Unset Page = iota
 	JobsPage
 	JobSpecPage
-	EventsPage
-	EventPage
+	JobEventsPage
+	JobEventPage
+	AllEventsPage
+	AllEventPage
 	AllocationsPage
 	ExecPage
 	AllocSpecPage
@@ -44,14 +46,24 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 			LoadingString: JobSpecPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
-		EventsPage: {
+		JobEventsPage: {
 			Width: width, Height: height,
-			LoadingString: EventsPage.LoadingString(),
+			LoadingString: JobEventsPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
-		EventPage: {
+		JobEventPage: {
 			Width: width, Height: height,
-			LoadingString: EventPage.LoadingString(),
+			LoadingString: JobEventPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+		AllEventsPage: {
+			Width: width, Height: height,
+			LoadingString: AllEventsPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		AllEventPage: {
+			Width: width, Height: height,
+			LoadingString: AllEventPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		AllocationsPage: {
@@ -84,7 +96,7 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 }
 
 func (p Page) DoesLoad() bool {
-	noLoadPages := []Page{LoglinePage, EventPage}
+	noLoadPages := []Page{LoglinePage, JobEventPage, AllEventPage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
 			return false
@@ -94,7 +106,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, EventsPage, EventPage, ExecPage}
+	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllEventsPage, AllEventPage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -110,8 +122,10 @@ func (p Page) doesUpdate() bool {
 		LogsPage,      // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
 		JobSpecPage,   // would require changes to make scrolling possible
 		AllocSpecPage, // would require changes to make scrolling possible
-		EventsPage,    // constant connection, streams data
-		EventPage,     // doesn't load
+		JobEventsPage, // constant connection, streams data
+		JobEventPage,  // doesn't load
+		AllEventsPage, // constant connection, streams data
+		AllEventPage,  // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -129,9 +143,11 @@ func (p Page) String() string {
 		return "jobs"
 	case JobSpecPage:
 		return "job spec"
-	case EventsPage:
+	case JobEventsPage:
 		return "events"
-	case EventPage:
+	case AllEventsPage:
+		return "all events"
+	case JobEventPage, AllEventPage:
 		return "event"
 	case AllocationsPage:
 		return "allocations"
@@ -155,8 +171,10 @@ func (p Page) Forward() Page {
 	switch p {
 	case JobsPage:
 		return AllocationsPage
-	case EventsPage:
-		return EventPage
+	case JobEventsPage:
+		return JobEventPage
+	case AllEventsPage:
+		return AllEventPage
 	case AllocationsPage:
 		return LogsPage
 	case LogsPage:
@@ -169,10 +187,14 @@ func (p Page) Backward() Page {
 	switch p {
 	case JobSpecPage:
 		return JobsPage
-	case EventsPage:
+	case JobEventsPage:
 		return JobsPage
-	case EventPage:
-		return EventsPage
+	case JobEventPage:
+		return JobEventsPage
+	case AllEventsPage:
+		return JobsPage
+	case AllEventPage:
+		return AllEventsPage
 	case AllocationsPage:
 		return JobsPage
 	case ExecPage:
@@ -193,9 +215,13 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID, eventTopics, eventNamesp
 		return "Jobs"
 	case JobSpecPage:
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
-	case EventsPage:
-		return fmt.Sprintf("Events in %s for %s", eventNamespace, formatEventTopics(eventTopics))
-	case EventPage:
+	case JobEventsPage:
+		return fmt.Sprintf("JobEvents for %s (%s)", jobID, topicPrefixes(eventTopics))
+	case JobEventPage:
+		return fmt.Sprintf("Event for %s", jobID)
+	case AllEventsPage:
+		return fmt.Sprintf("All JobEvents in %s (%s)", eventNamespace, formatEventTopics(eventTopics))
+	case AllEventPage:
 		return fmt.Sprintf("Event")
 	case AllocationsPage:
 		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
@@ -212,16 +238,17 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID, eventTopics, eventNamesp
 	}
 }
 
-type PersistentConnection struct {
-	Reader *bufio.Reader
-	Body   io.ReadCloser
+type EventStreamConnection struct {
+	Reader            *bufio.Reader
+	Body              io.ReadCloser
+	Topics, Namespace string
 }
 
 type PageLoadedMsg struct {
 	Page        Page
 	TableHeader []string
 	AllPageRows []page.Row
-	Connection  PersistentConnection
+	Connection  EventStreamConnection
 }
 
 type UpdatePageDataMsg struct {
@@ -262,7 +289,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 
 	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Forward, fmt.Sprintf("view %s", currentPage.Forward().String()))
+		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
@@ -270,7 +297,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("view %s", currentPage.Backward().String()))
+		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward().String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
@@ -282,7 +309,8 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	}
 
 	if currentPage == JobsPage {
-		fourthRow = append(fourthRow, keymap.KeyMap.Events)
+		fourthRow = append(fourthRow, keymap.KeyMap.JobEvents)
+		fourthRow = append(fourthRow, keymap.KeyMap.AllEvents)
 	}
 
 	if currentPage == AllocationsPage {
