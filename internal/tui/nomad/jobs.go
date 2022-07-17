@@ -14,7 +14,7 @@ import (
 
 func FetchJobs(client api.Client) tea.Cmd {
 	return func() tea.Msg {
-		jobResults, _, err := client.Jobs().List(&api.QueryOptions{})
+		jobResults, _, err := client.Jobs().List(&api.QueryOptions{Namespace: "*"})
 		if err != nil {
 			if strings.Contains(err.Error(), "UUID must be 36 characters") {
 				return message.ErrMsg{Err: errors.New("token must be 36 characters")}

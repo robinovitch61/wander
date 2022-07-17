@@ -1,25 +1,26 @@
 package nomad
 
 import (
-	"fmt"
+	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 )
 
-func FetchJobSpec(url, token, jobID, jobNamespace string) tea.Cmd {
+func FetchJobSpec(client api.Client, jobID, jobNamespace string) tea.Cmd {
 	return func() tea.Msg {
-		params := [][2]string{
-			{"namespace", jobNamespace},
-		}
-		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/job/", jobID)
-		body, err := get(fullPath, token, params)
+		jobSpec, _, err := client.Jobs().Info(jobID, &api.QueryOptions{Namespace: jobNamespace})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
-		pretty := formatter.PrettyJsonStringAsLines(string(body))
+		jobStr, err := json.Marshal(jobSpec)
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+		pretty := formatter.PrettyJsonStringAsLines(string(jobStr))
 
 		var jobSpecPageData []page.Row
 		for _, row := range pretty {

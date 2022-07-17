@@ -46,7 +46,7 @@ type Table struct {
 	HeaderRows, ContentRows []string
 }
 
-func (t *Table) IsEmpty() bool {
+func (t *Table) isEmpty() bool {
 	return len(t.HeaderRows) == 0 && len(t.ContentRows) == 0
 }
 

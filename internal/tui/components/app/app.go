@@ -508,7 +508,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.JobsPage:
 		return nomad.FetchJobs(m.client)
 	case nomad.JobSpecPage:
-		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
 		return nomad.FetchEventsStream(m.config.URL, m.config.Token, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
 	case nomad.JobEventPage:
