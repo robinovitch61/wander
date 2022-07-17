@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
@@ -27,9 +26,10 @@ var (
 )
 
 func validateToken(token string) error {
-	if len(token) > 0 && len(token) != 36 {
-		return errors.New("token must be 36 characters")
-	}
+	// TODO LEO: uncomment
+	// if len(token) > 0 && len(token) != 36 {
+	// 	return errors.New("token must be 36 characters")
+	// }
 	return nil
 }
 

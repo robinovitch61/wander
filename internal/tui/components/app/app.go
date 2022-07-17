@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
@@ -20,15 +21,27 @@ import (
 )
 
 type Config struct {
-	Version, SHA, URL, Token, EventTopics, EventNamespace string
-	LogOffset                                             int
-	CopySavePath                                          bool
-	UpdateSeconds                                         time.Duration
-	LogoColor                                             string
+	Version, SHA string
+	// TODO LEO: NOMAD_REGION, NOMAD_NAMESPACE
+	URL, Token, Region, Namespace string
+	// TODO LEO: NOMAD_HTTP_AUTH
+	HTTPAuth string
+	TLS      struct {
+		// TODO LEO: NOMAD_CACERT, NOMAD_CAPATH, NOMAD_CLIENT_CERT, NOMAD_CLIENT_KEY, NOMAD_TLS_SERVER_NAME
+		CACert, CAPath, ClientCert, ClientKey, ServerName string
+		// TODO LEO: NOMAD_SKIP_VERIFY
+		SkipVerify bool
+	}
+	EventTopics, EventNamespace string
+	LogOffset                   int
+	CopySavePath                bool
+	UpdateSeconds               time.Duration
+	LogoColor                   string
 }
 
 type Model struct {
 	config Config
+	client api.Client
 
 	header      header.Model
 	currentPage nomad.Page
@@ -109,7 +122,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		if !m.initialized {
-			m.initialize()
+			err := m.initialize()
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
 			cmds = append(cmds, m.getCurrentPageCmd())
 		} else {
 			m.setPageWindowSize()
@@ -238,13 +255,19 @@ func (m Model) View() string {
 	return pageView
 }
 
-func (m *Model) initialize() {
+func (m *Model) initialize() error {
+	client, err := m.config.Client()
+	if err != nil {
+		return err
+	}
+	m.client = *client
 	m.pageModels = make(map[nomad.Page]*page.Model)
 	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath) {
 		p := page.New(c)
 		m.pageModels[k] = &p
 	}
 	m.initialized = true
+	return nil
 }
 
 func (m *Model) cleanupCmd() tea.Cmd {
@@ -483,7 +506,7 @@ func (m *Model) updateKeyHelp() {
 func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
-		return nomad.FetchJobs(m.config.URL, m.config.Token)
+		return nomad.FetchJobs(m.client)
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
