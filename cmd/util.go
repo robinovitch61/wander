@@ -5,7 +5,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
+	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -105,8 +107,51 @@ func retrieveCopySavePath(cmd *cobra.Command) bool {
 	return false
 }
 
-func retrieveEventTopics(cmd *cobra.Command) string {
-	return retrieveWithDefault(cmd, eventTopicsArg, "Job,Allocation,Deployment,Evaluation")
+func retrieveEventTopics(cmd *cobra.Command) nomad.Topics {
+	matchTopic := func(t string) (api.Topic, error) {
+		switch t {
+		case "Deployment":
+			return api.TopicDeployment, nil
+		case "Evaluation":
+			return api.TopicEvaluation, nil
+		case "Allocation":
+			return api.TopicAllocation, nil
+		case "Job":
+			return api.TopicJob, nil
+		case "Node":
+			return api.TopicNode, nil
+		case "Service":
+			return api.TopicService, nil
+		case "*":
+			return api.TopicAll, nil
+		}
+		return "", fmt.Errorf("%s cannot be parsed into topic", t)
+	}
+
+	topicString := retrieveWithDefault(cmd, eventTopicsArg, "Job,Allocation,Deployment,Evaluation")
+	topics := make(nomad.Topics)
+	for _, t := range strings.Split(topicString, ",") {
+		split := strings.Split(strings.TrimSpace(t), ":")
+		suffix := "*"
+		if len(split) == 2 {
+			suffix = strings.TrimSpace(split[1])
+		}
+
+		topic, err := matchTopic(strings.TrimSpace(split[0]))
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		suffixes, exists := topics[topic]
+		if exists {
+			topics[topic] = append(suffixes, suffix)
+		} else {
+			topics[topic] = []string{suffix}
+		}
+	}
+
+	return topics
 }
 
 func retrieveEventNamespace(cmd *cobra.Command) string {

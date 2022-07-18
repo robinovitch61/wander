@@ -1,17 +1,16 @@
 package nomad
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/components/viewport"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"io"
 	"strings"
 	"time"
 )
@@ -209,14 +208,14 @@ func (p Page) Backward() Page {
 	return p
 }
 
-func (p Page) GetFilterPrefix(jobID, taskName, allocID, eventTopics, eventNamespace string) string {
+func (p Page) GetFilterPrefix(jobID, taskName, allocID string, eventTopics Topics, eventNamespace string) string {
 	switch p {
 	case JobsPage:
 		return "Jobs"
 	case JobSpecPage:
 		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
 	case JobEventsPage:
-		return fmt.Sprintf("Events for %s (%s)", jobID, topicPrefixes(eventTopics))
+		return fmt.Sprintf("Events for %s (%s)", jobID, getTopicNames(eventTopics))
 	case JobEventPage:
 		return fmt.Sprintf("Event for %s", jobID)
 	case AllEventsPage:
@@ -238,17 +237,17 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID, eventTopics, eventNamesp
 	}
 }
 
-type EventStreamConnection struct {
-	Reader            *bufio.Reader
-	Body              io.ReadCloser
-	Topics, Namespace string
+type EventsStream struct {
+	Chan      <-chan *api.Events
+	Topics    Topics
+	Namespace string
 }
 
 type PageLoadedMsg struct {
 	Page        Page
 	TableHeader []string
 	AllPageRows []page.Row
-	Connection  EventStreamConnection
+	Connection  EventsStream
 }
 
 type UpdatePageDataMsg struct {

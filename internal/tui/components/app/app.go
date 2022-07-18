@@ -32,11 +32,12 @@ type Config struct {
 		// TODO LEO: NOMAD_SKIP_VERIFY
 		SkipVerify bool
 	}
-	EventTopics, EventNamespace string
-	LogOffset                   int
-	CopySavePath                bool
-	UpdateSeconds               time.Duration
-	LogoColor                   string
+	EventTopics    nomad.Topics
+	EventNamespace string
+	LogOffset      int
+	CopySavePath   bool
+	UpdateSeconds  time.Duration
+	LogoColor      string
 }
 
 type Model struct {
@@ -56,7 +57,7 @@ type Model struct {
 
 	updateID int
 
-	eventsStream nomad.EventStreamConnection
+	eventsStream nomad.EventsStream
 	event        string
 
 	execWebSocket       *websocket.Conn
@@ -156,13 +157,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
 			case nomad.JobEventsPage, nomad.AllEventsPage:
-				if m.eventsStream.Body != nil {
-					err := m.eventsStream.Body.Close()
-					if err != nil {
-						m.err = err
-						return m, nil
-					}
-				}
 				m.eventsStream = msg.Connection
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			case nomad.LogsPage:
@@ -175,16 +169,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.EventsStreamMsg:
 		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllEventsPage {
-			if !msg.Closed {
-				if msg.Value != "{}" {
-					scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
-					m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
-					if scrollDown {
-						m.getCurrentPageModel().ScrollViewportToBottom()
-					}
+			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.Value != "{}" {
+				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
+				if scrollDown {
+					m.getCurrentPageModel().ScrollViewportToBottom()
 				}
-				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			}
+			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 		}
 
 	case nomad.UpdatePageDataMsg:
@@ -272,9 +264,6 @@ func (m *Model) initialize() error {
 
 func (m *Model) cleanupCmd() tea.Cmd {
 	return func() tea.Msg {
-		if m.eventsStream.Body != nil {
-			_ = m.eventsStream.Body.Close()
-		}
 		if m.execWebSocket != nil {
 			nomad.CloseWebSocket(m.execWebSocket)()
 		}
@@ -510,11 +499,11 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
-		return nomad.FetchEventsStream(m.config.URL, m.config.Token, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
+		return nomad.FetchEventsStream(m.client, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
 	case nomad.JobEventPage:
 		return nomad.PrettifyLine(m.event, nomad.JobEventPage)
 	case nomad.AllEventsPage:
-		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
+		return nomad.FetchEventsStream(m.client, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.AllocationsPage:
