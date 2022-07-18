@@ -507,7 +507,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.AllocationsPage:
-		return nomad.FetchAllocations(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+		return nomad.FetchAllocations(m.client, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:

@@ -1,9 +1,8 @@
 package nomad
 
 import (
-	"encoding/json"
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
@@ -15,88 +14,21 @@ import (
 
 const keySeparator = " "
 
-// allocationResponseEntry is returned from GET /v1/job/:job_id/allocations
-// https://www.nomadproject.io/api-docs/jobs#list-job-allocations
-type allocationResponseEntry struct {
-	ID                 string `json:"ID"`
-	EvalID             string `json:"EvalID"`
-	Name               string `json:"Name"`
-	NodeID             string `json:"NodeID"`
-	PreviousAllocation string `json:"PreviousAllocation"`
-	NextAllocation     string `json:"NextAllocation"`
-	RescheduleTracker  struct {
-		Events []struct {
-			PrevAllocID    string `json:"PrevAllocID"`
-			PrevNodeID     string `json:"PrevNodeID"`
-			RescheduleTime int64  `json:"RescheduleTime"`
-			Delay          int64  `json:"Delay"`
-		} `json:"Events"`
-	} `json:"RescheduleTracker"`
-	JobID              string `json:"JobID"`
-	TaskGroup          string `json:"TaskGroup"`
-	DesiredStatus      string `json:"DesiredStatus"`
-	DesiredDescription string `json:"DesiredDescription"`
-	ClientStatus       string `json:"ClientStatus"`
-	ClientDescription  string `json:"ClientDescription"`
-	TaskStates         map[string]struct {
-		State      string    `json:"State"`
-		Failed     bool      `json:"Failed"`
-		StartedAt  time.Time `json:"StartedAt"`
-		FinishedAt time.Time `json:"FinishedAt"`
-		Events     []struct {
-			Type             string `json:"Type"`
-			Time             int64  `json:"Time"`
-			FailsTask        bool   `json:"FailsTask"`
-			RestartReason    string `json:"RestartReason"`
-			SetupError       string `json:"SetupError"`
-			DriverError      string `json:"DriverError"`
-			ExitCode         int    `json:"ExitCode"`
-			Signal           int    `json:"Signal"`
-			Message          string `json:"Message"`
-			KillTimeout      int    `json:"KillTimeout"`
-			KillError        string `json:"KillError"`
-			KillReason       string `json:"KillReason"`
-			StartDelay       int    `json:"StartDelay"`
-			DownloadError    string `json:"DownloadError"`
-			ValidationError  string `json:"ValidationError"`
-			DiskLimit        int    `json:"DiskLimit"`
-			FailedSibling    string `json:"FailedSibling"`
-			VaultError       string `json:"VaultError"`
-			TaskSignalReason string `json:"TaskSignalReason"`
-			TaskSignal       string `json:"TaskSignal"`
-			DriverMessage    string `json:"DriverMessage"`
-		} `json:"Events"`
-	} `json:"TaskStates"`
-	CreateIndex int   `json:"CreateIndex"`
-	ModifyIndex int   `json:"ModifyIndex"`
-	CreateTime  int64 `json:"CreateTime"`
-	ModifyTime  int64 `json:"ModifyTime"`
-}
-
 // allocationRowEntry is an item extracted from allocationResponseEntry
 type allocationRowEntry struct {
 	ID, TaskGroup, Name, TaskName, State string
 	StartedAt, FinishedAt                time.Time
 }
 
-func FetchAllocations(url, token, jobID, jobNamespace string) tea.Cmd {
+func FetchAllocations(client api.Client, jobID, jobNamespace string) tea.Cmd {
 	return func() tea.Msg {
-		params := [][2]string{
-			{"namespace", jobNamespace},
-		}
-		fullPath := fmt.Sprintf("%s%s%s%s", url, "/v1/job/", jobID, "/allocations")
-		body, err := get(fullPath, token, params)
+		allocs, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
-		var allocationResponse []allocationResponseEntry
-		if err := json.Unmarshal(body, &allocationResponse); err != nil {
-			return message.ErrMsg{Err: err}
-		}
-
 		var allocationRowEntries []allocationRowEntry
-		for _, alloc := range allocationResponse {
+		for _, alloc := range allocs {
 			for taskName, task := range alloc.TaskStates {
 				allocationRowEntries = append(allocationRowEntries, allocationRowEntry{
 					ID:         alloc.ID,
