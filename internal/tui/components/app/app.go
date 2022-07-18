@@ -50,7 +50,7 @@ type Model struct {
 
 	jobID        string
 	jobNamespace string
-	allocID      string
+	alloc        api.Allocation
 	taskName     string
 	logline      string
 	logType      nomad.LogType
@@ -188,7 +188,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			m.getCurrentPageModel().SetLoading(true)
-			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.allocID, m.taskName, msg.Input)
+			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.alloc.ID, m.taskName, msg.Input)
 		}
 
 	case nomad.ExecWebSocketConnectedMsg:
@@ -322,7 +322,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						m.err = err
 						return nil
 					}
-					m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+					m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
 				case nomad.LogsPage:
 					m.logline = selectedPageRow.Row
 				}
@@ -368,7 +368,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						return nil
 					}
 					if allocInfo.Running {
-						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+						m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
 						m.setPage(nomad.ExecPage)
 						return m.getCurrentPageCmd()
 					}
@@ -389,7 +389,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						m.err = err
 						return nil
 					}
-					m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+					m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
 					m.setPage(nomad.AllocSpecPage)
 					return m.getCurrentPageCmd()
 				}
@@ -511,9 +511,9 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:
-		return nomad.FetchAllocSpec(m.client, m.allocID)
+		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
-		return nomad.FetchLogs(m.config.URL, m.config.Token, m.allocID, m.taskName, m.logType, m.config.LogOffset)
+		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.LogOffset)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	default:
@@ -542,7 +542,7 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.jobID, m.taskName, m.allocID, m.config.EventTopics, m.config.EventNamespace)
+	return page.GetFilterPrefix(m.jobID, m.taskName, m.alloc.ID, m.config.EventTopics, m.config.EventNamespace)
 }
 
 func getVersionString(v, s string) string {

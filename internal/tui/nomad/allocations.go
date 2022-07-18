@@ -1,6 +1,7 @@
 package nomad
 
 import (
+	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
@@ -12,10 +13,11 @@ import (
 	"time"
 )
 
-const keySeparator = " "
+const keySeparator = "|【=◈︿◈=】|"
 
 // allocationRowEntry is an item extracted from allocationResponseEntry
 type allocationRowEntry struct {
+	FullAllocationAsJSON                 string
 	ID, TaskGroup, Name, TaskName, State string
 	StartedAt, FinishedAt                time.Time
 }
@@ -29,15 +31,21 @@ func FetchAllocations(client api.Client, jobID, jobNamespace string) tea.Cmd {
 
 		var allocationRowEntries []allocationRowEntry
 		for _, alloc := range allocs {
+			allocAsJSON, err := json.Marshal(alloc)
+			if err != nil {
+				return message.ErrMsg{Err: err}
+			}
+
 			for taskName, task := range alloc.TaskStates {
 				allocationRowEntries = append(allocationRowEntries, allocationRowEntry{
-					ID:         alloc.ID,
-					TaskGroup:  alloc.TaskGroup,
-					Name:       alloc.Name,
-					TaskName:   taskName,
-					State:      task.State,
-					StartedAt:  task.StartedAt.UTC(),
-					FinishedAt: task.FinishedAt.UTC(),
+					FullAllocationAsJSON: string(allocAsJSON),
+					ID:                   alloc.ID,
+					TaskGroup:            alloc.TaskGroup,
+					Name:                 alloc.Name,
+					TaskName:             taskName,
+					State:                task.State,
+					StartedAt:            task.StartedAt.UTC(),
+					FinishedAt:           task.FinishedAt.UTC(),
 				})
 			}
 		}
@@ -97,12 +105,13 @@ func toAllocationsKey(allocationRowEntry allocationRowEntry) string {
 	if allocationRowEntry.State == "running" {
 		isRunning = "true"
 	}
-	return allocationRowEntry.ID + keySeparator + allocationRowEntry.TaskName + keySeparator + isRunning
+	return allocationRowEntry.FullAllocationAsJSON + keySeparator + allocationRowEntry.TaskName + keySeparator + isRunning
 }
 
 type AllocationInfo struct {
-	AllocID, TaskName string
-	Running           bool
+	Alloc    api.Allocation
+	TaskName string
+	Running  bool
 }
 
 func AllocationInfoFromKey(key string) (AllocationInfo, error) {
@@ -111,5 +120,10 @@ func AllocationInfoFromKey(key string) (AllocationInfo, error) {
 	if err != nil {
 		return AllocationInfo{}, err
 	}
-	return AllocationInfo{split[0], split[1], running}, nil
+	var alloc api.Allocation
+	err = json.Unmarshal([]byte(split[0]), &alloc)
+	if err != nil {
+		return AllocationInfo{}, err
+	}
+	return AllocationInfo{Alloc: alloc, TaskName: split[1], Running: running}, nil
 }
