@@ -511,7 +511,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:
-		return nomad.FetchAllocSpec(m.config.URL, m.config.Token, m.allocID)
+		return nomad.FetchAllocSpec(m.client, m.allocID)
 	case nomad.LogsPage:
 		return nomad.FetchLogs(m.config.URL, m.config.Token, m.allocID, m.taskName, m.logType, m.config.LogOffset)
 	case nomad.LoglinePage:

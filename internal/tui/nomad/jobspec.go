@@ -16,11 +16,11 @@ func FetchJobSpec(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		jobStr, err := json.Marshal(jobSpec)
+		jobBytes, err := json.Marshal(jobSpec)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
-		pretty := formatter.PrettyJsonStringAsLines(string(jobStr))
+		pretty := formatter.PrettyJsonStringAsLines(string(jobBytes))
 
 		var jobSpecPageData []page.Row
 		for _, row := range pretty {
