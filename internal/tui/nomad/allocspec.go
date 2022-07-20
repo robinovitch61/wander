@@ -1,22 +1,26 @@
 package nomad
 
 import (
-	"fmt"
+	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 )
 
-func FetchAllocSpec(url, token, allocID string) tea.Cmd {
+func FetchAllocSpec(client api.Client, allocID string) tea.Cmd {
 	return func() tea.Msg {
-		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/allocation/", allocID)
-		body, err := get(fullPath, token, nil)
+		alloc, _, err := client.Allocations().Info(allocID, nil)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
-		pretty := formatter.PrettyJsonStringAsLines(string(body))
+		allocBytes, err := json.Marshal(alloc)
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+		pretty := formatter.PrettyJsonStringAsLines(string(allocBytes))
 
 		var allocSpecPageData []page.Row
 		for _, row := range pretty {

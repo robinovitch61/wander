@@ -1,13 +1,12 @@
 package nomad
 
 import (
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/message"
-	"strconv"
 	"strings"
+	"time"
 )
 
 type LogType int8
@@ -37,22 +36,32 @@ func (p LogType) ShortString() string {
 	return "unknown"
 }
 
-func FetchLogs(url, token, allocID, taskName string, logType LogType, logOffset int) tea.Cmd {
+func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType LogType, logOffset int) tea.Cmd {
 	return func() tea.Msg {
-		params := [][2]string{
-			{"task", taskName},
-			{"type", logType.ShortString()},
-			{"origin", "end"},
-			{"offset", strconv.Itoa(logOffset)},
-			{"plain", "true"},
-		}
-		fullPath := fmt.Sprintf("%s%s%s", url, "/v1/client/fs/logs/", allocID)
-		body, err := get(fullPath, token, params)
-		if err != nil {
-			return message.ErrMsg{Err: err}
+		// This is currently very important and strange. The logs api attempts to go through the node directly
+		// by default. The default timeout for this is 1 second. If it fails, it falls silently to going through
+		// the server. Since it always fails, at least in my Nomad setup, make it timeout immediately by setting
+		// the timeout to something tiny.
+		api.ClientConnTimeout = 1 * time.Microsecond
+
+		closeLogConn := make(chan struct{})   // never closed for now
+		logsChan, _ := client.AllocFS().Logs( // TODO LEO: deal with error channel
+			&alloc,
+			false,
+			taskName,
+			logType.ShortString(),
+			"end",
+			int64(logOffset),
+			closeLogConn,
+			nil,
+		)
+
+		allLogs := ""
+		for l := range logsChan {
+			allLogs += string(l.Data)
 		}
 
-		trimmedBody := strings.ReplaceAll(string(body), "\t", "    ")
+		trimmedBody := strings.ReplaceAll(allLogs, "\t", "    ")
 		logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
 
 		tableHeader, allPageData := logsAsTable(logRows, logType)

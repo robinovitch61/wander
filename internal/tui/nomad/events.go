@@ -1,81 +1,64 @@
 package nomad
 
 import (
-	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"strings"
 )
 
+type Topics map[api.Topic][]string
+
 type EventsStreamMsg struct {
 	Value  string
-	Closed bool
+	Topics Topics
 }
 
-func FetchEventsStream(url, token, topics, namespace string, page Page) tea.Cmd {
+func FetchEventsStream(client api.Client, topics Topics, namespace string, page Page) tea.Cmd {
 	return func() tea.Msg {
-		params := [][2]string{
-			{"namespace", namespace},
-		}
-		for _, t := range strings.Split(topics, ",") {
-			params = append(params, [2]string{"topic", strings.TrimSpace(t)})
-		}
-		fullPath := fmt.Sprintf("%s%s", url, "/v1/event/stream")
-		resp, err := doQuery(fullPath, token, params)
+		eventsChan, err := client.EventStream().Stream(context.Background(), topics, 0, &api.QueryOptions{Namespace: namespace})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
-		reader := bufio.NewReader(resp.Body)
-
-		return PageLoadedMsg{Page: page, Connection: EventStreamConnection{Reader: reader, Body: resp.Body, Topics: topics, Namespace: namespace}}
+		return PageLoadedMsg{Page: page, Connection: EventsStream{Chan: eventsChan, Topics: topics, Namespace: namespace}}
 	}
 }
 
-func checkStreamReadError(e error) tea.Msg {
-	// I've seen both 'use of closed network connection' and 'response body closed' here
-	if strings.Contains(e.Error(), "closed") {
-		return EventsStreamMsg{Closed: true}
-	}
-	return message.ErrMsg{Err: e}
-}
-
-func ReadEventsStreamNextMessage(c EventStreamConnection) tea.Cmd {
+func ReadEventsStreamNextMessage(c EventsStream) tea.Cmd {
 	return func() tea.Msg {
-		peek, err := c.Reader.Peek(17)
-		if err == nil && string(peek) == "Permission denied" {
-			return message.ErrMsg{Err: fmt.Errorf("token not authorized to access topic set\n%s\nin namespace %s", formatEventTopics(c.Topics), c.Namespace)}
-		} else if err != nil {
-			return checkStreamReadError(err)
-		}
-
-		line, err := c.Reader.ReadBytes('\n')
+		line := <-c.Chan
+		lineBytes, err := json.Marshal(line)
 		if err != nil {
-			return checkStreamReadError(err)
+			return message.ErrMsg{Err: err}
 		}
-		trimmed := strings.TrimSpace(string(line))
-		return EventsStreamMsg{Value: trimmed}
+		trimmed := strings.TrimSpace(string(lineBytes))
+		return EventsStreamMsg{Value: trimmed, Topics: c.Topics}
 	}
 }
 
-func formatEventTopics(topics string) string {
-	noSpaces := strings.ReplaceAll(topics, " ", "")
-	return strings.ReplaceAll(noSpaces, ",", ", ")
+func formatEventTopics(topics Topics) string {
+	t := ""
+	for k, v := range topics {
+		t += fmt.Sprintf("%s:[%s], ", string(k), strings.Join(v, ","))
+	}
+	return t[:len(t)-2]
 }
 
-func topicPrefixes(topics string) string {
-	var p []string
-	for _, v := range strings.Split(topics, ",") {
-		p = append(p, strings.Split(v, ":")[0])
+func getTopicNames(topics Topics) string {
+	t := ""
+	for k, _ := range topics {
+		t += fmt.Sprintf("%s, ", k)
 	}
-	return strings.Join(p, ", ")
+	return t[:len(t)-2]
 }
 
-func TopicsForJob(topics, job string) string {
-	var t []string
-	for _, v := range strings.Split(topics, ",") {
-		prefix := strings.Split(v, ":")[0]
-		t = append(t, fmt.Sprintf("%s:%s", prefix, job))
+func TopicsForJob(topics Topics, job string) Topics {
+	t := make(Topics)
+	for k := range topics {
+		t[k] = []string{job}
 	}
-	return strings.Join(t, ",")
+	return t
 }

@@ -1,10 +1,9 @@
 package nomad
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
@@ -13,79 +12,33 @@ import (
 	"strings"
 )
 
-type jobResponseEntry struct {
-	ID                string      `json:"ID"`
-	ParentID          string      `json:"ParentID"`
-	Name              string      `json:"Name"`
-	Namespace         string      `json:"Namespace"`
-	Datacenters       []string    `json:"Datacenters"`
-	Multiregion       interface{} `json:"Multiregion"`
-	Type              string      `json:"Type"`
-	Priority          int         `json:"Priority"`
-	Periodic          bool        `json:"Periodic"`
-	ParameterizedJob  bool        `json:"ParameterizedJob"`
-	Stop              bool        `json:"Stop"`
-	Status            string      `json:"Status"`
-	StatusDescription string      `json:"StatusDescription"`
-	JobSummary        struct {
-		JobID     string `json:"JobID"`
-		Namespace string `json:"Namespace"`
-		Summary   map[string]struct {
-			Queued   int `json:"Queued"`
-			Complete int `json:"Complete"`
-			Failed   int `json:"Failed"`
-			Running  int `json:"Running"`
-			Starting int `json:"Starting"`
-			Lost     int `json:"Lost"`
-		} `json:"Summary"`
-		Children struct {
-			Pending int `json:"Pending"`
-			Running int `json:"Running"`
-			Dead    int `json:"Dead"`
-		} `json:"Children"`
-		CreateIndex int `json:"CreateIndex"`
-		ModifyIndex int `json:"ModifyIndex"`
-	} `json:"JobSummary"`
-	CreateIndex    int   `json:"CreateIndex"`
-	ModifyIndex    int   `json:"ModifyIndex"`
-	JobModifyIndex int   `json:"JobModifyIndex"`
-	SubmitTime     int64 `json:"SubmitTime"`
-}
-
-func FetchJobs(url, token string) tea.Cmd {
+func FetchJobs(client api.Client) tea.Cmd {
 	return func() tea.Msg {
-		params := [][2]string{
-			{"namespace", "*"},
-		}
-		fullPath := fmt.Sprintf("%s%s", url, "/v1/jobs")
-		body, err := get(fullPath, token, params)
+		jobResults, _, err := client.Jobs().List(nil)
 		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-		if strings.Contains(string(body), "UUID must be 36 characters") {
-			return message.ErrMsg{Err: errors.New("token must be 36 characters")}
-		}
-
-		var jobResponse []jobResponseEntry
-		if err := json.Unmarshal(body, &jobResponse); err != nil {
+			if strings.Contains(err.Error(), "UUID must be 36 characters") {
+				return message.ErrMsg{Err: errors.New("token must be 36 characters")}
+			} else if strings.Contains(err.Error(), "ACL token not found") {
+				return message.ErrMsg{Err: errors.New("token not authorized to list jobs")}
+			}
 			return message.ErrMsg{Err: err}
 		}
 
-		sort.Slice(jobResponse, func(x, y int) bool {
-			firstJob := jobResponse[x]
-			secondJob := jobResponse[y]
+		sort.Slice(jobResults, func(x, y int) bool {
+			firstJob := jobResults[x]
+			secondJob := jobResults[y]
 			if firstJob.Name == secondJob.Name {
 				return firstJob.Namespace < secondJob.Namespace
 			}
-			return jobResponse[x].Name < jobResponse[y].Name
+			return jobResults[x].Name < jobResults[y].Name
 		})
 
-		tableHeader, allPageData := jobResponsesAsTable(jobResponse)
+		tableHeader, allPageData := jobResponsesAsTable(jobResults)
 		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 
-func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) {
+func jobResponsesAsTable(jobResponse []*api.JobListStub) ([]string, []page.Row) {
 	var jobResponseRows [][]string
 	var keys []string
 	for _, row := range jobResponse {
@@ -124,7 +77,7 @@ func jobResponsesAsTable(jobResponse []jobResponseEntry) ([]string, []page.Row) 
 	return table.HeaderRows, rows
 }
 
-func toJobsKey(jobResponseEntry jobResponseEntry) string {
+func toJobsKey(jobResponseEntry *api.JobListStub) string {
 	return jobResponseEntry.ID + " " + jobResponseEntry.Namespace
 }
 

@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
@@ -19,16 +20,27 @@ import (
 	"time"
 )
 
+type TLSConfig struct {
+	CACert, CAPath, ClientCert, ClientKey, ServerName string
+	SkipVerify                                        bool
+}
+
 type Config struct {
-	Version, SHA, URL, Token, EventTopics, EventNamespace string
-	LogOffset                                             int
-	CopySavePath                                          bool
-	UpdateSeconds                                         time.Duration
-	LogoColor                                             string
+	Version, SHA                  string
+	URL, Token, Region, Namespace string
+	HTTPAuth                      string
+	TLS                           TLSConfig
+	EventTopics                   nomad.Topics
+	EventNamespace                string
+	LogOffset                     int
+	CopySavePath                  bool
+	UpdateSeconds                 time.Duration
+	LogoColor                     string
 }
 
 type Model struct {
 	config Config
+	client api.Client
 
 	header      header.Model
 	currentPage nomad.Page
@@ -36,14 +48,14 @@ type Model struct {
 
 	jobID        string
 	jobNamespace string
-	allocID      string
+	alloc        api.Allocation
 	taskName     string
 	logline      string
 	logType      nomad.LogType
 
 	updateID int
 
-	eventsStream nomad.EventStreamConnection
+	eventsStream nomad.EventsStream
 	event        string
 
 	execWebSocket       *websocket.Conn
@@ -109,7 +121,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		if !m.initialized {
-			m.initialize()
+			err := m.initialize()
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
 			cmds = append(cmds, m.getCurrentPageCmd())
 		} else {
 			m.setPageWindowSize()
@@ -139,13 +155,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
 			case nomad.JobEventsPage, nomad.AllEventsPage:
-				if m.eventsStream.Body != nil {
-					err := m.eventsStream.Body.Close()
-					if err != nil {
-						m.err = err
-						return m, nil
-					}
-				}
 				m.eventsStream = msg.Connection
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			case nomad.LogsPage:
@@ -158,16 +167,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.EventsStreamMsg:
 		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllEventsPage {
-			if !msg.Closed {
-				if msg.Value != "{}" {
-					scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
-					m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
-					if scrollDown {
-						m.getCurrentPageModel().ScrollViewportToBottom()
-					}
+			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.Value != "{}" {
+				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
+				if scrollDown {
+					m.getCurrentPageModel().ScrollViewportToBottom()
 				}
-				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			}
+			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 		}
 
 	case nomad.UpdatePageDataMsg:
@@ -179,7 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			m.getCurrentPageModel().SetLoading(true)
-			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.allocID, m.taskName, msg.Input)
+			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.alloc.ID, m.taskName, msg.Input)
 		}
 
 	case nomad.ExecWebSocketConnectedMsg:
@@ -238,20 +245,25 @@ func (m Model) View() string {
 	return pageView
 }
 
-func (m *Model) initialize() {
+func (m *Model) initialize() error {
+	client, err := m.config.client()
+	if err != nil {
+		return err
+	}
+	m.client = *client
+
 	m.pageModels = make(map[nomad.Page]*page.Model)
 	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath) {
 		p := page.New(c)
 		m.pageModels[k] = &p
 	}
+
 	m.initialized = true
+	return nil
 }
 
 func (m *Model) cleanupCmd() tea.Cmd {
 	return func() tea.Msg {
-		if m.eventsStream.Body != nil {
-			_ = m.eventsStream.Body.Close()
-		}
 		if m.execWebSocket != nil {
 			nomad.CloseWebSocket(m.execWebSocket)()
 		}
@@ -310,7 +322,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						m.err = err
 						return nil
 					}
-					m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+					m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
 				case nomad.LogsPage:
 					m.logline = selectedPageRow.Row
 				}
@@ -356,7 +368,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						return nil
 					}
 					if allocInfo.Running {
-						m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+						m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
 						m.setPage(nomad.ExecPage)
 						return m.getCurrentPageCmd()
 					}
@@ -377,7 +389,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						m.err = err
 						return nil
 					}
-					m.allocID, m.taskName = allocInfo.AllocID, allocInfo.TaskName
+					m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
 					m.setPage(nomad.AllocSpecPage)
 					return m.getCurrentPageCmd()
 				}
@@ -483,25 +495,25 @@ func (m *Model) updateKeyHelp() {
 func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
-		return nomad.FetchJobs(m.config.URL, m.config.Token)
+		return nomad.FetchJobs(m.client)
 	case nomad.JobSpecPage:
-		return nomad.FetchJobSpec(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
-		return nomad.FetchEventsStream(m.config.URL, m.config.Token, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
+		return nomad.FetchEventsStream(m.client, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
 	case nomad.JobEventPage:
 		return nomad.PrettifyLine(m.event, nomad.JobEventPage)
 	case nomad.AllEventsPage:
-		return nomad.FetchEventsStream(m.config.URL, m.config.Token, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
+		return nomad.FetchEventsStream(m.client, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.AllocationsPage:
-		return nomad.FetchAllocations(m.config.URL, m.config.Token, m.jobID, m.jobNamespace)
+		return nomad.FetchAllocations(m.client, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:
-		return nomad.FetchAllocSpec(m.config.URL, m.config.Token, m.allocID)
+		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
-		return nomad.FetchLogs(m.config.URL, m.config.Token, m.allocID, m.taskName, m.logType, m.config.LogOffset)
+		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.LogOffset)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	default:
@@ -530,7 +542,7 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.jobID, m.taskName, m.allocID, m.config.EventTopics, m.config.EventNamespace)
+	return page.GetFilterPrefix(m.jobID, m.taskName, m.alloc.ID, m.config.EventTopics, m.config.EventNamespace)
 }
 
 func getVersionString(v, s string) string {
