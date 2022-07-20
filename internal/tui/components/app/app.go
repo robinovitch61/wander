@@ -547,7 +547,7 @@ func (m Model) getFilterPrefix(page nomad.Page) string {
 
 func getVersionString(v, s string) string {
 	if v == "" {
-		return "built from source"
+		return constants.NoVersionString
 	}
 	return fmt.Sprintf("%s (%s)", v, s[:7])
 }

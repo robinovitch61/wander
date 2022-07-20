@@ -8,6 +8,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -289,5 +290,8 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 }
 
 func getVersion() string {
+	if Version == "" {
+		return constants.NoVersionString
+	}
 	return Version
 }

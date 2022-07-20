@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const NoVersionString = "built from source"
+
 var LogoString = strings.Join([]string{
 	"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
 	"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
