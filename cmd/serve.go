@@ -19,24 +19,28 @@ import (
 
 var (
 	hostArg = arg{
-		cliShort: "h",
-		cliLong:  "host",
-		config:   "wander_host",
+		cliShort:      "h",
+		cliLong:       "host",
+		cfgFileEnvVar: "wander_host",
+		description:   `Host for wander ssh server. Default "localhost"`,
 	}
 	portArg = arg{
-		cliShort: "p",
-		cliLong:  "port",
-		config:   "wander_port",
+		cliShort:      "p",
+		cliLong:       "port",
+		cfgFileEnvVar: "wander_port",
+		description:   `Port for wander ssh server. Default "21324"`,
 	}
 	hostKeyPathArg = arg{
-		cliShort: "k",
-		cliLong:  "host-key-path",
-		config:   "wander_host_key_path",
+		cliShort:      "k",
+		cliLong:       "host-key-path",
+		cfgFileEnvVar: "wander_host_key_path",
+		description:   `Host key path for wander ssh server. Default none, i.e. ""`,
 	}
 	hostKeyPEMArg = arg{
-		cliShort: "m",
-		cliLong:  "host-key-pem",
-		config:   "wander_host_key_pem",
+		cliShort:      "m",
+		cliLong:       "host-key-pem",
+		cfgFileEnvVar: "wander_host_key_pem",
+		description:   `Host key PEM block for wander ssh server. Default none, i.e. ""`,
 	}
 
 	serveDescription = `Starts an ssh server hosting wander.`
@@ -69,7 +73,7 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 	}
 	middleware := wish.WithMiddleware(
 		bm.Middleware(generateTeaHandler(cmd)),
-		CustomLoggingMiddleware(),
+		customLoggingMiddleware(),
 	)
 	options = append(options, middleware)
 

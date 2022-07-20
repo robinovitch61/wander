@@ -20,24 +20,22 @@ import (
 	"time"
 )
 
+type TLSConfig struct {
+	CACert, CAPath, ClientCert, ClientKey, ServerName string
+	SkipVerify                                        bool
+}
+
 type Config struct {
-	Version, SHA string
-	// TODO LEO: NOMAD_REGION, NOMAD_NAMESPACE
+	Version, SHA                  string
 	URL, Token, Region, Namespace string
-	// TODO LEO: NOMAD_HTTP_AUTH
-	HTTPAuth string
-	TLS      struct {
-		// TODO LEO: NOMAD_CACERT, NOMAD_CAPATH, NOMAD_CLIENT_CERT, NOMAD_CLIENT_KEY, NOMAD_TLS_SERVER_NAME
-		CACert, CAPath, ClientCert, ClientKey, ServerName string
-		// TODO LEO: NOMAD_SKIP_VERIFY
-		SkipVerify bool
-	}
-	EventTopics    nomad.Topics
-	EventNamespace string
-	LogOffset      int
-	CopySavePath   bool
-	UpdateSeconds  time.Duration
-	LogoColor      string
+	HTTPAuth                      string
+	TLS                           TLSConfig
+	EventTopics                   nomad.Topics
+	EventNamespace                string
+	LogOffset                     int
+	CopySavePath                  bool
+	UpdateSeconds                 time.Duration
+	LogoColor                     string
 }
 
 type Model struct {
@@ -248,16 +246,18 @@ func (m Model) View() string {
 }
 
 func (m *Model) initialize() error {
-	client, err := m.config.Client()
+	client, err := m.config.client()
 	if err != nil {
 		return err
 	}
 	m.client = *client
+
 	m.pageModels = make(map[nomad.Page]*page.Model)
 	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath) {
 		p := page.New(c)
 		m.pageModels[k] = &p
 	}
+
 	m.initialized = true
 	return nil
 }

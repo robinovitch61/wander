@@ -11,7 +11,7 @@ import (
 )
 
 type arg struct {
-	cliShort, cliLong, config string
+	cliShort, cliLong, cfgFileEnvVar, description string
 }
 
 var (
@@ -20,53 +20,116 @@ var (
 	// Used for flags.
 	cfgFile string
 
+	cfgArg = arg{
+		cliShort:    "c",
+		cliLong:     "config",
+		description: `Config file path. Default "$HOME/.wander.yaml"`,
+	}
+	helpArg = arg{
+		cliLong:     "help",
+		description: `Print usage`,
+	}
 	// TODO LEO: remove this in v1.0.0
 	oldAddrArg = arg{
-		cliShort: "a",
-		cliLong:  "addr",
-		config:   "wander_addr",
+		cliShort:      "a",
+		cliLong:       "addr",
+		cfgFileEnvVar: "wander_addr",
 	}
 	addrArg = arg{
-		cliShort: "a",
-		cliLong:  "addr",
-		config:   "nomad_addr",
+		cliShort:      "a",
+		cliLong:       "addr",
+		cfgFileEnvVar: "nomad_addr",
+		description:   `Nomad address. Default "http://localhost:4646"`,
 	}
 	// TODO LEO: remove this in v1.0.0
 	oldTokenArg = arg{
-		cliShort: "t",
-		cliLong:  "token",
-		config:   "wander_token",
+		cliShort:      "t",
+		cliLong:       "token",
+		cfgFileEnvVar: "wander_token",
 	}
 	tokenArg = arg{
-		cliShort: "t",
-		cliLong:  "token",
-		config:   "nomad_token",
+		cliShort:      "t",
+		cliLong:       "token",
+		cfgFileEnvVar: "nomad_token",
+		description:   `Nomad token. Default ""`,
+	}
+	regionArg = arg{
+		cliShort:      "r",
+		cliLong:       "region",
+		cfgFileEnvVar: "nomad_region",
+		description:   `Nomad region. Default ""`,
+	}
+	namespaceArg = arg{
+		cliShort:      "n",
+		cliLong:       "namespace",
+		cfgFileEnvVar: "nomad_namespace",
+		description:   `Nomad namespace. Default ""`,
+	}
+	httpAuthArg = arg{
+		cliLong:       "http-auth",
+		cfgFileEnvVar: "nomad_http_auth",
+		description:   `Nomad http auth, in the form of "user" or "user:pass". Default ""`,
+	}
+	cacertArg = arg{
+		cliLong:       "cacert",
+		cfgFileEnvVar: "nomad_cacert",
+		description:   `Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate. Default ""`,
+	}
+	capathArg = arg{
+		cliLong:       "capath",
+		cfgFileEnvVar: "nomad_capath",
+		description:   `Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used. Default ""`,
+	}
+	clientCertArg = arg{
+		cliLong:       "client-cert",
+		cfgFileEnvVar: "nomad_client_cert",
+		description:   `Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key. Default ""`,
+	}
+	clientKeyArg = arg{
+		cliLong:       "client-key",
+		cfgFileEnvVar: "nomad_client_key",
+		description:   `Path to an unencrypted PEM encoded private key matching the client cert. Default ""`,
+	}
+	tlsServerNameArg = arg{
+		cliLong:       "tls-server-name",
+		cfgFileEnvVar: "nomad_tls_server_name",
+		description:   `The server name to use as the SNI host when connecting via TLS. Default ""`,
+	}
+	skipVerifyArg = arg{
+		cliLong:       "skip-verify",
+		cfgFileEnvVar: "nomad_skip_verify",
+		description:   `If "true", do not verify TLS certificates. Default "false"`,
 	}
 	updateSecondsArg = arg{
-		cliShort: "u",
-		cliLong:  "update",
-		config:   "wander_update_seconds",
+		cliShort:      "u",
+		cliLong:       "update",
+		cfgFileEnvVar: "wander_update_seconds",
+		description:   `Seconds between updates for job & allocation pages. Disable with "-1". Default "2"`,
 	}
 	logOffsetArg = arg{
-		cliShort: "o",
-		cliLong:  "log-offset",
-		config:   "wander_log_offset",
+		cliShort:      "o",
+		cliLong:       "log-offset",
+		cfgFileEnvVar: "wander_log_offset",
+		description:   `Log byte offset from which logs start. Default "1000000"`,
 	}
 	copySavePathArg = arg{
-		cliShort: "s",
-		cliLong:  "copy-save-path",
-		config:   "wander_copy_save_path",
+		cliShort:      "s",
+		cliLong:       "copy-save-path",
+		cfgFileEnvVar: "wander_copy_save_path",
+		description:   `If "true", copy the full path to file after save. Default "false"`,
 	}
 	eventTopicsArg = arg{
-		cliLong: "event-topics",
-		config:  "wander_event_topics",
+		cliLong:       "event-topics",
+		cfgFileEnvVar: "wander_event_topics",
+		description:   `Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"`,
 	}
 	eventNamespaceArg = arg{
-		cliLong: "event-namespace",
-		config:  "wander_event_namespace",
+		cliLong:       "event-namespace",
+		cfgFileEnvVar: "wander_event_namespace",
+		description:   `Namespace used in stream for all events. "*" for all namespaces. Default "default"`,
 	}
 	logoColorArg = arg{
-		config: "wander_logo_color",
+		cfgFileEnvVar: "wander_logo_color",
 	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
@@ -89,39 +152,46 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	// NOTE: default values here are unused even if default exists as they break the desired priority of cli args > env vars > config file > default if exists
 
 	// root
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", `Config file path. Default "$HOME/.wander.yaml"`)
-	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, cfgArg.cliLong, cfgArg.cliShort, "", cfgArg.description)
+	rootCmd.PersistentFlags().BoolP(helpArg.cliLong, helpArg.cliShort, false, helpArg.description)
+	for _, c := range []arg{
+		addrArg,
+		tokenArg,
+		regionArg,
+		namespaceArg,
+		httpAuthArg,
+		cacertArg,
+		capathArg,
+		clientCertArg,
+		clientKeyArg,
+		tlsServerNameArg,
+		skipVerifyArg,
+		updateSecondsArg,
+		logOffsetArg,
+		copySavePathArg,
+		eventTopicsArg,
+		eventNamespaceArg,
+	} {
+		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
+		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
+	}
 
-	// NOTE: default values here are unused even if default exists as they break the desired priority of cli args > env vars > config file > default if exists
-	rootCmd.PersistentFlags().StringP(addrArg.cliLong, addrArg.cliShort, "", `Nomad address. Default "http://localhost:4646"`)
-	viper.BindPFlag(addrArg.cliLong, rootCmd.PersistentFlags().Lookup(addrArg.config))
-	rootCmd.PersistentFlags().StringP(tokenArg.cliLong, tokenArg.cliShort, "", `Nomad token. Default ""`)
-	viper.BindPFlag(tokenArg.cliLong, rootCmd.PersistentFlags().Lookup(tokenArg.config))
-	rootCmd.PersistentFlags().StringP(updateSecondsArg.cliLong, updateSecondsArg.cliShort, "", `Seconds between updates for job & allocation pages. Disable with "-1". Default "2"`)
-	viper.BindPFlag(updateSecondsArg.cliLong, rootCmd.PersistentFlags().Lookup(updateSecondsArg.config))
-	rootCmd.PersistentFlags().StringP(logOffsetArg.cliLong, logOffsetArg.cliShort, "", `Log byte offset from which logs start. Default "1000000"`)
-	viper.BindPFlag(logOffsetArg.cliLong, rootCmd.PersistentFlags().Lookup(logOffsetArg.config))
-	rootCmd.PersistentFlags().StringP(copySavePathArg.cliLong, copySavePathArg.cliShort, "", `If "true", copy the full path to file after save. Default "false"`)
-	viper.BindPFlag(copySavePathArg.cliLong, rootCmd.PersistentFlags().Lookup(copySavePathArg.config))
-	rootCmd.PersistentFlags().StringP(eventTopicsArg.cliLong, eventTopicsArg.cliShort, "", `Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"`)
-	viper.BindPFlag(eventTopicsArg.cliLong, rootCmd.PersistentFlags().Lookup(eventTopicsArg.config))
-	rootCmd.PersistentFlags().StringP(eventNamespaceArg.cliLong, eventNamespaceArg.cliShort, "", `Namespace used in stream for all events. "*" for all namespaces. Default "default"`)
-	viper.BindPFlag(eventNamespaceArg.cliLong, rootCmd.PersistentFlags().Lookup(eventNamespaceArg.config))
-
-	// colors
-	viper.BindPFlag(logoColorArg.cliLong, rootCmd.PersistentFlags().Lookup(logoColorArg.config))
+	// colors, config or env var only
+	viper.BindPFlag(logoColorArg.cliLong, rootCmd.PersistentFlags().Lookup(logoColorArg.cfgFileEnvVar))
 
 	// serve
-	serveCmd.PersistentFlags().StringP(hostArg.cliLong, hostArg.cliShort, "", `Host for wander ssh server. Default "localhost"`)
-	viper.BindPFlag(hostArg.cliLong, serveCmd.PersistentFlags().Lookup(hostArg.config))
-	serveCmd.PersistentFlags().StringP(portArg.cliLong, portArg.cliShort, "", `Port for wander ssh server. Default "21324"`)
-	viper.BindPFlag(portArg.cliLong, serveCmd.PersistentFlags().Lookup(portArg.config))
-	serveCmd.PersistentFlags().StringP(hostKeyPathArg.cliLong, hostKeyPathArg.cliShort, "", `Host key path for wander ssh server. Default none, i.e. ""`)
-	viper.BindPFlag(hostKeyPathArg.cliLong, serveCmd.PersistentFlags().Lookup(hostKeyPathArg.config))
-	serveCmd.PersistentFlags().StringP(hostKeyPEMArg.cliLong, hostKeyPEMArg.cliShort, "", `Host key PEM block for wander ssh server. Default none, i.e. ""`)
-	viper.BindPFlag(hostKeyPEMArg.cliLong, serveCmd.PersistentFlags().Lookup(hostKeyPEMArg.config))
+	for _, c := range []arg{
+		hostArg,
+		portArg,
+		hostKeyPathArg,
+		hostKeyPEMArg,
+	} {
+		serveCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
+		viper.BindPFlag(c.cliLong, serveCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
+	}
 
 	rootCmd.AddCommand(serveCmd)
 }

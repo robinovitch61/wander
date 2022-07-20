@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
@@ -28,20 +29,26 @@ var (
 )
 
 func validateToken(token string) error {
-	// TODO LEO: uncomment
-	// if len(token) > 0 && len(token) != 36 {
-	// 	return errors.New("token must be 36 characters")
-	// }
+	if len(token) > 0 && len(token) != 36 {
+		return errors.New("token must be 36 characters")
+	}
 	return nil
+}
+
+func trueIfTrue(v string) bool {
+	if strings.ToLower(strings.TrimSpace(v)) == "true" {
+		return true
+	}
+	return false
 }
 
 func retrieve(cmd *cobra.Command, a arg) (string, error) {
 	val := cmd.Flag(a.cliLong).Value.String()
 	if val == "" {
-		val = viper.GetString(a.config)
+		val = viper.GetString(a.cfgFileEnvVar)
 	}
 	if val == "" {
-		return "", fmt.Errorf("error: set %s env variable, %s in config file, or --%s argument", strings.ToUpper(a.config), a.config, a.cliLong)
+		return "", fmt.Errorf("error: set %s env variable, %s in config file, or --%s argument", strings.ToUpper(a.cfgFileEnvVar), a.cfgFileEnvVar, a.cliLong)
 	}
 	return val, nil
 }
@@ -53,8 +60,8 @@ func retrieveWithFallback(cmd *cobra.Command, currArg, oldArg arg) (string, erro
 		if val == "" {
 			return "", err
 		}
-		fmt.Printf("\nwarning: use of %s env variable or %s in config file will be removed in a future release\n", strings.ToUpper(oldArg.config), oldArg.config)
-		fmt.Printf("use %s env variable or %s in config file instead\n", strings.ToUpper(currArg.config), currArg.config)
+		fmt.Printf("\nwarning: use of %s env variable or %s in config file will be removed in a future release\n", strings.ToUpper(oldArg.cfgFileEnvVar), oldArg.cfgFileEnvVar)
+		fmt.Printf("use %s env variable or %s in config file instead\n", strings.ToUpper(currArg.cfgFileEnvVar), currArg.cfgFileEnvVar)
 	}
 	return val, nil
 }
@@ -62,7 +69,7 @@ func retrieveWithFallback(cmd *cobra.Command, currArg, oldArg arg) (string, erro
 func retrieveWithDefault(cmd *cobra.Command, a arg, defaultVal string) string {
 	val := cmd.Flag(a.cliLong).Value.String()
 	if val == "" {
-		val = viper.GetString(a.config)
+		val = viper.GetString(a.cfgFileEnvVar)
 	}
 	if val == "" {
 		return defaultVal
@@ -71,7 +78,7 @@ func retrieveWithDefault(cmd *cobra.Command, a arg, defaultVal string) string {
 }
 
 func retrieveNonCLIWithDefault(a arg, defaultVal string) string {
-	val := viper.GetString(a.config)
+	val := viper.GetString(a.cfgFileEnvVar)
 	if val == "" {
 		return defaultVal
 	}
@@ -99,12 +106,46 @@ func retrieveToken(cmd *cobra.Command) string {
 	return val
 }
 
+func retrieveRegion(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, regionArg, "")
+}
+
+func retrieveNamespace(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, namespaceArg, "")
+}
+
+func retrieveHTTPAuth(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, httpAuthArg, "")
+}
+
+func retrieveCACert(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, cacertArg, "")
+}
+
+func retrieveCAPath(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, capathArg, "")
+}
+
+func retrieveClientCert(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, clientCertArg, "")
+}
+
+func retrieveClientKey(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, clientKeyArg, "")
+}
+
+func retrieveTLSServerName(cmd *cobra.Command) string {
+	return retrieveWithDefault(cmd, tlsServerNameArg, "")
+}
+
+func retrieveSkipVerify(cmd *cobra.Command) bool {
+	v := retrieveWithDefault(cmd, skipVerifyArg, "false")
+	return trueIfTrue(v)
+}
+
 func retrieveCopySavePath(cmd *cobra.Command) bool {
 	v := retrieveWithDefault(cmd, copySavePathArg, "false")
-	if strings.ToLower(strings.TrimSpace(v)) == "true" {
-		return true
-	}
-	return false
+	return trueIfTrue(v)
 }
 
 func retrieveEventTopics(cmd *cobra.Command) nomad.Topics {
@@ -178,11 +219,11 @@ func retrieveLogOffset(cmd *cobra.Command) int {
 	return logOffset
 }
 
-// CustomLoggingMiddleware provides basic connection logging. Connects are logged with the
+// customLoggingMiddleware provides basic connection logging. Connects are logged with the
 // remote address, invoked command, TERM setting, window dimensions and if the
 // auth was public key based. Disconnect will log the remote address and
 // connection duration. It is custom because it excludes the ssh Command in the log.
-func CustomLoggingMiddleware() wish.Middleware {
+func customLoggingMiddleware() wish.Middleware {
 	return func(sh ssh.Handler) ssh.Handler {
 		return func(s ssh.Session) {
 			ct := time.Now()
@@ -205,6 +246,15 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		}
 		nomadToken = overrideToken
 	}
+	region := retrieveRegion(cmd)
+	namespace := retrieveNamespace(cmd)
+	httpAuth := retrieveHTTPAuth(cmd)
+	cacert := retrieveCACert(cmd)
+	capath := retrieveCAPath(cmd)
+	clientCert := retrieveClientCert(cmd)
+	clientKey := retrieveClientKey(cmd)
+	tlsServerName := retrieveTLSServerName(cmd)
+	skipVerify := retrieveSkipVerify(cmd)
 	logOffset := retrieveLogOffset(cmd)
 	copySavePath := retrieveCopySavePath(cmd)
 	eventTopics := retrieveEventTopics(cmd)
@@ -213,10 +263,21 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 
 	initialModel := app.InitialModel(app.Config{
-		Version:        Version,
-		SHA:            CommitSHA,
-		URL:            nomadAddr,
-		Token:          nomadToken,
+		Version:   Version,
+		SHA:       CommitSHA,
+		URL:       nomadAddr,
+		Token:     nomadToken,
+		Region:    region,
+		Namespace: namespace,
+		HTTPAuth:  httpAuth,
+		TLS: app.TLSConfig{
+			CACert:     cacert,
+			CAPath:     capath,
+			ClientCert: clientCert,
+			ClientKey:  clientKey,
+			ServerName: tlsServerName,
+			SkipVerify: skipVerify,
+		},
 		LogOffset:      logOffset,
 		CopySavePath:   copySavePath,
 		EventTopics:    eventTopics,

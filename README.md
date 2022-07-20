@@ -77,7 +77,34 @@ Example yaml file showing all options:
 nomad_addr: http://localhost:4646
 
 # Nomad token. Default ""
-nomad_token: <your-nomad-token>
+nomad_token: my-token
+
+# Nomad region. Default ""
+nomad_region: west
+
+# Nomad namespace. Default ""
+nomad_namespace: my-namespace
+
+# Nomad http auth, in the form of "user" or "user:pass". Default ""
+nomad_http_auth: "username:password"
+
+# Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate. Default ""
+nomad_cacert: "/path/to/cert"
+
+# Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used. Default ""
+nomad_capath: "/path/to/cert/directory"
+
+# Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key. Default ""
+nomad_client_cert: "/path/to/cert"
+
+# Path to an unencrypted PEM encoded private key matching the client cert. Default ""
+nomad_client_key: "/path/to/key"
+
+# The server name to use as the SNI host when connecting via TLS. Default ""
+nomad_tls_server_name: server-name
+
+# If "true", do not verify TLS certificates. Default "false"
+nomad_skip_verify: true
 
 # Seconds between updates for job & allocation pages. Disable with "-1". Default "2"
 wander_update_seconds: 1
