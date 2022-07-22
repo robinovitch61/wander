@@ -1,16 +1,8 @@
-# Expects secrets:
-#  GITHUB_TOKEN - token for the wander repository, provided in GitHub Action
-#  HOMEBREW_TAP_GITHUB_TOKEN - token for the homebrew tap repository, must be set
-
-name: release
+name: build
 
 on:
-  create:
-    tags:
-      - v*
-
-permissions:
-  contents: write
+  pull_request:
+  push:
 
 jobs:
   goreleaser:
@@ -29,7 +21,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist
+          args: build --snapshot --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
