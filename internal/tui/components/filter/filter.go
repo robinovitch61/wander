@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/style"
 )
 
 var (
@@ -12,38 +13,17 @@ var (
 )
 
 type Model struct {
-	prefix             string
-	onUpdateFilter     func()
-	keyMap             filterKeyMap
-	focus              bool
-	Filter             string
-	PrefixStyle        lipgloss.Style
-	FilterStyle        lipgloss.Style
-	AppliedFilterStyle lipgloss.Style
-	EditingFilterStyle lipgloss.Style
+	prefix         string
+	onUpdateFilter func()
+	keyMap         filterKeyMap
+	focus          bool
+	Filter         string
 }
 
 func New(prefix string) Model {
 	return Model{
 		prefix: prefix,
 		keyMap: keyMap,
-		PrefixStyle: lipgloss.NewStyle().
-			Padding(0, 3).
-			Border(lipgloss.NormalBorder(), true).
-			Foreground(lipgloss.Color("#FFFFFF")),
-		FilterStyle: lipgloss.NewStyle().
-			Margin(0, 1).
-			Foreground(lipgloss.Color("#8E8E8E")),
-		AppliedFilterStyle: lipgloss.NewStyle().
-			Margin(0, 1).
-			Padding(0, 1).
-			Foreground(lipgloss.Color("#000000")).
-			Background(lipgloss.Color("#00A095")),
-		EditingFilterStyle: lipgloss.NewStyle().
-			Margin(0, 1).
-			Padding(0, 1).
-			Foreground(lipgloss.Color("#000000")).
-			Background(lipgloss.Color("6")),
 	}
 }
 
@@ -85,7 +65,7 @@ func (m Model) View() string {
 	default:
 		filterString = "'/' to filter"
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Center, m.PrefixStyle.Render(m.prefix), m.formatFilterString(filterString))
+	return lipgloss.JoinHorizontal(lipgloss.Center, style.FilterPrefix.Render(m.prefix), m.formatFilterString(filterString))
 }
 
 func (m Model) ViewHeight() int {
@@ -120,10 +100,10 @@ func (m *Model) setFilter(filter string) {
 func (m Model) formatFilterString(s string) string {
 	if !m.focus {
 		if len(m.Filter) == 0 {
-			return m.FilterStyle.Render(s)
+			return style.Filter.Render(s)
 		} else {
-			return m.AppliedFilterStyle.Render(s)
+			return style.FilterApplied.Render(s)
 		}
 	}
-	return m.EditingFilterStyle.Render(s)
+	return style.FilterEditing.Render(s)
 }
