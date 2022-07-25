@@ -2,6 +2,7 @@ package filter
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/wander/internal/dev"
@@ -13,59 +14,67 @@ var (
 )
 
 type Model struct {
-	prefix         string
-	onUpdateFilter func()
-	keyMap         filterKeyMap
-	focus          bool
-	Filter         string
+	prefix    string
+	keyMap    filterKeyMap
+	textinput textinput.Model
 }
 
 func New(prefix string) Model {
+	ti := textinput.New()
+	ti.Prompt = ""
+	ti.SetCursorMode(textinput.CursorHide)
 	return Model{
-		prefix: prefix,
-		keyMap: keyMap,
+		prefix:    prefix,
+		keyMap:    keyMap,
+		textinput: ti,
 	}
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	dev.Debug(fmt.Sprintf("filter %T", msg))
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		if m.focus {
-			switch msg.Type {
-			case tea.KeyBackspace:
-				if len(m.Filter) > 0 {
-					if msg.Alt {
-						m.setFilter("")
-					} else {
-						m.setFilter(m.Filter[:len(m.Filter)-1])
-					}
-				}
-			case tea.KeyRunes:
-				// without this check, matches M+Backspace as \x18\u007f, etc.
-				if len(msg.String()) == 1 {
-					m.setFilter(m.Filter + msg.String())
-				}
-			case tea.KeySpace:
-				m.setFilter(m.Filter + msg.String())
-			}
-		}
-	}
-
-	return m, nil
+	var cmd tea.Cmd
+	m.textinput, cmd = m.textinput.Update(msg)
+	return m, cmd
 }
 
 func (m Model) View() string {
-	var filterString string
-	switch {
-	case len(m.Filter) > 0:
-		filterString = fmt.Sprintf("filter: %s", m.Filter)
-	case m.focus:
-		filterString = "type to filter"
-	default:
-		filterString = "'/' to filter"
+	if m.textinput.Focused() {
+		m.textinput.TextStyle = style.FilterEditing
+		m.textinput.PromptStyle = style.FilterEditing
+		if len(m.textinput.Value()) > 0 {
+			// editing existing filter
+			m.textinput.Prompt = "filter: "
+		} else {
+			// editing but no filter value yet
+			m.textinput.Prompt = ""
+			m.textinput.SetCursorMode(textinput.CursorHide)
+			m.textinput.SetValue("type to filter")
+		}
+	} else {
+		if len(m.textinput.Value()) > 0 {
+			// filter applied, not editing
+			m.textinput.Prompt = "filter: "
+			m.textinput.PromptStyle = style.FilterApplied
+			m.textinput.TextStyle = style.FilterApplied
+		} else {
+			// no filter, not editing
+			m.textinput.Prompt = ""
+			m.textinput.PromptStyle = style.Regular
+			m.textinput.TextStyle = style.Regular
+			m.textinput.SetValue("'/' to filter")
+		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Center, style.FilterPrefix.Render(m.prefix), m.formatFilterString(filterString))
+	filterString := m.textinput.View()
+	filterStringStyle := m.textinput.TextStyle.Copy().MarginLeft(1).PaddingLeft(1).PaddingRight(0)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		style.FilterPrefix.Render(m.prefix),
+		filterStringStyle.Render(filterString),
+	)
+}
+
+func (m Model) Value() string {
+	return m.textinput.Value()
 }
 
 func (m Model) ViewHeight() int {
@@ -77,33 +86,23 @@ func (m *Model) SetPrefix(prefix string) {
 }
 
 func (m Model) Focused() bool {
-	return m.focus
+	return m.textinput.Focused()
 }
 
 func (m *Model) Focus() {
-	m.focus = true
+	m.textinput.SetCursorMode(textinput.CursorBlink)
+	m.textinput.Focus()
 }
 
 func (m *Model) Blur() {
-	m.focus = false
+	// move cursor to end of word so right padding shows up even if cursor not at end when blurred
+	m.textinput.SetCursor(len(m.textinput.Value()))
+
+	m.textinput.SetCursorMode(textinput.CursorHide)
+	m.textinput.Blur()
 }
 
 func (m *Model) BlurAndClear() {
 	m.Blur()
-	m.Filter = ""
-}
-
-func (m *Model) setFilter(filter string) {
-	m.Filter = filter
-}
-
-func (m Model) formatFilterString(s string) string {
-	if !m.focus {
-		if len(m.Filter) == 0 {
-			return style.Filter.Render(s)
-		} else {
-			return style.FilterApplied.Render(s)
-		}
-	}
-	return style.FilterEditing.Render(s)
+	m.textinput.SetValue("")
 }

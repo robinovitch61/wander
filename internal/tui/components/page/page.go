@@ -11,6 +11,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/filter"
 	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"github.com/robinovitch61/wander/internal/tui/components/viewport"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"strings"
@@ -56,7 +57,7 @@ func New(c Config) Model {
 		pageTextInput = textinput.New()
 		pageTextInput.Focus()
 		pageTextInput.Prompt = ""
-		pageTextInput.SetValue("/bin/sh")
+		pageTextInput.SetValue(constants.DefaultPageInput)
 		needsNewInput = true
 	}
 
@@ -139,18 +140,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Filter):
 				m.filter.Focus()
-				return m, nil
+				return m, textinput.Blink
 			}
 
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 
-		prevFilter := m.filter.Filter
+		prevFilter := m.filter.Value()
 		m.filter, cmd = m.filter.Update(msg)
-		if m.filter.Filter != prevFilter {
+		if m.filter.Value() != prevFilter {
 			m.updateViewport()
 		}
+		cmds = append(cmds, cmd)
+
+	default:
+		m.filter, cmd = m.filter.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -285,7 +290,7 @@ func (m Model) FilterFocused() bool {
 }
 
 func (m Model) FilterApplied() bool {
-	return len(m.filter.Filter) > 0
+	return len(m.filter.Value()) > 0
 }
 
 func (m Model) ViewportSaving() bool {
@@ -302,18 +307,18 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateViewport() {
-	m.viewport.SetStringToHighlight(m.filter.Filter)
+	m.viewport.SetStringToHighlight(m.filter.Value())
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
 }
 
 func (m *Model) updateFilteredData() {
-	if m.filter.Filter == "" {
+	if m.filter.Value() == "" {
 		m.pageData.Filtered = m.pageData.All
 	} else {
 		var filteredData []Row
 		for _, entry := range m.pageData.All {
-			if strings.Contains(entry.Row, m.filter.Filter) {
+			if strings.Contains(entry.Row, m.filter.Value()) {
 				filteredData = append(filteredData, entry)
 			}
 		}

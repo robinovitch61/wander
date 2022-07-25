@@ -30,3 +30,5 @@ var JobsViewportConditionalStyle = map[string]lipgloss.Style{
 }
 
 var AllocationsViewportConditionalStyle = JobsViewportConditionalStyle
+
+const DefaultPageInput = "/bin/sh"
