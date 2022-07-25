@@ -49,7 +49,7 @@ func formatEventTopics(topics Topics) string {
 
 func getTopicNames(topics Topics) string {
 	t := ""
-	for k, _ := range topics {
+	for k := range topics {
 		t += fmt.Sprintf("%s, ", k)
 	}
 	return t[:len(t)-2]
@@ -59,6 +59,14 @@ func TopicsForJob(topics Topics, job string) Topics {
 	t := make(Topics)
 	for k := range topics {
 		t[k] = []string{job}
+	}
+	return t
+}
+
+func TopicsForAlloc(topics Topics, allocID string) Topics {
+	t := make(Topics)
+	for k := range topics {
+		t[k] = []string{allocID}
 	}
 	return t
 }

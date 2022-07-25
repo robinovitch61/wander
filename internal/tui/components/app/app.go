@@ -154,7 +154,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					})
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
-			case nomad.JobEventsPage, nomad.AllEventsPage:
+			case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 				m.eventsStream = msg.Connection
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
 			case nomad.LogsPage:
@@ -166,7 +166,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.EventsStreamMsg:
-		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllEventsPage {
+		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllocEventsPage || m.currentPage == nomad.AllEventsPage {
 			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.Value != "{}" {
 				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
@@ -314,7 +314,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				switch m.currentPage {
 				case nomad.JobsPage:
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
-				case nomad.JobEventsPage, nomad.AllEventsPage:
+				case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 					m.event = selectedPageRow.Row
 				case nomad.AllocationsPage:
 					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
@@ -400,6 +400,19 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 				m.setPage(nomad.JobEventsPage)
+				return m.getCurrentPageCmd()
+			}
+		}
+
+		if key.Matches(msg, keymap.KeyMap.AllocEvents) && m.currentPage == nomad.AllocationsPage {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+				if err != nil {
+					m.err = err
+					return nil
+				}
+				m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
+				m.setPage(nomad.AllocEventsPage)
 				return m.getCurrentPageCmd()
 			}
 		}
@@ -502,6 +515,10 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchEventsStream(m.client, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
 	case nomad.JobEventPage:
 		return nomad.PrettifyLine(m.event, nomad.JobEventPage)
+	case nomad.AllocEventsPage:
+		return nomad.FetchEventsStream(m.client, nomad.TopicsForAlloc(m.config.EventTopics, m.alloc.ID), m.jobNamespace, nomad.AllocEventsPage)
+	case nomad.AllocEventPage:
+		return nomad.PrettifyLine(m.event, nomad.AllocEventPage)
 	case nomad.AllEventsPage:
 		return nomad.FetchEventsStream(m.client, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
 	case nomad.AllEventPage:

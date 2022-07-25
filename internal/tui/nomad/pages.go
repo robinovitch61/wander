@@ -23,6 +23,8 @@ const (
 	JobSpecPage
 	JobEventsPage
 	JobEventPage
+	AllocEventsPage
+	AllocEventPage
 	AllEventsPage
 	AllEventPage
 	AllocationsPage
@@ -53,6 +55,16 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 		JobEventPage: {
 			Width: width, Height: height,
 			LoadingString: JobEventPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+		AllocEventsPage: {
+			Width: width, Height: height,
+			LoadingString: AllocEventsPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		AllocEventPage: {
+			Width: width, Height: height,
+			LoadingString: AllocEventPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		AllEventsPage: {
@@ -95,7 +107,7 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 }
 
 func (p Page) DoesLoad() bool {
-	noLoadPages := []Page{LoglinePage, JobEventPage, AllEventPage}
+	noLoadPages := []Page{LoglinePage, JobEventPage, AllocEventPage, AllEventPage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
 			return false
@@ -105,7 +117,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllEventsPage, AllEventPage, ExecPage}
+	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -116,15 +128,17 @@ func (p Page) DoesReload() bool {
 
 func (p Page) doesUpdate() bool {
 	noUpdatePages := []Page{
-		LoglinePage,   // doesn't load
-		ExecPage,      // doesn't reload
-		LogsPage,      // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
-		JobSpecPage,   // would require changes to make scrolling possible
-		AllocSpecPage, // would require changes to make scrolling possible
-		JobEventsPage, // constant connection, streams data
-		JobEventPage,  // doesn't load
-		AllEventsPage, // constant connection, streams data
-		AllEventPage,  // doesn't load
+		LoglinePage,     // doesn't load
+		ExecPage,        // doesn't reload
+		LogsPage,        // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
+		JobSpecPage,     // would require changes to make scrolling possible
+		AllocSpecPage,   // would require changes to make scrolling possible
+		JobEventsPage,   // constant connection, streams data
+		JobEventPage,    // doesn't load
+		AllocEventsPage, // constant connection, streams data
+		AllocEventPage,  // doesn't load
+		AllEventsPage,   // constant connection, streams data
+		AllEventPage,    // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -142,11 +156,11 @@ func (p Page) String() string {
 		return "jobs"
 	case JobSpecPage:
 		return "job spec"
-	case JobEventsPage:
+	case JobEventsPage, AllocEventsPage:
 		return "events"
 	case AllEventsPage:
 		return "all events"
-	case JobEventPage, AllEventPage:
+	case JobEventPage, AllocEventPage, AllEventPage:
 		return "event"
 	case AllocationsPage:
 		return "allocations"
@@ -172,6 +186,8 @@ func (p Page) Forward() Page {
 		return AllocationsPage
 	case JobEventsPage:
 		return JobEventPage
+	case AllocEventsPage:
+		return AllocEventPage
 	case AllEventsPage:
 		return AllEventPage
 	case AllocationsPage:
@@ -190,6 +206,10 @@ func (p Page) Backward() Page {
 		return JobsPage
 	case JobEventPage:
 		return JobEventsPage
+	case AllocEventsPage:
+		return AllocationsPage
+	case AllocEventPage:
+		return AllocEventsPage
 	case AllEventsPage:
 		return JobsPage
 	case AllEventPage:
@@ -218,6 +238,10 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string, eventTopics Topic
 		return fmt.Sprintf("Events for %s (%s)", jobID, getTopicNames(eventTopics))
 	case JobEventPage:
 		return fmt.Sprintf("Event for %s", jobID)
+	case AllocEventsPage:
+		return fmt.Sprintf("Events for %s %s", style.Bold.Render(jobID), formatter.ShortAllocID(allocID))
+	case AllocEventPage:
+		return fmt.Sprintf("Event for %s %s", style.Bold.Render(jobID), formatter.ShortAllocID(allocID))
 	case AllEventsPage:
 		return fmt.Sprintf("All Events in %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
@@ -313,6 +337,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	}
 
 	if currentPage == AllocationsPage {
+		fourthRow = append(fourthRow, keymap.KeyMap.AllocEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
 	}
 
