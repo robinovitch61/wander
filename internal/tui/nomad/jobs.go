@@ -66,7 +66,7 @@ func jobResponsesAsTable(jobResponse []*api.JobListStub) ([]string, []page.Row) 
 		keys = append(keys, toJobsKey(row))
 	}
 
-	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Count", "Submit Time", "Uptime"}
+	columns := []string{"ID", "Type", "Namespace", "Priority", "Status", "Count", "Submitted", "Since Submit"}
 	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
 
 	var rows []page.Row

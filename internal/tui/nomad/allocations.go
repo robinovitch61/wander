@@ -77,6 +77,10 @@ func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row)
 	var allocationResponseRows [][]string
 	var keys []string
 	for _, row := range allocations {
+		uptime := "-"
+		if row.State == "running" {
+			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
+		}
 		allocationResponseRows = append(allocationResponseRows, []string{
 			formatter.ShortAllocID(row.ID),
 			row.TaskGroup,
@@ -85,11 +89,12 @@ func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row)
 			row.State,
 			formatter.FormatTime(row.StartedAt),
 			formatter.FormatTime(row.FinishedAt),
+			uptime,
 		})
 		keys = append(keys, toAllocationsKey(row))
 	}
 
-	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished"}
+	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
 	table := formatter.GetRenderedTableAsString(columns, allocationResponseRows)
 
 	var rows []page.Row
