@@ -299,7 +299,7 @@ func changeKeyHelp(k *key.Binding, h string) {
 	k.SetHelp(k.Help().Key, h)
 }
 
-func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool) string {
+func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool, logType LogType) string {
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
 	if currentPage.DoesReload() && !saving && !filterFocused {
@@ -327,8 +327,11 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	if currentPage == JobsPage || currentPage == AllocationsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
-		fourthRow = append(fourthRow, keymap.KeyMap.StdOut)
-		fourthRow = append(fourthRow, keymap.KeyMap.StdErr)
+		if logType == StdOut {
+			fourthRow = append(fourthRow, keymap.KeyMap.StdErr)
+		} else {
+			fourthRow = append(fourthRow, keymap.KeyMap.StdOut)
+		}
 	}
 
 	if currentPage == JobsPage {

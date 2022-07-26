@@ -76,7 +76,7 @@ func InitialModel(c Config) Model {
 		c.LogoColor,
 		c.URL,
 		getVersionString(c.Version, c.SHA),
-		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut),
 	)
 
 	return Model{
@@ -502,7 +502,7 @@ func (m *Model) setInPty(inPty bool) {
 }
 
 func (m *Model) updateKeyHelp() {
-	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected)
+	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType)
 }
 
 func (m Model) getCurrentPageCmd() tea.Cmd {
