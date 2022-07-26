@@ -1,34 +1,33 @@
-# Wander - a terminal app for [HashiCorp Nomad](https://www.nomadproject.io/)
+# wander
 
-### Browse jobs
+<img src="./img/logo.png" width="35%"/>
+<p>
+    <a href="https://github.com/robinovitch61/wander/releases"><img src="https://shields.io/github/v/release/robinovitch61/wander.svg" alt="Latest Release"></a>
+    <a href="https://pkg.go.dev/github.com/robinovitch61/wander?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
+    <a href="https://github.com/robinovitch61/wander/actions"><img src="https://github.com/robinovitch61/wander/workflows/build/badge.svg" alt="Build Status"></a>
+</p>
 
-![wander](./img/jobs.png)
+An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nomadproject.io/) cluster.
 
-### View allocations and tasks
+- Browse jobs, allocations, tasks, and logs
+- Exec to run commands in running tasks
+- Tail global or targeted events
+- Save any view as a local file
+- See full specs
 
-![wander](./img/allocations.png)
-
-### Exec to run commands in a running task
-
-![wander](./img/exec.png)
-
-### View and search logs
-
-![wander](./img/logs.png)
-
-### Tail events
-
-![wander](./img/events.png)
-
-### Save any view as a local file
-
-![wander](./img/save.png)
-
-### See full specs
-
-![wander](./img/spec.png)
+<div align="center">
+   <img src="./img/jobs.png" width="100%"/>
+   <img src="./img/allocations.png" width="49%"/>
+   <img src="./img/logs.png" width="49%"/>
+   <img src="./img/exec.png" width="49%"/>
+   <img src="./img/events.png" width="49%"/>
+   <img src="./img/save.png" width="49%"/>
+   <img src="./img/spec.png" width="49%"/>
+</div>
+&nbsp;
 
 `wander` is written with tools from [Charm](https://charm.sh/).
+
 [Feature requests and bug reports for wander are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
 
 ## Installation
@@ -65,8 +64,10 @@ Run the app by running `wander` in a terminal. See `wander --help` and config se
 `wander` can be configured in three ways:
 
 1. Command line arguments, visible by running `wander --help`.
-2. Environment variables. These map to the configuration file below (e.g. `nomad_addr` in yaml is the `NOMAD_ADDR` environment variable).
-3. A yaml config file at `$HOME/.wander.yaml`, or a custom config file path passed to the `--config` argument. Complete example below.
+2. Environment variables. These map to the configuration file below (e.g. `nomad_addr` in yaml is the `NOMAD_ADDR`
+   environment variable).
+3. A yaml config file at `$HOME/.wander.yaml`, or a custom config file path passed to the `--config` argument. Complete
+   example below.
 
 Priority in order of highest to lowest is command line arguments, then environment variables, then the config file.
 
