@@ -65,7 +65,7 @@ func (m Model) ViewHeight() int {
 	return lipgloss.Height(m.View())
 }
 
-// Msg and Cmds
+// Value and Cmds
 
 type TimeoutMsg struct {
 	ID int

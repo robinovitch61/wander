@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gorilla/websocket"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
@@ -58,11 +57,10 @@ type Model struct {
 	eventsStream nomad.EventsStream
 	event        string
 
-	execWebSocket       *websocket.Conn
-	execPty             *os.File
-	inPty               bool
-	webSocketConnected  bool
-	lastCommandFinished struct{ stdOut, stdErr bool }
+	execSession          *nomad.ExecSessionIO
+	execTerminalSizeChan chan api.TerminalSize
+	inPty                bool
+	lastCommandFinished  bool
 
 	width, height int
 	initialized   bool
@@ -130,8 +128,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.setPageWindowSize()
 			if m.currentPage == nomad.ExecPage {
-				viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1 // hardcoded as known today, has to change if footer expands
-				cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, viewportHeightWithoutFooter))
+				m.updateExecTerminalSize()
 			}
 		}
 
@@ -185,40 +182,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
-			m.getCurrentPageModel().SetLoading(true)
-			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.alloc.ID, m.taskName, msg.Input)
+			return m, nomad.InitiateWebSocket(m.client, m.jobNamespace, m.alloc, m.taskName, msg.Input, m.execSession, m.execTerminalSizeChan)
 		}
 
-	case nomad.ExecWebSocketConnectedMsg:
-		m.execWebSocket = msg.WebSocketConnection
-		m.webSocketConnected = true
-		m.getCurrentPageModel().SetLoading(false)
-		m.setInPty(true)
-		viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1 // hardcoded as known today, has to change if footer expands
-		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, viewportHeightWithoutFooter))
-		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
-		cmds = append(cmds, nomad.SendHeartbeatWithDelay())
-
-	case nomad.ExecWebSocketHeartbeatMsg:
-		if m.currentPage == nomad.ExecPage && m.webSocketConnected {
-			cmds = append(cmds, nomad.SendHeartbeat(m.execWebSocket))
-			cmds = append(cmds, nomad.SendHeartbeatWithDelay())
-			return m, tea.Batch(cmds...)
-		}
-		return m, nil
+	case nomad.ExecSessionConnectedMsg:
+		m.updateExecTerminalSize()
+		// cmds = append(cmds, nomad.ReadExecSessionNextMessage(m.execSession.StdOutAndErrWriter))
 
 	case nomad.ExecWebSocketResponseMsg:
 		if m.currentPage == nomad.ExecPage {
 			if msg.Close {
-				m.webSocketConnected = false
 				m.setInPty(false)
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebSocketClosed}}, true)
 				m.getCurrentPageModel().ScrollViewportToBottom()
 			} else {
-				m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
-				m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
-				m.updateLastCommandFinished(msg.StdOut, msg.StdErr)
-				cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
+				m.appendToViewport(msg.Value, m.lastCommandFinished)
+				m.updateLastCommandFinished(msg.Value)
+				// cmds = append(cmds, nomad.ReadExecSessionNextMessage(m.execSession.StdOutAndErrWriter))
 			}
 		}
 	}
@@ -252,6 +232,17 @@ func (m *Model) initialize() error {
 	}
 	m.client = *client
 
+	stdInBuff := os.Stdin
+	stdOutAndErrBuff := os.Stdout
+	session := nomad.ExecSessionIO{
+		StdInReader:        stdInBuff,
+		StdOutAndErrWriter: stdOutAndErrBuff,
+	}
+	m.execSession = &session
+
+	execTerminalSizeChan := make(chan api.TerminalSize, 1)
+	m.execTerminalSizeChan = execTerminalSizeChan
+
 	m.pageModels = make(map[nomad.Page]*page.Model)
 	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath) {
 		p := page.New(c)
@@ -264,9 +255,7 @@ func (m *Model) initialize() error {
 
 func (m *Model) cleanupCmd() tea.Cmd {
 	return func() tea.Msg {
-		if m.execWebSocket != nil {
-			nomad.CloseWebSocket(m.execWebSocket)()
-		}
+		// TODO LEO: Still need this?
 		return message.CleanupCompleteMsg{}
 	}
 }
@@ -293,16 +282,16 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	}
 
 	if m.currentPage == nomad.ExecPage {
-		var keypress string
 		if m.inPty {
 			if key.Matches(msg, keymap.KeyMap.Back) {
 				m.setInPty(false)
 				return nil
 			} else {
-				keypress = nomad.GetKeypress(msg)
-				return nomad.SendWebSocketMessage(m.execWebSocket, keypress)
+				// keypress = nomad.GetKeypress(msg)
+				return nil
+				// return nomad.SendExecMessage(m.execSession.StdInReader, keypress)
 			}
-		} else if key.Matches(msg, keymap.KeyMap.Forward) && m.webSocketConnected && !m.currentPageViewportSaving() {
+		} else if key.Matches(msg, keymap.KeyMap.Forward) && !m.currentPageViewportSaving() {
 			m.setInPty(true)
 		}
 	}
@@ -338,9 +327,6 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			if !m.currentPageFilterApplied() {
 				switch m.currentPage {
 				case nomad.ExecPage:
-					if !m.getCurrentPageModel().EnteringInput() {
-						cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
-					}
 					m.getCurrentPageModel().SetDoesNeedNewInput()
 				}
 
@@ -481,15 +467,16 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 // because some data gets received in chunks in which a trailing \n indicates
 // finished content, otherwise more content is expected (e.g. the exec
 // websocket behaves this way when returning long content)
-func (m *Model) updateLastCommandFinished(stdOut, stdErr string) {
-	m.lastCommandFinished.stdOut = false
-	m.lastCommandFinished.stdErr = false
-	if strings.HasSuffix(stdOut, "\n") {
-		m.lastCommandFinished.stdOut = true
+func (m *Model) updateLastCommandFinished(value string) {
+	m.lastCommandFinished = false
+	if strings.HasSuffix(value, "\n") {
+		m.lastCommandFinished = true
 	}
-	if strings.HasSuffix(stdErr, "\n") {
-		m.lastCommandFinished.stdErr = true
-	}
+}
+func (m *Model) updateExecTerminalSize() {
+	// hardcoded as known today, has to change if footer expands
+	viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1
+	m.execTerminalSizeChan <- api.TerminalSize{Width: m.width, Height: viewportHeightWithoutFooter}
 }
 
 func (m *Model) setInPty(inPty bool) {
@@ -502,7 +489,8 @@ func (m *Model) setInPty(inPty bool) {
 }
 
 func (m *Model) updateKeyHelp() {
-	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType)
+	// TODO LEO: false not hardcoded
+	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, false, m.logType)
 }
 
 func (m Model) getCurrentPageCmd() tea.Cmd {
