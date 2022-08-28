@@ -11,6 +11,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.4
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/nomad/api v0.0.0-20220715220135-cd047cdc03cd
+	github.com/itchyny/gojq v0.12.8
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
@@ -27,6 +28,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/itchyny/timefmt-go v0.1.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect

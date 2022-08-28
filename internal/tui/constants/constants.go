@@ -32,3 +32,11 @@ var JobsViewportConditionalStyle = map[string]lipgloss.Style{
 var AllocationsViewportConditionalStyle = JobsViewportConditionalStyle
 
 const DefaultPageInput = "/bin/sh"
+
+const DefaultEventJQQuery = `.Events[] | {
+	"1:Index": .Index,
+	"2:Topic": .Topic,
+	"3:Type": .Type,
+	"4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
+	"5:AllocID": .Payload | (.Allocation // .Deployment // .Evaluation).ID[:8]
+}`

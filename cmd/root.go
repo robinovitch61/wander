@@ -128,6 +128,11 @@ var (
 		cfgFileEnvVar: "wander_event_namespace",
 		description:   `Namespace used in stream for all events. "*" for all namespaces. Default "default"`,
 	}
+	eventJQQueryArg = arg{
+		cliLong:       "event-jq-query",
+		cfgFileEnvVar: "wander_event_jq_query",
+		description:   `jq query for events. "." for entire JSON. Default shown at https://github.com/robinovitch61/wander`,
+	}
 	logoColorArg = arg{
 		cfgFileEnvVar: "wander_logo_color",
 	}
@@ -174,6 +179,7 @@ func init() {
 		copySavePathArg,
 		eventTopicsArg,
 		eventNamespaceArg,
+		eventJQQueryArg,
 	} {
 		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
 		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))

@@ -120,8 +120,20 @@ wander_copy_save_path: true
 # see https://www.nomadproject.io/api-docs/events#event-stream
 wander_event_topics: Job:my-job,Job:my-other-job,Allocation:my-job,Evaluation,Deployment:*
 
-#  Namespace used in stream for all events. "*" for all namespaces. Default "default"
+# Namespace used in stream for all events. "*" for all namespaces. Default "default"
 wander_event_namespace: "*" # * needs surrounding "" in yaml
+
+# jq (https://stedolan.github.io/jq/) query used for parsing events. "." to show entire event JSON. Default is:
+# wander_event_jq_query: >
+#   .Events[] | {
+#      "1:Index": .Index,
+#      "2:Topic": .Topic,
+#      "3:Type": .Type,
+#      "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
+#      "5:AllocID": .Payload | (.Allocation // .Deployment // .Evaluation).ID[:8]
+#   }
+# The numbering exists to preserve ordering, as https://github.com/itchyny/gojq does not keep the order of object keys
+wander_event_jq_query: .
 
 # For `wander serve`. Hostname of the machine hosting the ssh server. Default "localhost"
 wander_host: localhost
