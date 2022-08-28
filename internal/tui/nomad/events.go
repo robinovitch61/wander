@@ -14,8 +14,9 @@ import (
 type Topics map[api.Topic][]string
 
 type EventsStreamMsg struct {
-	Value  string
-	Topics Topics
+	CompleteValue string
+	JQValue       string
+	Topics        Topics
 }
 
 func FetchEventsStream(client api.Client, topics Topics, namespace string, page Page) tea.Cmd {
@@ -28,7 +29,7 @@ func FetchEventsStream(client api.Client, topics Topics, namespace string, page 
 	}
 }
 
-func ReadEventsStreamNextMessage(c EventsStream) tea.Cmd {
+func ReadEventsStreamNextMessage(c EventsStream, code *gojq.Code) tea.Cmd {
 	return func() tea.Msg {
 		line := <-c.Chan
 		lineBytes, err := json.Marshal(line)
@@ -36,7 +37,11 @@ func ReadEventsStreamNextMessage(c EventsStream) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 		trimmed := strings.TrimSpace(string(lineBytes))
-		return EventsStreamMsg{Value: formatEvent(trimmed), Topics: c.Topics}
+		jq, err := runJQQueryOnEvent(trimmed, code)
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+		return EventsStreamMsg{CompleteValue: trimmed, JQValue: jq, Topics: c.Topics}
 	}
 }
 
@@ -72,25 +77,23 @@ func TopicsForAlloc(topics Topics, allocID string) Topics {
 	return t
 }
 
-func formatEvent(event string) string {
-	query, err := gojq.Parse(`.Events[] | {"1:Index": .Index, "2:Topic": .Topic, "3:Type": .Type, "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID), "5:AllocID": .Payload | (.Allocation // .Deployment // .Evaluation).ID[:8]}`)
-	if err != nil {
-		return event
-	}
-	code, err := gojq.Compile(query)
-	if err != nil {
-		return event
-	}
+func runJQQueryOnEvent(event string, code *gojq.Code) (string, error) {
 	result := make(map[string]interface{})
-	json.Unmarshal([]byte(event), &result)
+	err := json.Unmarshal([]byte(event), &result)
+	if err != nil {
+		return "", err
+	}
 	iter := code.Run(result)
 	v, ok := iter.Next()
 	if !ok {
-		return event
+		return event, nil
 	}
-	if _, ok := v.(error); ok {
-		return event
+	if err, ok := v.(error); ok {
+		return "", err
 	}
-	j, _ := json.Marshal(v)
-	return fmt.Sprintf("%s", j)
+	j, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s", j), nil
 }

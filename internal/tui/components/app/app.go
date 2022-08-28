@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/nomad/api"
+	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
@@ -25,13 +26,18 @@ type TLSConfig struct {
 	SkipVerify                                        bool
 }
 
+type EventConfig struct {
+	Topics    nomad.Topics
+	Namespace string
+	JQQuery   *gojq.Code
+}
+
 type Config struct {
 	Version, SHA                  string
 	URL, Token, Region, Namespace string
 	HTTPAuth                      string
 	TLS                           TLSConfig
-	EventTopics                   nomad.Topics
-	EventNamespace                string
+	Event                         EventConfig
 	LogOffset                     int
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
@@ -156,7 +162,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 				m.eventsStream = msg.Connection
-				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
+				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
 			case nomad.ExecPage:
@@ -167,14 +173,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.EventsStreamMsg:
 		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllocEventsPage || m.currentPage == nomad.AllEventsPage {
-			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.Value != "{}" {
+			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.CompleteValue != "{}" {
 				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: msg.Value}}, true)
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: msg.CompleteValue, Row: msg.JQValue}}, true)
 				if scrollDown {
 					m.getCurrentPageModel().ScrollViewportToBottom()
 				}
 			}
-			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream))
+			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
 		}
 
 	case nomad.UpdatePageDataMsg:
@@ -315,7 +321,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				case nomad.JobsPage:
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 				case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
-					m.event = selectedPageRow.Row
+					m.event = selectedPageRow.Key
 				case nomad.AllocationsPage:
 					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
 					if err != nil {
@@ -512,15 +518,15 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
-		return nomad.FetchEventsStream(m.client, nomad.TopicsForJob(m.config.EventTopics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
+		return nomad.FetchEventsStream(m.client, nomad.TopicsForJob(m.config.Event.Topics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
 	case nomad.JobEventPage:
 		return nomad.PrettifyLine(m.event, nomad.JobEventPage)
 	case nomad.AllocEventsPage:
-		return nomad.FetchEventsStream(m.client, nomad.TopicsForAlloc(m.config.EventTopics, m.alloc.ID), m.jobNamespace, nomad.AllocEventsPage)
+		return nomad.FetchEventsStream(m.client, nomad.TopicsForAlloc(m.config.Event.Topics, m.alloc.ID), m.jobNamespace, nomad.AllocEventsPage)
 	case nomad.AllocEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllocEventPage)
 	case nomad.AllEventsPage:
-		return nomad.FetchEventsStream(m.client, m.config.EventTopics, m.config.EventNamespace, nomad.AllEventsPage)
+		return nomad.FetchEventsStream(m.client, m.config.Event.Topics, m.config.Event.Namespace, nomad.AllEventsPage)
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.AllocationsPage:
@@ -559,7 +565,7 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.jobID, m.taskName, m.alloc.ID, m.config.EventTopics, m.config.EventNamespace)
+	return page.GetFilterPrefix(m.jobID, m.taskName, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
 }
 
 func getVersionString(v, s string) string {

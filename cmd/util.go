@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"
 	"github.com/hashicorp/nomad/api"
+	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
@@ -200,6 +201,21 @@ func retrieveEventNamespace(cmd *cobra.Command) string {
 	return retrieveWithDefault(cmd, eventNamespaceArg, "default")
 }
 
+func retrieveEventJQQuery(cmd *cobra.Command) *gojq.Code {
+	query := retrieveWithDefault(cmd, eventJQQueryArg, constants.DefaultEventJQQuery)
+	parsed, err := gojq.Parse(query)
+	if err != nil {
+		fmt.Printf("Error parsing event jq query: %s\n", err.Error())
+		os.Exit(1)
+	}
+	code, err := gojq.Compile(parsed)
+	if err != nil {
+		fmt.Printf("Error compiling event jq query: %s\n", err.Error())
+		os.Exit(1)
+	}
+	return code
+}
+
 func retrieveUpdateSeconds(cmd *cobra.Command) int {
 	updateSecondsString := retrieveWithDefault(cmd, updateSecondsArg, "2")
 	updateSeconds, err := strconv.Atoi(updateSecondsString)
@@ -260,6 +276,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	copySavePath := retrieveCopySavePath(cmd)
 	eventTopics := retrieveEventTopics(cmd)
 	eventNamespace := retrieveEventNamespace(cmd)
+	eventJQQuery := retrieveEventJQQuery(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 
@@ -279,12 +296,15 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 			ServerName: tlsServerName,
 			SkipVerify: skipVerify,
 		},
-		LogOffset:      logOffset,
-		CopySavePath:   copySavePath,
-		EventTopics:    eventTopics,
-		EventNamespace: eventNamespace,
-		UpdateSeconds:  time.Second * time.Duration(updateSeconds),
-		LogoColor:      logoColor,
+		LogOffset:    logOffset,
+		CopySavePath: copySavePath,
+		Event: app.EventConfig{
+			Topics:    eventTopics,
+			Namespace: eventNamespace,
+			JQQuery:   eventJQQuery,
+		},
+		UpdateSeconds: time.Second * time.Duration(updateSeconds),
+		LogoColor:     logoColor,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }
