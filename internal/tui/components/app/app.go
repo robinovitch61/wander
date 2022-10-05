@@ -572,5 +572,9 @@ func getVersionString(v, s string) string {
 	if v == "" {
 		return constants.NoVersionString
 	}
-	return fmt.Sprintf("%s (%s)", v, s[:7])
+	if len(s) >= 7 {
+		s = s[:7]
+	}
+
+	return fmt.Sprintf("%s (%s)", v, s)
 }
