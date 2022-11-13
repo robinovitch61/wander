@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/olekukonko/tablewriter"
-	"github.com/robinovitch61/wander/internal/tui/constants"
+	constants "github.com/robinovitch61/wander/internal/tui/constants"
 	"math"
 	"regexp"
 	"strings"
@@ -95,6 +95,9 @@ func ShortAllocID(allocID string) string {
 }
 
 func FormatTime(t time.Time) string {
+	if constants.TestingModeSet {
+		return "2006-01-02T15:04:05"
+	}
 	if t.IsZero() {
 		return "-"
 	}
@@ -119,6 +122,9 @@ func pluralize(s string, q float64) string {
 }
 
 func FormatTimeNsSinceNow(t int64) string {
+	if constants.TestingModeSet {
+		return "0"
+	}
 	tm := time.Unix(0, t).UTC()
 	since := time.Now().Sub(tm)
 	if secs := since.Seconds(); secs > 0 && secs < 60 {
