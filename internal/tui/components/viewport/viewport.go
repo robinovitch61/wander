@@ -647,7 +647,7 @@ func (m Model) getFooter() (string, int) {
 func (m Model) getSaveCommand() tea.Cmd {
 	return func() tea.Msg {
 		var content string
-		for _, line := range append(m.getHeader(), m.getContent()...) {
+		for _, line := range append(m.getHeader(), m.content...) {
 			content += strings.TrimRight(line, " ") + "\n"
 		}
 
