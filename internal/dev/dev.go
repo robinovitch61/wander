@@ -3,14 +3,15 @@ package dev
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/robinovitch61/wander/internal/tui/constants"
 	"log"
 	"os"
 )
 
+var debugSet = os.Getenv("WANDER_DEBUG")
+
 // dev
 func Debug(msg string) {
-	if constants.DebugSet {
+	if debugSet != "" {
 		f, err := tea.LogToFile("wander.log", "")
 		if err != nil {
 			fmt.Println("fatal:", err)

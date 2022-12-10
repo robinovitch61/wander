@@ -3,14 +3,8 @@ package constants
 import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"os"
 	"strings"
 	"time"
-)
-
-var (
-	DebugSet       = os.Getenv("WANDER_DEBUG") != ""
-	TestingModeSet = os.Getenv("WANDER_TEST_MODE") != ""
 )
 
 const NoVersionString = "built from source"
