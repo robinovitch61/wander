@@ -45,6 +45,13 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
 brew install robinovitch61/tap/wander
 ```
 
+### > Install from AUR
+
+Use your favorite AUR helper:
+```shell
+yay -S wander-bin
+```
+
 ### > Download from GitHub
 
 Download the relevant binary for your operating system (macOS = Darwin) from
