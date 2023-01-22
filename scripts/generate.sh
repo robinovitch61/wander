@@ -16,6 +16,7 @@ sed -i "" -E "s/memory = 256/memory = 32/g" example.nomad
 run_job() {
     sed -i "" -E "s/job \".*\"/job \"${1:-example}\"/" example.nomad
     sed -i "" -E "s/namespace = \".*\"/namespace = \"${2:-default}\"/" example.nomad
+    sed -i "" -E "s/image          = \"redis.*\"/image          = \"chentex\/random-logger:v1.0.1\"\\nargs = ["50", "100"]/" example.nomad
     cat example.nomad
     nomad job run -detach example.nomad
 }
