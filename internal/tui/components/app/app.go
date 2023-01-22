@@ -17,7 +17,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -65,8 +64,9 @@ type Model struct {
 	eventsStream nomad.EventsStream
 	event        string
 
-	logsStream   nomad.LogsStream
-	receivedLogs []string
+	logsStream      nomad.LogsStream
+	receivedLogs    []string
+	lastLogFinished bool
 
 	execWebSocket       *websocket.Conn
 	execPty             *os.File
@@ -170,6 +170,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
 				m.logsStream = msg.LogsStream
+				m.lastLogFinished = true
 				cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
@@ -191,9 +192,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.LogsStreamMsg:
-		if m.currentPage == nomad.LogsPage {
-			m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: strconv.FormatInt(msg.Offset, 10), Row: msg.LogValue}}, true)
+		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
+			logLines := strings.Split(msg.Value, "\n")
+			for _, line := range logLines {
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: line}}, m.lastLogFinished)
+			}
 			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
+			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 		}
 
 	case nomad.UpdatePageDataMsg:

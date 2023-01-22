@@ -268,7 +268,8 @@ type EventsStream struct {
 }
 
 type LogsStream struct {
-	Chan <-chan *api.StreamFrame
+	Chan    <-chan *api.StreamFrame
+	LogType LogType
 }
 
 type PageLoadedMsg struct {

@@ -17,8 +17,8 @@ const (
 )
 
 type LogsStreamMsg struct {
-	Offset   int64
-	LogValue string
+	Value string // may include line breaks
+	Type  LogType
 }
 
 func (p LogType) String() string {
@@ -70,7 +70,7 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 		//logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
 
 		tableHeader, allPageData := logsAsTable([]string{}, logType)
-		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: LogsStream{logsChan}}
+		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: LogsStream{logsChan, logType}}
 	}
 }
 
@@ -99,6 +99,6 @@ func ReadLogsStreamNextMessage(c LogsStream) tea.Cmd {
 	return func() tea.Msg {
 		line := <-c.Chan
 		trimmedLine := strings.ReplaceAll(string(line.Data), "\t", "    ")
-		return LogsStreamMsg{Offset: line.Offset, LogValue: trimmedLine}
+		return LogsStreamMsg{Value: trimmedLine, Type: c.LogType}
 	}
 }
