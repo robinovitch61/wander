@@ -267,11 +267,16 @@ type EventsStream struct {
 	Namespace string
 }
 
+type LogsStream struct {
+	Chan <-chan *api.StreamFrame
+}
+
 type PageLoadedMsg struct {
-	Page        Page
-	TableHeader []string
-	AllPageRows []page.Row
-	Connection  EventsStream
+	Page         Page
+	TableHeader  []string
+	AllPageRows  []page.Row
+	EventsStream EventsStream
+	LogsStream   LogsStream
 }
 
 type UpdatePageDataMsg struct {

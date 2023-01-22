@@ -16,6 +16,11 @@ const (
 	StdErr
 )
 
+type LogsStreamMsg struct {
+	Offset   int64
+	LogValue string
+}
+
 func (p LogType) String() string {
 	switch p {
 	case StdOut:
@@ -47,7 +52,7 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 		closeLogConn := make(chan struct{})   // never closed for now
 		logsChan, _ := client.AllocFS().Logs( // TODO LEO: deal with error channel
 			&alloc,
-			false,
+			true,
 			taskName,
 			logType.ShortString(),
 			"end",
@@ -56,16 +61,16 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 			nil,
 		)
 
-		allLogs := ""
-		for l := range logsChan {
-			allLogs += string(l.Data)
-		}
+		//allLogs := ""
+		//for l := range logsChan {
+		//	allLogs += string(l.Data)
+		//}
 
-		trimmedBody := strings.ReplaceAll(allLogs, "\t", "    ")
-		logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
+		//trimmedBody := strings.ReplaceAll(allLogs, "\t", "    ") // TODO LEO: do this to streamed loglines
+		//logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
 
-		tableHeader, allPageData := logsAsTable(logRows, logType)
-		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		tableHeader, allPageData := logsAsTable([]string{}, logType)
+		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: LogsStream{logsChan}}
 	}
 }
 
@@ -88,4 +93,12 @@ func logsAsTable(logs []string, logType LogType) ([]string, []page.Row) {
 	}
 
 	return table.HeaderRows, rows
+}
+
+func ReadLogsStreamNextMessage(c LogsStream) tea.Cmd {
+	return func() tea.Msg {
+		line := <-c.Chan
+		trimmedLine := strings.ReplaceAll(string(line.Data), "\t", "    ")
+		return LogsStreamMsg{Offset: line.Offset, LogValue: trimmedLine}
+	}
 }

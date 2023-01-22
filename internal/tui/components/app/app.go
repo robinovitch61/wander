@@ -17,6 +17,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -63,6 +64,9 @@ type Model struct {
 
 	eventsStream nomad.EventsStream
 	event        string
+
+	logsStream   nomad.LogsStream
+	receivedLogs []string
 
 	execWebSocket       *websocket.Conn
 	execPty             *os.File
@@ -161,10 +165,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
 			case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
-				m.eventsStream = msg.Connection
+				m.eventsStream = msg.EventsStream
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
+				m.logsStream = msg.LogsStream
+				cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 			}
@@ -174,6 +180,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.EventsStreamMsg:
 		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllocEventsPage || m.currentPage == nomad.AllEventsPage {
 			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.CompleteValue != "{}" {
+				// sticky scroll down, i.e. if at bottom already, keep scrolling to bottom as new ones are added
 				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: msg.CompleteValue, Row: msg.JQValue}}, true)
 				if scrollDown {
@@ -181,6 +188,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
+		}
+
+	case nomad.LogsStreamMsg:
+		if m.currentPage == nomad.LogsPage {
+			m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: strconv.FormatInt(msg.Offset, 10), Row: msg.LogValue}}, true)
+			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 		}
 
 	case nomad.UpdatePageDataMsg:
