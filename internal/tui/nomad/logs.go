@@ -61,14 +61,6 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 			nil,
 		)
 
-		//allLogs := ""
-		//for l := range logsChan {
-		//	allLogs += string(l.Data)
-		//}
-
-		//trimmedBody := strings.ReplaceAll(allLogs, "\t", "    ") // TODO LEO: do this to streamed loglines
-		//logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
-
 		tableHeader, allPageData := logsAsTable([]string{}, logType)
 		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: LogsStream{logsChan, logType}}
 	}
@@ -98,7 +90,7 @@ func logsAsTable(logs []string, logType LogType) ([]string, []page.Row) {
 func ReadLogsStreamNextMessage(c LogsStream) tea.Cmd {
 	return func() tea.Msg {
 		line := <-c.Chan
-		trimmedLine := strings.ReplaceAll(string(line.Data), "\t", "    ")
-		return LogsStreamMsg{Value: trimmedLine, Type: c.LogType}
+		tabReplacedLine := strings.ReplaceAll(string(line.Data), "\t", "    ")
+		return LogsStreamMsg{Value: tabReplacedLine, Type: c.LogType}
 	}
 }

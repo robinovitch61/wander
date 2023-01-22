@@ -194,6 +194,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.LogsStreamMsg:
 		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
 			logLines := strings.Split(msg.Value, "\n")
+			dev.Debug(fmt.Sprintf("GOT %v logLines", len(logLines)))
 			for _, line := range logLines {
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: line}}, m.lastLogFinished)
 			}
