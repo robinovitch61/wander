@@ -193,30 +193,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.LogsStreamMsg:
 		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
-			dev.Debug(fmt.Sprintf("GOT %v log message len", len(msg.Value)))
 			logLines := strings.Split(msg.Value, "\n")
-			dev.Debug(fmt.Sprintf("GOT %v logLines", len(logLines)))
+			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+
+			// finish with the last log line if necessary
 			if !m.lastLogFinished {
-				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: logLines[0]}}, false)
-				if scrollDown {
-					m.getCurrentPageModel().ScrollViewportToBottom()
-				}
 				logLines = logLines[1:]
 			}
+			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 
+			// append all the new  rows in this chunk at once
 			var allRows []page.Row
 			for _, logLine := range logLines {
 				allRows = append(allRows, page.Row{Key: "", Row: logLine})
 			}
-			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 			m.getCurrentPageModel().AppendToViewport(allRows, true)
 			if scrollDown {
 				m.getCurrentPageModel().ScrollViewportToBottom()
 			}
 
 			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
-			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 		}
 
 	case nomad.UpdatePageDataMsg:
