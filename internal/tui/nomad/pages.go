@@ -314,7 +314,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 
 	viewportKeyMap := viewport.GetKeyMap()
 	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
-	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp}
+	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Top, viewportKeyMap.Bottom}
 
 	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
