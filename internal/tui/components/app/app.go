@@ -193,10 +193,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.LogsStreamMsg:
 		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
+			dev.Debug(fmt.Sprintf("GOT %v log message len", len(msg.Value)))
 			logLines := strings.Split(msg.Value, "\n")
 			dev.Debug(fmt.Sprintf("GOT %v logLines", len(logLines)))
-			for _, line := range logLines {
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: line}}, m.lastLogFinished)
+			for i, line := range logLines {
+				startOnNewLine := true
+				if i == 0 {
+					startOnNewLine = m.lastLogFinished
+				}
+				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: line}}, startOnNewLine)
+				if scrollDown {
+					m.getCurrentPageModel().ScrollViewportToBottom()
+				}
 			}
 			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
@@ -555,6 +564,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
+		dev.Debug("fetching logs")
 		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.LogOffset)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
