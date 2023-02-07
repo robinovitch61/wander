@@ -41,7 +41,7 @@ func (p LogType) ShortString() string {
 	return "unknown"
 }
 
-func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType LogType, logOffset int) tea.Cmd {
+func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType LogType, logOffset int, logTail bool) tea.Cmd {
 	return func() tea.Msg {
 		// This is currently very important and strange. The logs api attempts to go through the node directly
 		// by default. The default timeout for this is 1 second. If it fails, it falls silently to going through
@@ -52,7 +52,7 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 		closeLogConn := make(chan struct{})   // never closed for now
 		logsChan, _ := client.AllocFS().Logs( // TODO LEO: deal with error channel
 			&alloc,
-			true,
+			logTail,
 			taskName,
 			logType.ShortString(),
 			"end",
@@ -61,8 +61,24 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 			nil,
 		)
 
-		tableHeader, allPageData := logsAsTable([]string{}, logType)
-		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: LogsStream{logsChan, logType}}
+		var logRows []string
+		var logsStream LogsStream
+		if !logTail {
+			allLogs := ""
+			for l := range logsChan {
+				allLogs += string(l.Data)
+			}
+
+			tabReplacedLogs := strings.ReplaceAll(allLogs, "\t", "    ")
+			logRows = strings.Split(formatter.StripANSI(tabReplacedLogs), "\n")
+			//
+			//tableHeader, allPageData := logsAsTable(logRows, logType)
+			//return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		} else {
+			logsStream = LogsStream{logsChan, logType}
+		}
+		tableHeader, allPageData := logsAsTable(logRows, logType)
+		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: logsStream}
 	}
 }
 

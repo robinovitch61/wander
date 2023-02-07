@@ -32,13 +32,18 @@ type EventConfig struct {
 	JQQuery   *gojq.Code
 }
 
+type LogConfig struct {
+	Offset int
+	Tail   bool
+}
+
 type Config struct {
 	Version, SHA                  string
 	URL, Token, Region, Namespace string
 	HTTPAuth                      string
 	TLS                           TLSConfig
 	Event                         EventConfig
-	LogOffset                     int
+	Log                           LogConfig
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
 	LogoColor                     string
@@ -569,7 +574,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
-		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.LogOffset)
+		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	default:

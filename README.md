@@ -127,6 +127,9 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 
+# Follow new logs as they come in rather than having to reload. Default "true"
+#wander_log_tail: true
+
 # If "true", copy the full path to file after save. Default "false"
 #wander_copy_save_path: true
 

@@ -236,6 +236,11 @@ func retrieveLogOffset(cmd *cobra.Command) int {
 	return logOffset
 }
 
+func retrieveLogTail(cmd *cobra.Command) bool {
+	v := retrieveWithDefault(cmd, logTailArg, "true")
+	return trueIfTrue(v)
+}
+
 // customLoggingMiddleware provides basic connection logging. Connects are logged with the
 // remote address, invoked command, TERM setting, window dimensions and if the
 // auth was public key based. Disconnect will log the remote address and
@@ -273,6 +278,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	tlsServerName := retrieveTLSServerName(cmd)
 	skipVerify := retrieveSkipVerify(cmd)
 	logOffset := retrieveLogOffset(cmd)
+	logTail := retrieveLogTail(cmd)
 	copySavePath := retrieveCopySavePath(cmd)
 	eventTopics := retrieveEventTopics(cmd)
 	eventNamespace := retrieveEventNamespace(cmd)
@@ -296,7 +302,10 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 			ServerName: tlsServerName,
 			SkipVerify: skipVerify,
 		},
-		LogOffset:    logOffset,
+		Log: app.LogConfig{
+			Offset: logOffset,
+			Tail:   logTail,
+		},
 		CopySavePath: copySavePath,
 		Event: app.EventConfig{
 			Topics:    eventTopics,

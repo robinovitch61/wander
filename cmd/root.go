@@ -112,6 +112,12 @@ var (
 		cfgFileEnvVar: "wander_log_offset",
 		description:   `Log byte offset from which logs start. Default "1000000"`,
 	}
+	logTailArg = arg{
+		cliShort:      "f",
+		cliLong:       "log-tail",
+		cfgFileEnvVar: "wander_log_tail",
+		description:   `Follow new logs as they come in rather than having to reload. Default "true"`,
+	}
 	copySavePathArg = arg{
 		cliShort:      "s",
 		cliLong:       "copy-save-path",
@@ -176,6 +182,7 @@ func init() {
 		skipVerifyArg,
 		updateSecondsArg,
 		logOffsetArg,
+		logTailArg,
 		copySavePathArg,
 		eventTopicsArg,
 		eventNamespaceArg,
