@@ -194,7 +194,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.LogsStreamMsg:
 		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
 			logLines := strings.Split(msg.Value, "\n")
-			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 
 			// finish with the last log line if necessary
 			if !m.lastLogFinished {
@@ -204,6 +203,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 
 			// append all the new  rows in this chunk at once
+			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 			var allRows []page.Row
 			for _, logLine := range logLines {
 				allRows = append(allRows, page.Row{Key: "", Row: logLine})
@@ -569,7 +569,6 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
-		dev.Debug("fetching logs")
 		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.LogOffset)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)

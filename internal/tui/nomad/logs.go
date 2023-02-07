@@ -1,10 +1,8 @@
 package nomad
 
 import (
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
-	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"strings"
@@ -51,8 +49,7 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 		// the timeout to something tiny.
 		api.ClientConnTimeout = 1 * time.Microsecond
 
-		closeLogConn := make(chan struct{}) // never closed for now
-		dev.Debug(fmt.Sprintf("offset is %d", logOffset))
+		closeLogConn := make(chan struct{})   // never closed for now
 		logsChan, _ := client.AllocFS().Logs( // TODO LEO: deal with error channel
 			&alloc,
 			true,
@@ -93,7 +90,6 @@ func logsAsTable(logs []string, logType LogType) ([]string, []page.Row) {
 func ReadLogsStreamNextMessage(c LogsStream) tea.Cmd {
 	return func() tea.Msg {
 		line := <-c.Chan
-		dev.Debug(fmt.Sprintf("log offset %d", line.Offset))
 		tabReplacedLine := strings.ReplaceAll(string(line.Data), "\t", "    ")
 		return LogsStreamMsg{Value: tabReplacedLine, Type: c.LogType}
 	}
