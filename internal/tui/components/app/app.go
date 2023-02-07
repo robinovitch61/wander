@@ -196,17 +196,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			dev.Debug(fmt.Sprintf("GOT %v log message len", len(msg.Value)))
 			logLines := strings.Split(msg.Value, "\n")
 			dev.Debug(fmt.Sprintf("GOT %v logLines", len(logLines)))
-			for i, line := range logLines {
-				startOnNewLine := true
-				if i == 0 {
-					startOnNewLine = m.lastLogFinished
-				}
+			if !m.lastLogFinished {
 				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: line}}, startOnNewLine)
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: logLines[0]}}, false)
 				if scrollDown {
 					m.getCurrentPageModel().ScrollViewportToBottom()
 				}
+				logLines = logLines[1:]
 			}
+
+			var allRows []page.Row
+			for _, logLine := range logLines {
+				allRows = append(allRows, page.Row{Key: "", Row: logLine})
+			}
+			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+			m.getCurrentPageModel().AppendToViewport(allRows, true)
+			if scrollDown {
+				m.getCurrentPageModel().ScrollViewportToBottom()
+			}
+
 			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 		}
