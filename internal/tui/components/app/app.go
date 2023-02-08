@@ -207,7 +207,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				logLines = logLines[1:]
 			}
 
-			// append all the new  rows in this chunk at once
+			// append all the new log rows in this chunk to the viewport at once
 			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 			var allRows []page.Row
 			for _, logLine := range logLines {
