@@ -126,7 +126,7 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Seconds between updates for job & allocation pages. Disable with "-1". Default "2"
 #wander_update_seconds: 1
 
-# Log byte offset relative to end from which logs start. Default "1000000"
+# Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 
 # Follow new logs as they come in rather than having to reload. Default "true"
