@@ -70,7 +70,6 @@ type Model struct {
 	event        string
 
 	logsStream      nomad.LogsStream
-	receivedLogs    []string
 	lastLogFinished bool
 
 	execWebSocket       *websocket.Conn
