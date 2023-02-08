@@ -173,9 +173,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
-				m.logsStream = msg.LogsStream
-				m.lastLogFinished = true
-				cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
+				if m.config.Log.Tail {
+					m.logsStream = msg.LogsStream
+					m.lastLogFinished = true
+					cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
+				}
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 			}
