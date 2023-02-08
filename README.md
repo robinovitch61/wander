@@ -210,5 +210,4 @@ using [entr](https://github.com/eradman/entr).
 
 `wander` runs the built app. You must rerun it on rebuild.
 
-If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs specified values
-to `wander.log`.
+If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `wander.log`.
