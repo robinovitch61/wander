@@ -71,9 +71,6 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 
 			tabReplacedLogs := strings.ReplaceAll(allLogs, "\t", "    ")
 			logRows = strings.Split(formatter.StripANSI(tabReplacedLogs), "\n")
-			//
-			//tableHeader, allPageData := logsAsTable(logRows, logType)
-			//return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData}
 		} else {
 			logsStream = LogsStream{logsChan, logType}
 		}

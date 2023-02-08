@@ -205,7 +205,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: logLines[0]}}, false)
 				logLines = logLines[1:]
 			}
-			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 
 			// append all the new  rows in this chunk at once
 			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
@@ -218,6 +217,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.getCurrentPageModel().ScrollViewportToBottom()
 			}
 
+			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
 			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 		}
 

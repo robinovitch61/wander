@@ -110,7 +110,7 @@ var (
 		cliShort:      "o",
 		cliLong:       "log-offset",
 		cfgFileEnvVar: "wander_log_offset",
-		description:   `Log byte offset from which logs start. Default "1000000"`,
+		description:   `Log byte offset relative to end from which logs start. Default "1000000"`,
 	}
 	logTailArg = arg{
 		cliShort:      "f",
