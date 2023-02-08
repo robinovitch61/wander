@@ -69,8 +69,8 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 				allLogs += string(l.Data)
 			}
 
-			tabReplacedLogs := strings.ReplaceAll(allLogs, "\t", "    ")
-			logRows = strings.Split(formatter.StripANSI(tabReplacedLogs), "\n")
+			tabReplacedLogs := formatter.StripANSI(strings.ReplaceAll(allLogs, "\t", "    "))
+			logRows = strings.Split(tabReplacedLogs, "\n")
 		} else {
 			logsStream = LogsStream{logsChan, logType}
 		}
@@ -103,7 +103,7 @@ func logsAsTable(logs []string, logType LogType) ([]string, []page.Row) {
 func ReadLogsStreamNextMessage(c LogsStream) tea.Cmd {
 	return func() tea.Msg {
 		line := <-c.Chan
-		tabReplacedLine := strings.ReplaceAll(string(line.Data), "\t", "    ")
-		return LogsStreamMsg{Value: tabReplacedLine, Type: c.LogType}
+		cleanedData := formatter.StripANSI(strings.ReplaceAll(string(line.Data), "\t", "    "))
+		return LogsStreamMsg{Value: cleanedData, Type: c.LogType}
 	}
 }
