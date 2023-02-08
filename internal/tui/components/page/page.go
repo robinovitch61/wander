@@ -278,6 +278,9 @@ func (m Model) ViewportSelectionAtBottom() bool {
 	if !m.viewport.SelectionEnabled() {
 		return false
 	}
+	if len(m.pageData.Filtered) == 0 {
+		return true
+	}
 	return m.viewport.SelectedContentIdx() == len(m.pageData.Filtered)-1
 }
 

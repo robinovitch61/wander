@@ -169,3 +169,7 @@ func StripOSCommandSequences(str string) string {
 	// \x1b]0;title\x1b\\
 	return osCmdRe.ReplaceAllString(str, "")
 }
+
+func CleanLogs(logs string) string {
+	return StripANSI(strings.ReplaceAll(logs, "\t", "    "))
+}

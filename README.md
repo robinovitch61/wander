@@ -9,7 +9,8 @@
 
 An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nomadproject.io/) cluster.
 
-- Browse jobs, allocations, tasks, and logs
+- Browse jobs, allocations, and tasks
+- Live tail logs
 - Exec to run commands in running tasks
 - Tail global or targeted events using a jq query
 - Save any view as a local file
@@ -20,7 +21,7 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
    <img src="./img/jobs.png" width="100%"/>
    <em>View allocations</em>
    <img src="./img/allocations.png" width="100%"/>
-   <em>View logs</em>
+   <em>View and tail logs</em>
    <img src="./img/logs.png" width="100%"/>
    <em>Exec into running tasks</em>
    <img src="./img/exec.png" width="100%"/>
@@ -48,6 +49,7 @@ brew install robinovitch61/tap/wander
 ### > Install from AUR
 
 Use your favorite AUR helper:
+
 ```shell
 yay -S wander-bin
 ```
@@ -66,8 +68,8 @@ go install github.com/robinovitch61/wander@latest
 
 ### > Build from source
 
-Clone this repo, build from source with `cd <cloned_repo> && go build`,
-then move the binary to somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
+Clone this repo, build from source with `cd <cloned_repo> && go build`, then move the binary to somewhere accessible in
+your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
 ## Usage
 
@@ -127,6 +129,9 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 
+# Follow new logs as they come in rather than having to reload. Default "true"
+#wander_log_tail: true
+
 # If "true", copy the full path to file after save. Default "false"
 #wander_copy_save_path: true
 
@@ -177,8 +182,7 @@ such that anyone on the internal network can `ssh -p <your-port> <your-host>` an
 installing or configuring anything.
 
 Optionally, users can pass in their own nomad token with `ssh -p <port> <host> -t <token>`. The `-t` argument does not
-stand for
-token - it forces `ssh` to allocate a pty.
+stand for token - it forces `ssh` to allocate a pty.
 
 Serve the ssh app with `wander serve`.
 
@@ -206,5 +210,4 @@ using [entr](https://github.com/eradman/entr).
 
 `wander` runs the built app. You must rerun it on rebuild.
 
-If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs logs
-to `wander.log`.
+If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `wander.log`.

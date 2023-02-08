@@ -16,6 +16,11 @@ const (
 	StdErr
 )
 
+type LogsStreamMsg struct {
+	Value string // may include line breaks
+	Type  LogType
+}
+
 func (p LogType) String() string {
 	switch p {
 	case StdOut:
@@ -36,7 +41,7 @@ func (p LogType) ShortString() string {
 	return "unknown"
 }
 
-func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType LogType, logOffset int) tea.Cmd {
+func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType LogType, logOffset int, logTail bool) tea.Cmd {
 	return func() tea.Msg {
 		// This is currently very important and strange. The logs api attempts to go through the node directly
 		// by default. The default timeout for this is 1 second. If it fails, it falls silently to going through
@@ -47,7 +52,7 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 		closeLogConn := make(chan struct{})   // never closed for now
 		logsChan, _ := client.AllocFS().Logs( // TODO LEO: deal with error channel
 			&alloc,
-			false,
+			logTail,
 			taskName,
 			logType.ShortString(),
 			"end",
@@ -56,16 +61,21 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 			nil,
 		)
 
-		allLogs := ""
-		for l := range logsChan {
-			allLogs += string(l.Data)
+		var logRows []string
+		var logsStream LogsStream
+		if !logTail {
+			allLogs := ""
+			for l := range logsChan {
+				allLogs += string(l.Data)
+			}
+
+			tabReplacedLogs := formatter.CleanLogs(allLogs)
+			logRows = strings.Split(tabReplacedLogs, "\n")
+		} else {
+			logsStream = LogsStream{logsChan, logType}
 		}
-
-		trimmedBody := strings.ReplaceAll(allLogs, "\t", "    ")
-		logRows := strings.Split(formatter.StripANSI(trimmedBody), "\n")
-
 		tableHeader, allPageData := logsAsTable(logRows, logType)
-		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		return PageLoadedMsg{Page: LogsPage, TableHeader: tableHeader, AllPageRows: allPageData, LogsStream: logsStream}
 	}
 }
 
@@ -88,4 +98,12 @@ func logsAsTable(logs []string, logType LogType) ([]string, []page.Row) {
 	}
 
 	return table.HeaderRows, rows
+}
+
+func ReadLogsStreamNextMessage(c LogsStream) tea.Cmd {
+	return func() tea.Msg {
+		line := <-c.Chan
+		cleanedData := formatter.CleanLogs(string(line.Data))
+		return LogsStreamMsg{Value: cleanedData, Type: c.LogType}
+	}
 }

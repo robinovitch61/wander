@@ -32,13 +32,18 @@ type EventConfig struct {
 	JQQuery   *gojq.Code
 }
 
+type LogConfig struct {
+	Offset int
+	Tail   bool
+}
+
 type Config struct {
 	Version, SHA                  string
 	URL, Token, Region, Namespace string
 	HTTPAuth                      string
 	TLS                           TLSConfig
 	Event                         EventConfig
-	LogOffset                     int
+	Log                           LogConfig
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
 	LogoColor                     string
@@ -63,6 +68,9 @@ type Model struct {
 
 	eventsStream nomad.EventsStream
 	event        string
+
+	logsStream      nomad.LogsStream
+	lastLogFinished bool
 
 	execWebSocket       *websocket.Conn
 	execPty             *os.File
@@ -161,10 +169,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 				}
 			case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
-				m.eventsStream = msg.Connection
+				m.eventsStream = msg.EventsStream
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
+				if m.config.Log.Tail {
+					m.logsStream = msg.LogsStream
+					m.lastLogFinished = true
+					cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
+				}
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
 			}
@@ -174,6 +187,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.EventsStreamMsg:
 		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllocEventsPage || m.currentPage == nomad.AllEventsPage {
 			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.CompleteValue != "{}" {
+				// sticky scroll down, i.e. if at bottom already, keep scrolling to bottom as new ones are added
 				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: msg.CompleteValue, Row: msg.JQValue}}, true)
 				if scrollDown {
@@ -181,6 +195,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
+		}
+
+	case nomad.LogsStreamMsg:
+		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
+			logLines := strings.Split(msg.Value, "\n")
+
+			// finish with the last log line if necessary
+			if !m.lastLogFinished {
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: logLines[0]}}, false)
+				logLines = logLines[1:]
+			}
+
+			// append all the new log rows in this chunk to the viewport at once
+			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
+			var allRows []page.Row
+			for _, logLine := range logLines {
+				allRows = append(allRows, page.Row{Row: logLine})
+			}
+			m.getCurrentPageModel().AppendToViewport(allRows, true)
+			if scrollDown {
+				m.getCurrentPageModel().ScrollViewportToBottom()
+			}
+
+			m.lastLogFinished = strings.HasSuffix(msg.Value, "\n")
+			cmds = append(cmds, nomad.ReadLogsStreamNextMessage(m.logsStream))
 		}
 
 	case nomad.UpdatePageDataMsg:
@@ -536,7 +575,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
-		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.LogOffset)
+		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	default:

@@ -25,7 +25,7 @@ func FetchEventsStream(client api.Client, topics Topics, namespace string, page 
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
-		return PageLoadedMsg{Page: page, Connection: EventsStream{Chan: eventsChan, Topics: topics, Namespace: namespace}}
+		return PageLoadedMsg{Page: page, EventsStream: EventsStream{Chan: eventsChan, Topics: topics, Namespace: namespace}}
 	}
 }
 

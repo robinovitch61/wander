@@ -267,11 +267,17 @@ type EventsStream struct {
 	Namespace string
 }
 
+type LogsStream struct {
+	Chan    <-chan *api.StreamFrame
+	LogType LogType
+}
+
 type PageLoadedMsg struct {
-	Page        Page
-	TableHeader []string
-	AllPageRows []page.Row
-	Connection  EventsStream
+	Page         Page
+	TableHeader  []string
+	AllPageRows  []page.Row
+	EventsStream EventsStream
+	LogsStream   LogsStream
 }
 
 type UpdatePageDataMsg struct {
@@ -308,7 +314,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 
 	viewportKeyMap := viewport.GetKeyMap()
 	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
-	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp}
+	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}
 
 	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(); nextPage != currentPage {
