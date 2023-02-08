@@ -203,7 +203,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// finish with the last log line if necessary
 			if !m.lastLogFinished {
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: "", Row: logLines[0]}}, false)
+				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: logLines[0]}}, false)
 				logLines = logLines[1:]
 			}
 
@@ -211,7 +211,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
 			var allRows []page.Row
 			for _, logLine := range logLines {
-				allRows = append(allRows, page.Row{Key: "", Row: logLine})
+				allRows = append(allRows, page.Row{Row: logLine})
 			}
 			m.getCurrentPageModel().AppendToViewport(allRows, true)
 			if scrollDown {
