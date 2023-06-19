@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/carlmjohnson/versioninfo"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/spf13/cobra"
@@ -15,8 +16,6 @@ type arg struct {
 }
 
 var (
-	version, sha string
-
 	// Used for flags.
 	cfgFile string
 
@@ -152,7 +151,7 @@ in a productivity-focused UI.`
 		Short:   "A terminal application for Nomad by HashiCorp",
 		Long:    description,
 		Run:     mainEntrypoint,
-		Version: getVersion(),
+		Version: versioninfo.Short(),
 	}
 )
 

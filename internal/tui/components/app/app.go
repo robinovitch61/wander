@@ -38,7 +38,7 @@ type LogConfig struct {
 }
 
 type Config struct {
-	Version, SHA                  string
+	Version                       string
 	URL, Token, Region, Namespace string
 	HTTPAuth                      string
 	TLS                           TLSConfig
@@ -89,7 +89,7 @@ func InitialModel(c Config) Model {
 		constants.LogoString,
 		c.LogoColor,
 		c.URL,
-		getVersionString(c.Version, c.SHA),
+		c.Version,
 		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut),
 	)
 
@@ -610,15 +610,4 @@ func (m Model) currentPageViewportSaving() bool {
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
 	return page.GetFilterPrefix(m.jobID, m.taskName, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
-}
-
-func getVersionString(v, s string) string {
-	if v == "" {
-		return constants.NoVersionString
-	}
-	if len(s) >= 7 {
-		s = s[:7]
-	}
-
-	return fmt.Sprintf("%s (%s)", v, s)
 }
