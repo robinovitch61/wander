@@ -3,11 +3,13 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/carlmjohnson/versioninfo"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
+	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
@@ -18,16 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
-
-var (
-	// Version contains the application version number. It's set via ldflags
-	// in the .goreleaser.yaml file when building
-	Version = ""
-
-	// CommitSHA contains the SHA of the commit that this application was built
-	// against. It's set via ldflags in the .goreleaser.yaml file when building
-	CommitSHA = ""
 )
 
 func validateToken(token string) error {
@@ -286,9 +278,9 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	updateSeconds := retrieveUpdateSeconds(cmd)
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 
+	dev.Debug(fmt.Sprintf("Version: %s, %s, %s", versioninfo.Version, versioninfo.Revision, versioninfo.Short()))
 	initialModel := app.InitialModel(app.Config{
-		Version:   Version,
-		SHA:       CommitSHA,
+		Version:   versioninfo.Short(),
 		URL:       nomadAddr,
 		Token:     nomadToken,
 		Region:    region,
@@ -316,11 +308,4 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		LogoColor:     logoColor,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
-}
-
-func getVersion() string {
-	if Version == "" {
-		return constants.NoVersionString
-	}
-	return Version
 }
