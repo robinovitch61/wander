@@ -105,6 +105,11 @@ var (
 		cfgFileEnvVar: "wander_update_seconds",
 		description:   `Seconds between updates for job & allocation pages. Disable with "-1". Default "2"`,
 	}
+	jobColumnsArg = arg{
+		cliLong:       "job-columns",
+		cfgFileEnvVar: "wander_job_columns",
+		description:   `Columns to display for Jobs - can reference Meta keys. Default 'ID,Type,Namespace,Status,Count,Submitted,Since Submit'`,
+	}
 	logOffsetArg = arg{
 		cliShort:      "o",
 		cliLong:       "log-offset",
@@ -180,6 +185,7 @@ func init() {
 		tlsServerNameArg,
 		skipVerifyArg,
 		updateSecondsArg,
+		jobColumnsArg,
 		logOffsetArg,
 		logTailArg,
 		copySavePathArg,
