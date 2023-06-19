@@ -9,6 +9,7 @@ type keyMap struct {
 	Exec        key.Binding
 	Exit        key.Binding
 	JobEvents   key.Binding
+	JobMeta     key.Binding
 	AllocEvents key.Binding
 	AllEvents   key.Binding
 	Filter      key.Binding
@@ -36,6 +37,10 @@ var KeyMap = keyMap{
 	JobEvents: key.NewBinding(
 		key.WithKeys("v"),
 		key.WithHelp("v", "events"),
+	),
+	JobMeta: key.NewBinding(
+		key.WithKeys("m"),
+		key.WithHelp("m", "meta"),
 	),
 	AllocEvents: key.NewBinding(
 		key.WithKeys("v"),

@@ -23,6 +23,7 @@ const (
 	JobSpecPage
 	JobEventsPage
 	JobEventPage
+	JobMetaPage
 	AllocEventsPage
 	AllocEventPage
 	AllEventsPage
@@ -55,6 +56,11 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 		JobEventPage: {
 			Width: width, Height: height,
 			LoadingString: JobEventPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+		},
+		JobMetaPage: {
+			Width: width, Height: height,
+			LoadingString: JobMetaPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		AllocEventsPage: {
@@ -107,7 +113,7 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 }
 
 func (p Page) DoesLoad() bool {
-	noLoadPages := []Page{LoglinePage, JobEventPage, AllocEventPage, AllEventPage}
+	noLoadPages := []Page{LoglinePage, JobEventPage, JobMetaPage, AllocEventPage, AllEventPage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
 			return false
@@ -117,7 +123,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
+	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, JobMetaPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -158,6 +164,8 @@ func (p Page) String() string {
 		return "job spec"
 	case JobEventsPage, AllocEventsPage:
 		return "events"
+	case JobMetaPage:
+		return "meta"
 	case AllEventsPage:
 		return "all events"
 	case JobEventPage, AllocEventPage, AllEventPage:
@@ -206,6 +214,8 @@ func (p Page) Backward() Page {
 		return JobsPage
 	case JobEventPage:
 		return JobEventsPage
+	case JobMetaPage:
+		return JobsPage
 	case AllocEventsPage:
 		return AllocationsPage
 	case AllocEventPage:
@@ -238,6 +248,8 @@ func (p Page) GetFilterPrefix(jobID, taskName, allocID string, eventTopics Topic
 		return fmt.Sprintf("Events for %s (%s)", jobID, getTopicNames(eventTopics))
 	case JobEventPage:
 		return fmt.Sprintf("Event for %s", jobID)
+	case JobMetaPage:
+		return fmt.Sprintf("Meta for %s", jobID)
 	case AllocEventsPage:
 		return fmt.Sprintf("Events for %s %s", style.Bold.Render(jobID), formatter.ShortAllocID(allocID))
 	case AllocEventPage:
@@ -306,30 +318,29 @@ func changeKeyHelp(k *key.Binding, h string) {
 }
 
 func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool, logType LogType) string {
-	firstRow := []key.Binding{keymap.KeyMap.Exit}
+	viewportKeyMap := viewport.GetKeyMap()
+	firstRow := []key.Binding{keymap.KeyMap.Exit, viewportKeyMap.Save}
 
 	if currentPage.DoesReload() && !saving && !filterFocused {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
-	viewportKeyMap := viewport.GetKeyMap()
-	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
+	secondRow := []key.Binding{keymap.KeyMap.Wrap}
+	if nextPage := currentPage.Forward(); nextPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
+		secondRow = append(secondRow, keymap.KeyMap.Forward)
+	}
+	if filterApplied {
+		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
+		secondRow = append(secondRow, keymap.KeyMap.Back)
+	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward().String()))
+		secondRow = append(secondRow, keymap.KeyMap.Back)
+	}
+
 	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}
 
 	var fourthRow []key.Binding
-	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
-		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
-	}
-
-	if filterApplied {
-		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
-		fourthRow = append(fourthRow, keymap.KeyMap.Back)
-	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward().String()))
-		fourthRow = append(fourthRow, keymap.KeyMap.Back)
-	}
-
 	if currentPage == JobsPage || currentPage == AllocationsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
@@ -343,6 +354,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	if currentPage == JobsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.JobEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.AllEvents)
+		fourthRow = append(fourthRow, keymap.KeyMap.JobMeta)
 	}
 
 	if currentPage == AllocationsPage {
@@ -371,6 +383,7 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	if saving {
 		changeKeyHelp(&keymap.KeyMap.Forward, "confirm save")
 		changeKeyHelp(&keymap.KeyMap.Back, "cancel save")
+		firstRow = []key.Binding{keymap.KeyMap.Exit}
 		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
 		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 	}

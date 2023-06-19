@@ -69,6 +69,7 @@ type Model struct {
 
 	eventsStream nomad.EventsStream
 	event        string
+	meta         map[string]string
 
 	logsStream      nomad.LogsStream
 	lastLogFinished bool
@@ -450,6 +451,14 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
+		if key.Matches(msg, keymap.KeyMap.JobMeta) && m.currentPage == nomad.JobsPage {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+				m.setPage(nomad.JobMetaPage)
+				return m.getCurrentPageCmd()
+			}
+		}
+
 		if key.Matches(msg, keymap.KeyMap.AllocEvents) && m.currentPage == nomad.AllocationsPage {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
@@ -561,6 +570,8 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchEventsStream(m.client, nomad.TopicsForJob(m.config.Event.Topics, m.jobID), m.jobNamespace, nomad.JobEventsPage)
 	case nomad.JobEventPage:
 		return nomad.PrettifyLine(m.event, nomad.JobEventPage)
+	case nomad.JobMetaPage:
+		return nomad.FetchJobMeta(m.client, m.jobID, m.jobNamespace)
 	case nomad.AllocEventsPage:
 		return nomad.FetchEventsStream(m.client, nomad.TopicsForAlloc(m.config.Event.Topics, m.alloc.ID), m.jobNamespace, nomad.AllocEventsPage)
 	case nomad.AllocEventPage:

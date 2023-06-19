@@ -2,10 +2,8 @@ package nomad
 
 import (
 	"errors"
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
-	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
@@ -37,9 +35,6 @@ func FetchJobs(client api.Client, columns []string) tea.Cmd {
 			}
 			return jobResults[x].Name < jobResults[y].Name
 		})
-		for _, job := range jobResults {
-			dev.Debug(fmt.Sprintf("%s, %+v", job.Name, job.Meta))
-		}
 
 		tableHeader, allPageData := jobResponsesAsTable(jobResults, columns)
 		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageRows: allPageData}

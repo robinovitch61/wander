@@ -22,7 +22,7 @@ const ExecWebSocketClosed = "> connection closed <"
 
 const ExecWebSocketHeartbeatDuration = time.Second * 10
 
-const TablePadding = "    "
+const TablePadding = "   "
 
 var JobsViewportConditionalStyle = map[string]lipgloss.Style{
 	TablePadding + "pending" + TablePadding: style.JobRowPending,
