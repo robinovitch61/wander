@@ -13,9 +13,6 @@ import (
 	"time"
 )
 
-const keySeparator = "|【=◈︿◈=】|"
-
-// allocationRowEntry is an item extracted from allocationResponseEntry
 type allocationRowEntry struct {
 	FullAllocationAsJSON                 string
 	ID, TaskGroup, Name, TaskName, State string

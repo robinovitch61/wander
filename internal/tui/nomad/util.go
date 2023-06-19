@@ -11,6 +11,8 @@ import (
 	"net/url"
 )
 
+const keySeparator = "|【=◈︿◈=】|"
+
 func doQuery(url, token string, params [][2]string) (*http.Response, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)

@@ -563,7 +563,7 @@ func (m *Model) updateKeyHelp() {
 func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
-		return nomad.FetchJobs(m.client, m.config.JobColumns)
+		return nomad.FetchTasks(m.client, m.config.Namespace)
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
