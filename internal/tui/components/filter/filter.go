@@ -41,6 +41,7 @@ func (m Model) View() string {
 	if m.textinput.Focused() {
 		m.textinput.TextStyle = style.FilterEditing
 		m.textinput.PromptStyle = style.FilterEditing
+		m.textinput.Cursor.TextStyle = style.FilterEditing
 		if len(m.textinput.Value()) > 0 {
 			// editing existing filter
 			m.textinput.Prompt = "filter: "
@@ -54,6 +55,7 @@ func (m Model) View() string {
 		if len(m.textinput.Value()) > 0 {
 			// filter applied, not editing
 			m.textinput.Prompt = "filter: "
+			m.textinput.Cursor.TextStyle = style.FilterApplied
 			m.textinput.PromptStyle = style.FilterApplied
 			m.textinput.TextStyle = style.FilterApplied
 		} else {
