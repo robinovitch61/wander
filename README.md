@@ -126,6 +126,9 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Seconds between updates for job & allocation pages. Disable with "-1". Default "2"
 #wander_update_seconds: 1
 
+# Columns to display for Jobs - can reference Meta keys. Default 'ID,Type,Namespace,Status,Count,Submitted,Since Submit'
+#wander_job_columns: 'ID,Type,Namespace,Priority,Status,Count,Submitted,Since Submit,SomeMetaKey'
+
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 
@@ -206,7 +209,7 @@ wander
 ## Development
 
 The `scripts/dev.sh` script watches the source code and rebuilds the app on changes
-using [entr](https://github.com/eradman/entr).
+using [entr](https://github.com/eradman/entr). Install the latest release of `nomad`.
 
 `wander` runs the built app. You must rerun it on rebuild.
 

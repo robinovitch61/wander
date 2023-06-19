@@ -46,6 +46,7 @@ type Config struct {
 	Log                           LogConfig
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
+	JobColumns                    []string
 	LogoColor                     string
 }
 
@@ -558,7 +559,7 @@ func (m *Model) updateKeyHelp() {
 func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
-		return nomad.FetchJobs(m.client)
+		return nomad.FetchJobs(m.client, m.config.JobColumns)
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:

@@ -218,6 +218,16 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 	return updateSeconds
 }
 
+func retrieveJobColumns(cmd *cobra.Command) []string {
+	updateSecondsString := retrieveWithDefault(cmd, jobColumnsArg, "ID,Type,Namespace,Status,Count,Submitted,Since Submit")
+	split := strings.Split(updateSecondsString, ",")
+	var trimmed []string
+	for _, s := range split {
+		trimmed = append(trimmed, strings.TrimSpace(s))
+	}
+	return trimmed
+}
+
 func retrieveLogOffset(cmd *cobra.Command) int {
 	logOffsetString := retrieveWithDefault(cmd, logOffsetArg, "1000000")
 	logOffset, err := strconv.Atoi(logOffsetString)
@@ -276,6 +286,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	eventNamespace := retrieveEventNamespace(cmd)
 	eventJQQuery := retrieveEventJQQuery(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
+	jobColumns := retrieveJobColumns(cmd)
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 
 	dev.Debug(fmt.Sprintf("Version: %s, %s, %s", versioninfo.Version, versioninfo.Revision, versioninfo.Short()))
@@ -305,6 +316,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 			JQQuery:   eventJQQuery,
 		},
 		UpdateSeconds: time.Second * time.Duration(updateSeconds),
+		JobColumns:    jobColumns,
 		LogoColor:     logoColor,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
