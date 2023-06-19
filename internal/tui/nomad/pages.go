@@ -113,7 +113,7 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 }
 
 func (p Page) DoesLoad() bool {
-	noLoadPages := []Page{LoglinePage, JobEventPage, JobMetaPage, AllocEventPage, AllEventPage}
+	noLoadPages := []Page{LoglinePage, JobEventPage, AllocEventPage, AllEventPage}
 	for _, noLoadPage := range noLoadPages {
 		if noLoadPage == p {
 			return false
@@ -123,7 +123,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, JobMetaPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
+	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false

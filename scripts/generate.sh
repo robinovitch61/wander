@@ -8,7 +8,7 @@ nomad job init -short
 sed -i "" -E '1a\
   namespace = "default"
 ' example.nomad.hcl
-sed -i "" -E "s/group \"cache\" {/meta { test = \"somevalue\" }\n  group \"cache\" {/" example.nomad.hcl
+sed -i "" -E "s/group \"cache\" {/meta {\n    test = \"somevalue\"\n    apple = \"orange\"\n  }\n  group \"cache\" {/" example.nomad.hcl
 
 # default cpu sometimes too high for local
 sed -i "" -E "s/cpu    = 500/cpu    = 50/g" example.nomad.hcl

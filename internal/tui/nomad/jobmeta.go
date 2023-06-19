@@ -6,6 +6,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
+	"sort"
 )
 
 func FetchJobMeta(client api.Client, jobID, jobNamespace string) tea.Cmd {
@@ -39,6 +40,9 @@ func metaAsTable(meta map[string]string) ([]string, []page.Row) {
 	for idx, row := range table.ContentRows {
 		rows = append(rows, page.Row{Key: keys[idx], Row: row})
 	}
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].Key < rows[j].Key
+	})
 
 	return table.HeaderRows, rows
 }
