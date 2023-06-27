@@ -20,6 +20,7 @@ type Page int8
 const (
 	Unset Page = iota
 	JobsPage
+	TasksPage
 	JobSpecPage
 	JobEventsPage
 	JobEventPage

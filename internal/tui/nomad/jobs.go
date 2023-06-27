@@ -90,7 +90,7 @@ func jobResponsesAsTable(jobResponse []*api.JobListStub, columns []string) ([]st
 	var keys []string
 	for _, row := range jobResponse {
 		jobResponseRows = append(jobResponseRows, getRowFromColumns(row, columns))
-		keys = append(keys, toJobsKey(row))
+		keys = append(keys, toIDNamespaceKey(row.ID, row.Namespace))
 	}
 	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
 
@@ -100,14 +100,4 @@ func jobResponsesAsTable(jobResponse []*api.JobListStub, columns []string) ([]st
 	}
 
 	return table.HeaderRows, rows
-}
-
-func toJobsKey(jobResponseEntry *api.JobListStub) string {
-	return jobResponseEntry.ID + " " + jobResponseEntry.Namespace
-}
-
-func JobIDAndNamespaceFromKey(key string) (string, string) {
-	split := strings.Split(key, " ")
-	return split[0], split[1]
-
 }

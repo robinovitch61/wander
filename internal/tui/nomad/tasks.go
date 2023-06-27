@@ -10,8 +10,8 @@ import (
 )
 
 type taskRowEntry struct {
-	JobID, AllocID, TaskGroup, AllocName, TaskName, State string
-	StartedAt, FinishedAt                                 time.Time
+	JobID, JobNamespace, AllocID, TaskGroup, AllocName, TaskName, State string
+	StartedAt, FinishedAt                                               time.Time
 }
 
 func FetchTasks(client api.Client, jobNamespace string) tea.Cmd {
@@ -25,20 +25,21 @@ func FetchTasks(client api.Client, jobNamespace string) tea.Cmd {
 		for _, alloc := range allocs {
 			for taskName, task := range alloc.TaskStates {
 				taskRowEntries = append(taskRowEntries, taskRowEntry{
-					JobID:      alloc.JobID,
-					AllocID:    alloc.ID,
-					TaskGroup:  alloc.TaskGroup,
-					AllocName:  alloc.Name,
-					TaskName:   taskName,
-					State:      task.State,
-					StartedAt:  task.StartedAt.UTC(),
-					FinishedAt: task.FinishedAt.UTC(),
+					JobID:        alloc.JobID,
+					JobNamespace: alloc.Namespace,
+					AllocID:      alloc.ID,
+					TaskGroup:    alloc.TaskGroup,
+					AllocName:    alloc.Name,
+					TaskName:     taskName,
+					State:        task.State,
+					StartedAt:    task.StartedAt.UTC(),
+					FinishedAt:   task.FinishedAt.UTC(),
 				})
 			}
 		}
 
 		tableHeader, allPageData := tasksAsTable(taskRowEntries)
-		return PageLoadedMsg{Page: AllocationsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		return PageLoadedMsg{Page: TasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 
@@ -61,7 +62,7 @@ func tasksAsTable(tasks []taskRowEntry) ([]string, []page.Row) {
 			formatter.FormatTime(row.FinishedAt),
 			uptime,
 		})
-		keys = append(keys, row.TaskGroup) // TODO: fix
+		keys = append(keys, toIDNamespaceKey(row.JobID, row.JobNamespace))
 	}
 
 	columns := []string{"Job ID", "Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}

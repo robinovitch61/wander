@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const keySeparator = "|【=◈︿◈=】|"
@@ -91,4 +92,13 @@ func PrettifyLine(l string, p Page) tea.Cmd {
 			AllPageRows: rows,
 		}
 	}
+}
+
+func toIDNamespaceKey(id, namespace string) string {
+	return id + keySeparator + namespace
+}
+
+func JobIDAndNamespaceFromKey(key string) (string, string) {
+	split := strings.Split(key, keySeparator)
+	return split[0], split[1]
 }

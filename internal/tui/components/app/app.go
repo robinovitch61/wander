@@ -162,10 +162,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			switch m.currentPage {
 			case nomad.JobsPage:
-				if m.currentPage == nomad.JobsPage && len(msg.AllPageRows) == 0 {
+				if (m.currentPage == nomad.JobsPage ||
+					m.currentPage == nomad.TasksPage) && len(msg.AllPageRows) == 0 {
 					// oddly, nomad http api errors when one provides the wrong token, but returns empty results when one provides an empty token
 					m.getCurrentPageModel().SetAllPageData([]page.Row{
-						{"", "No job results. Is the cluster empty or no nomad token provided?"},
+						{"", "No results. Is the cluster empty or no nomad token provided?"},
 						{"", "Press q or ctrl+c to quit."},
 					})
 					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
@@ -360,6 +361,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				switch m.currentPage {
 				case nomad.JobsPage:
+					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+				case nomad.TasksPage:
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 				case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 					m.event = selectedPageRow.Key
@@ -563,7 +566,9 @@ func (m *Model) updateKeyHelp() {
 func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
-		return nomad.FetchTasks(m.client, m.config.Namespace)
+		return nomad.FetchJobs(m.client, m.config.JobColumns)
+	case nomad.TasksPage:
+		return nomad.FetchTasks(m.client, m.jobNamespace)
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
