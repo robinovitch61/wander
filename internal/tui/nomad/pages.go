@@ -307,7 +307,7 @@ func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 func getShortHelp(bindings []key.Binding) string {
 	var output string
 	for _, km := range bindings {
-		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "    "
+		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "   "
 	}
 	output = strings.TrimSpace(output)
 	return output
@@ -318,29 +318,30 @@ func changeKeyHelp(k *key.Binding, h string) {
 }
 
 func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool, logType LogType) string {
-	viewportKeyMap := viewport.GetKeyMap()
-	firstRow := []key.Binding{keymap.KeyMap.Exit, viewportKeyMap.Save}
+	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
 	if currentPage.DoesReload() && !saving && !filterFocused {
 		firstRow = append(firstRow, keymap.KeyMap.Reload)
 	}
 
-	secondRow := []key.Binding{keymap.KeyMap.Wrap}
-	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
-		secondRow = append(secondRow, keymap.KeyMap.Forward)
-	}
-	if filterApplied {
-		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
-		secondRow = append(secondRow, keymap.KeyMap.Back)
-	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward().String()))
-		secondRow = append(secondRow, keymap.KeyMap.Back)
-	}
-
+	viewportKeyMap := viewport.GetKeyMap()
+	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
 	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}
 
 	var fourthRow []key.Binding
+	if nextPage := currentPage.Forward(); nextPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
+		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
+	}
+
+	if filterApplied {
+		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
+		fourthRow = append(fourthRow, keymap.KeyMap.Back)
+	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward().String()))
+		fourthRow = append(fourthRow, keymap.KeyMap.Back)
+	}
+
 	if currentPage == JobsPage || currentPage == AllocationsPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
@@ -383,7 +384,6 @@ func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, ente
 	if saving {
 		changeKeyHelp(&keymap.KeyMap.Forward, "confirm save")
 		changeKeyHelp(&keymap.KeyMap.Back, "cancel save")
-		firstRow = []key.Binding{keymap.KeyMap.Exit}
 		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
 		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 	}
