@@ -317,11 +317,26 @@ func changeKeyHelp(k *key.Binding, h string) {
 	k.SetHelp(k.Help().Key, h)
 }
 
-func GetPageKeyHelp(currentPage Page, filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool, logType LogType) string {
+func GetPageKeyHelp(
+	currentPage Page,
+	filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool,
+	logType LogType,
+	compact bool,
+) string {
+	if compact {
+		changeKeyHelp(&keymap.KeyMap.Compact, "expand header")
+		return getShortHelp([]key.Binding{keymap.KeyMap.Compact})
+	} else {
+		changeKeyHelp(&keymap.KeyMap.Compact, "compact")
+	}
+
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
-	if currentPage.DoesReload() && !saving && !filterFocused {
-		firstRow = append(firstRow, keymap.KeyMap.Reload)
+	if !saving && !filterFocused {
+		firstRow = append(firstRow, keymap.KeyMap.Compact)
+		if currentPage.DoesReload() {
+			firstRow = append(firstRow, keymap.KeyMap.Reload)
+		}
 	}
 
 	viewportKeyMap := viewport.GetKeyMap()

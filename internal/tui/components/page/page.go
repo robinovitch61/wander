@@ -259,6 +259,10 @@ func (m *Model) SetViewportSelectionEnabled(v bool) {
 	m.viewport.SetSelectionEnabled(v)
 }
 
+func (m *Model) ToggleCompact() {
+	m.filter.ToggleCompact()
+}
+
 func (m Model) Loading() bool {
 	return m.loading
 }
