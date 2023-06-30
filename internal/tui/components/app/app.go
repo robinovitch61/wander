@@ -320,6 +320,8 @@ func (m *Model) cleanupCmd() tea.Cmd {
 
 func (m *Model) setPageWindowSize() {
 	for _, pm := range m.pageModels {
+		dev.Debug("LEO")
+		dev.Debug(fmt.Sprintf("%d", m.getPageHeight()))
 		pm.SetWindowSize(m.width, m.getPageHeight())
 	}
 }
@@ -357,8 +359,11 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
 		switch {
 		case key.Matches(msg, keymap.KeyMap.Compact):
+			// TODO LEO: wrap all this up so its called together
 			m.compact = !m.compact
 			m.header.ToggleCompact()
+			m.updateKeyHelp()
+			m.setPageWindowSize()
 			for _, pm := range m.pageModels {
 				pm.ToggleCompact()
 			}
@@ -605,6 +610,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 }
 
 func (m Model) getPageHeight() int {
+	dev.Debug(fmt.Sprintf("header.ViewHeight()=%d", m.header.ViewHeight()))
 	return m.height - m.header.ViewHeight()
 }
 

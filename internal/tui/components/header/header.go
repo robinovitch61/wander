@@ -2,6 +2,7 @@ package header
 
 import (
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 )
@@ -37,7 +38,12 @@ func (m Model) View() string {
 }
 
 func (m Model) ViewHeight() int {
-	return len(strings.Split(m.View(), "\n"))
+	view := m.View()
+	if strings.Contains(view, "\n") {
+		dev.Debug(view)
+		return len(strings.Split(view, "\n"))
+	}
+	return 1
 }
 
 func (m *Model) SetKeyHelp(keyHelp string) {
