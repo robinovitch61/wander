@@ -186,10 +186,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nomad.EventsStreamMsg:
 		if m.currentPage == nomad.JobEventsPage || m.currentPage == nomad.AllocEventsPage || m.currentPage == nomad.AllEventsPage {
-			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) && msg.CompleteValue != "{}" {
+			if fmt.Sprint(msg.Topics) == fmt.Sprint(m.eventsStream.Topics) {
 				// sticky scroll down, i.e. if at bottom already, keep scrolling to bottom as new ones are added
 				scrollDown := m.getCurrentPageModel().ViewportSelectionAtBottom()
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: msg.CompleteValue, Row: msg.JQValue}}, true)
+				for _, event := range msg.Events {
+					if event.CompleteValue == "{}" {
+						continue
+					}
+					m.getCurrentPageModel().AppendToViewport([]page.Row{{Key: event.CompleteValue, Row: event.JQValue}}, true)
+				}
 				if scrollDown {
 					m.getCurrentPageModel().ScrollViewportToBottom()
 				}

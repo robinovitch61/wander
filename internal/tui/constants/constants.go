@@ -38,5 +38,5 @@ const DefaultEventJQQuery = `.Events[] | {
 	"2:Topic": .Topic,
 	"3:Type": .Type,
 	"4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
-	"5:AllocID": .Payload | (.Allocation // .Deployment // .Evaluation).ID[:8]
+	"5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
 }`
