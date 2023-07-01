@@ -13,10 +13,13 @@ import (
 
 type Topics map[api.Topic][]string
 
+type Event struct {
+	CompleteValue, JQValue string
+}
+
 type EventsStreamMsg struct {
-	CompleteValue string
-	JQValue       string
-	Topics        Topics
+	Events []Event
+	Topics Topics
 }
 
 func FetchEventsStream(client api.Client, topics Topics, namespace string, page Page) tea.Cmd {
@@ -37,11 +40,11 @@ func ReadEventsStreamNextMessage(c EventsStream, code *gojq.Code) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 		trimmed := strings.TrimSpace(string(lineBytes))
-		jq, err := runJQQueryOnEvent(trimmed, code)
+		events, err := getEventsFromJQQuery(trimmed, code)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
-		return EventsStreamMsg{CompleteValue: trimmed, JQValue: jq, Topics: c.Topics}
+		return EventsStreamMsg{Events: events, Topics: c.Topics}
 	}
 }
 
@@ -77,23 +80,27 @@ func TopicsForAlloc(topics Topics, allocID string) Topics {
 	return t
 }
 
-func runJQQueryOnEvent(event string, code *gojq.Code) (string, error) {
+func getEventsFromJQQuery(event string, code *gojq.Code) ([]Event, error) {
 	result := make(map[string]interface{})
 	err := json.Unmarshal([]byte(event), &result)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	iter := code.Run(result)
-	v, ok := iter.Next()
-	if !ok {
-		return event, nil
+	var events []Event
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			events = append(events, Event{event, fmt.Sprintf("events jq error: %s", err)})
+		}
+		j, err := json.Marshal(v)
+		if err != nil {
+			events = append(events, Event{event, fmt.Sprintf("events jq json error: %s", err)})
+		}
+		events = append(events, Event{event, fmt.Sprintf("%s", j)})
 	}
-	if err, ok := v.(error); ok {
-		return "", err
-	}
-	j, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s", j), nil
+	return events, nil
 }

@@ -149,7 +149,7 @@ Example yaml file showing all options (uncomment an option to enable it):
 #      "2:Topic": .Topic,
 #      "3:Type": .Type,
 #      "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
-#      "5:AllocID": .Payload | (.Allocation // .Deployment // .Evaluation).ID[:8]
+#      "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
 #   }
 # The numbering exists to preserve ordering, as https://github.com/itchyny/gojq does not keep the order of object keys
 #wander_event_jq_query: .
