@@ -3,7 +3,6 @@ package header
 import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"strings"
 )
 
 type Model struct {
@@ -37,11 +36,7 @@ func (m Model) View() string {
 }
 
 func (m Model) ViewHeight() int {
-	view := m.View()
-	if strings.Contains(view, "\n") {
-		return len(strings.Split(view, "\n"))
-	}
-	return 1
+	return lipgloss.Height(m.View())
 }
 
 func (m *Model) SetKeyHelp(keyHelp string) {
