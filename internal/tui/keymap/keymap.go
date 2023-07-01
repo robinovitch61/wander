@@ -8,6 +8,7 @@ type keyMap struct {
 	Back        key.Binding
 	Exec        key.Binding
 	Exit        key.Binding
+	Compact     key.Binding
 	JobEvents   key.Binding
 	JobMeta     key.Binding
 	AllocEvents key.Binding
@@ -33,6 +34,10 @@ var KeyMap = keyMap{
 	Exit: key.NewBinding(
 		key.WithKeys("q", "ctrl+c"),
 		key.WithHelp("q/ctrl+c", "exit"),
+	),
+	Compact: key.NewBinding(
+		key.WithKeys("ctrl+h"),
+		key.WithHelp("ctrl+h", "compact"),
 	),
 	JobEvents: key.NewBinding(
 		key.WithKeys("v"),

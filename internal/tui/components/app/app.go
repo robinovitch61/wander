@@ -48,6 +48,7 @@ type Config struct {
 	UpdateSeconds                 time.Duration
 	JobColumns                    []string
 	LogoColor                     string
+	StartCompact                  bool
 }
 
 type Model struct {
@@ -55,6 +56,7 @@ type Model struct {
 	client api.Client
 
 	header      header.Model
+	compact     bool
 	currentPage nomad.Page
 	pageModels  map[nomad.Page]*page.Model
 
@@ -92,9 +94,8 @@ func InitialModel(c Config) Model {
 		c.LogoColor,
 		c.URL,
 		c.Version,
-		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut, false),
 	)
-
 	return Model{
 		config:      c,
 		header:      initialHeader,
@@ -310,6 +311,10 @@ func (m *Model) initialize() error {
 		m.pageModels[k] = &p
 	}
 
+	if m.config.StartCompact {
+		m.toggleCompact()
+	}
+
 	m.initialized = true
 	return nil
 }
@@ -361,6 +366,10 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 	if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
 		switch {
+		case key.Matches(msg, keymap.KeyMap.Compact):
+			m.toggleCompact()
+			return nil
+
 		case key.Matches(msg, keymap.KeyMap.Forward):
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				switch m.currentPage {
@@ -562,7 +571,18 @@ func (m *Model) setInPty(inPty bool) {
 }
 
 func (m *Model) updateKeyHelp() {
-	m.header.KeyHelp = nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType)
+	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType, m.compact)
+	m.header.SetKeyHelp(newKeyHelp)
+}
+
+func (m *Model) toggleCompact() {
+	m.compact = !m.compact
+	m.header.ToggleCompact()
+	m.updateKeyHelp()
+	for _, pm := range m.pageModels {
+		pm.ToggleCompact()
+	}
+	m.setPageWindowSize()
 }
 
 func (m Model) getCurrentPageCmd() tea.Cmd {

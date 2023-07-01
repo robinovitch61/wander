@@ -2,6 +2,7 @@ package filter
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -17,12 +18,13 @@ type Model struct {
 	prefix    string
 	keyMap    filterKeyMap
 	textinput textinput.Model
+	compact   bool
 }
 
 func New(prefix string) Model {
 	ti := textinput.New()
 	ti.Prompt = ""
-	ti.SetCursorMode(textinput.CursorHide)
+	ti.Cursor.SetMode(cursor.CursorHide)
 	return Model{
 		prefix:    prefix,
 		keyMap:    keyMap,
@@ -48,7 +50,7 @@ func (m Model) View() string {
 		} else {
 			// editing but no filter value yet
 			m.textinput.Prompt = ""
-			m.textinput.SetCursorMode(textinput.CursorHide)
+			m.textinput.Cursor.SetMode(cursor.CursorHide)
 			m.textinput.SetValue("type to filter")
 		}
 	} else {
@@ -68,9 +70,14 @@ func (m Model) View() string {
 	}
 	filterString := m.textinput.View()
 	filterStringStyle := m.textinput.TextStyle.Copy().MarginLeft(1).PaddingLeft(1).PaddingRight(0)
+
+	filterPrefixStyle := style.FilterPrefix.Copy()
+	if m.compact {
+		filterPrefixStyle = filterPrefixStyle.UnsetBorderStyle().Padding(0).MarginLeft(0).MarginRight(1)
+	}
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		style.FilterPrefix.Render(m.prefix),
+		filterPrefixStyle.Render(m.prefix),
 		filterStringStyle.Render(filterString),
 	)
 }
@@ -92,7 +99,7 @@ func (m Model) Focused() bool {
 }
 
 func (m *Model) Focus() {
-	m.textinput.SetCursorMode(textinput.CursorBlink)
+	m.textinput.Cursor.SetMode(cursor.CursorBlink)
 	m.textinput.Focus()
 }
 
@@ -100,11 +107,15 @@ func (m *Model) Blur() {
 	// move cursor to end of word so right padding shows up even if cursor not at end when blurred
 	m.textinput.SetCursor(len(m.textinput.Value()))
 
-	m.textinput.SetCursorMode(textinput.CursorHide)
+	m.textinput.Cursor.SetMode(cursor.CursorHide)
 	m.textinput.Blur()
 }
 
 func (m *Model) BlurAndClear() {
 	m.Blur()
 	m.textinput.SetValue("")
+}
+
+func (m *Model) ToggleCompact() {
+	m.compact = !m.compact
 }

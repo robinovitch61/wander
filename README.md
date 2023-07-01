@@ -129,6 +129,9 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Columns to display for Jobs - can reference Meta keys. Default 'ID,Type,Namespace,Status,Count,Submitted,Since Submit'
 #wander_job_columns: 'ID,Type,Namespace,Priority,Status,Count,Submitted,Since Submit,SomeMetaKey'
 
+# If "true", start with compact header. Default "false"
+#wander_compact_header: true
+
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 
