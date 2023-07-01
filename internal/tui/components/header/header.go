@@ -2,7 +2,6 @@ package header
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 )
@@ -25,10 +24,10 @@ func (m Model) View() string {
 	if m.compact {
 		return lipgloss.JoinHorizontal(
 			lipgloss.Center,
-			logoStyle.Padding(0).Render("WANDER")+" ",
-			m.version+" ",
-			clusterUrl,
+			logoStyle.Padding(0).Margin(0).Render("WANDER"),
 			style.KeyHelp.Render(m.keyHelp),
+			style.Regular.Copy().Padding(0, 2, 0, 0).Render(m.version),
+			clusterUrl,
 		)
 	}
 	logo := logoStyle.Render(m.logo)
@@ -40,7 +39,6 @@ func (m Model) View() string {
 func (m Model) ViewHeight() int {
 	view := m.View()
 	if strings.Contains(view, "\n") {
-		dev.Debug(view)
 		return len(strings.Split(view, "\n"))
 	}
 	return 1
