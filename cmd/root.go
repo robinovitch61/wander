@@ -146,6 +146,12 @@ var (
 	logoColorArg = arg{
 		cfgFileEnvVar: "wander_logo_color",
 	}
+	startCompactArg = arg{
+		cliShort:      "h",
+		cliLong:       "compact-header",
+		cfgFileEnvVar: "wander_compact_header",
+		description:   `If "true", start with compact header. Default "false"`,
+	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
 view jobs, allocations, tasks, logs, and more, all from the terminal
@@ -192,6 +198,7 @@ func init() {
 		eventTopicsArg,
 		eventNamespaceArg,
 		eventJQQueryArg,
+		startCompactArg,
 	} {
 		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
 		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))

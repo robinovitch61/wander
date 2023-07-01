@@ -48,6 +48,7 @@ type Config struct {
 	UpdateSeconds                 time.Duration
 	JobColumns                    []string
 	LogoColor                     string
+	StartCompact                  bool
 }
 
 type Model struct {
@@ -305,6 +306,10 @@ func (m *Model) initialize() error {
 		m.pageModels[k] = &p
 	}
 
+	if m.config.StartCompact {
+		m.toggleCompact()
+	}
+
 	m.initialized = true
 	return nil
 }
@@ -358,7 +363,6 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		switch {
 		case key.Matches(msg, keymap.KeyMap.Compact):
 			m.toggleCompact()
-			m.setPageWindowSize()
 			return nil
 
 		case key.Matches(msg, keymap.KeyMap.Forward):
@@ -573,6 +577,7 @@ func (m *Model) toggleCompact() {
 	for _, pm := range m.pageModels {
 		pm.ToggleCompact()
 	}
+	m.setPageWindowSize()
 }
 
 func (m Model) getCurrentPageCmd() tea.Cmd {
