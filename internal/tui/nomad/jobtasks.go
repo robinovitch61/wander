@@ -4,9 +4,19 @@ import (
 	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"sort"
+	"time"
 )
+
+// TODO LEO: differs from alltasks?
+type jobTaskRowEntry struct {
+	FullAllocationAsJSON                 string
+	ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                time.Time
+}
 
 func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 	return func() tea.Msg {
@@ -15,7 +25,7 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			return message.ErrMsg{Err: err}
 		}
 
-		var taskRowEntries []taskRowEntry
+		var jobTaskRowEntries []jobTaskRowEntry
 		for _, alloc := range allocationsForJob {
 			allocAsJSON, err := json.Marshal(alloc)
 			if err != nil {
@@ -23,7 +33,7 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			}
 
 			for taskName, task := range alloc.TaskStates {
-				taskRowEntries = append(taskRowEntries, taskRowEntry{
+				jobTaskRowEntries = append(jobTaskRowEntries, jobTaskRowEntry{
 					FullAllocationAsJSON: string(allocAsJSON),
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
@@ -36,9 +46,9 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			}
 		}
 
-		sort.Slice(taskRowEntries, func(x, y int) bool {
-			firstTask := taskRowEntries[x]
-			secondTask := taskRowEntries[y]
+		sort.Slice(jobTaskRowEntries, func(x, y int) bool {
+			firstTask := jobTaskRowEntries[x]
+			secondTask := jobTaskRowEntries[y]
 			if firstTask.TaskName == secondTask.TaskName {
 				if firstTask.Name == secondTask.Name {
 					if firstTask.State == secondTask.State {
@@ -54,7 +64,39 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			return firstTask.TaskName < secondTask.TaskName
 		})
 
-		tableHeader, allPageData := tasksAsTable(taskRowEntries)
+		tableHeader, allPageData := jobTasksAsTable(jobTaskRowEntries)
 		return PageLoadedMsg{Page: JobTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
+}
+
+func jobTasksAsTable(jobTaskRowEntries []jobTaskRowEntry) ([]string, []page.Row) {
+	var taskResponseRows [][]string
+	var keys []string
+	for _, row := range jobTaskRowEntries {
+		uptime := "-"
+		if row.State == "running" {
+			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
+		}
+		taskResponseRows = append(taskResponseRows, []string{
+			formatter.ShortAllocID(row.ID),
+			row.TaskGroup,
+			row.Name,
+			row.TaskName,
+			row.State,
+			formatter.FormatTime(row.StartedAt),
+			formatter.FormatTime(row.FinishedAt),
+			uptime,
+		})
+		keys = append(keys, toTaskKey(row.State, row.FullAllocationAsJSON, row.TaskName))
+	}
+
+	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
+	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
 }

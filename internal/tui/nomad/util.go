@@ -11,55 +11,16 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const keySeparator = "|【=◈︿◈=】|"
 
-type taskRowEntry struct {
-	FullAllocationAsJSON                 string
-	ID, TaskGroup, Name, TaskName, State string
-	StartedAt, FinishedAt                time.Time
-}
-
-func tasksAsTable(taskRowEntries []taskRowEntry) ([]string, []page.Row) {
-	var taskResponseRows [][]string
-	var keys []string
-	for _, row := range taskRowEntries {
-		uptime := "-"
-		if row.State == "running" {
-			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
-		}
-		taskResponseRows = append(taskResponseRows, []string{
-			formatter.ShortAllocID(row.ID),
-			row.TaskGroup,
-			row.Name,
-			row.TaskName,
-			row.State,
-			formatter.FormatTime(row.StartedAt),
-			formatter.FormatTime(row.FinishedAt),
-			uptime,
-		})
-		keys = append(keys, toTaskKey(row))
-	}
-
-	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
-	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
-
-	var rows []page.Row
-	for idx, row := range table.ContentRows {
-		rows = append(rows, page.Row{Key: keys[idx], Row: row})
-	}
-
-	return table.HeaderRows, rows
-}
-
-func toTaskKey(taskRowEntry taskRowEntry) string {
+func toTaskKey(state, fullAllocationAsJSON, taskName string) string {
 	isRunning := "false"
-	if taskRowEntry.State == "running" {
+	if state == "running" {
 		isRunning = "true"
 	}
-	return taskRowEntry.FullAllocationAsJSON + keySeparator + taskRowEntry.TaskName + keySeparator + isRunning
+	return fullAllocationAsJSON + keySeparator + taskName + keySeparator + isRunning
 }
 
 type TaskInfo struct {

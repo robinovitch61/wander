@@ -4,9 +4,18 @@ import (
 	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"sort"
+	"time"
 )
+
+type taskRowEntry struct {
+	FullAllocationAsJSON                        string
+	JobID, ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                       time.Time
+}
 
 func FetchAllTasks(client api.Client) tea.Cmd {
 	return func() tea.Msg {
@@ -25,6 +34,7 @@ func FetchAllTasks(client api.Client) tea.Cmd {
 			for taskName, task := range alloc.TaskStates {
 				taskRowEntries = append(taskRowEntries, taskRowEntry{
 					FullAllocationAsJSON: string(allocAsJSON),
+					JobID:                alloc.JobID,
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
 					Name:                 alloc.Name,
@@ -57,4 +67,37 @@ func FetchAllTasks(client api.Client) tea.Cmd {
 		tableHeader, allPageData := tasksAsTable(taskRowEntries)
 		return PageLoadedMsg{Page: AllTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
+}
+
+func tasksAsTable(taskRowEntries []taskRowEntry) ([]string, []page.Row) {
+	var taskResponseRows [][]string
+	var keys []string
+	for _, row := range taskRowEntries {
+		uptime := "-"
+		if row.State == "running" {
+			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
+		}
+		taskResponseRows = append(taskResponseRows, []string{
+			row.JobID,
+			formatter.ShortAllocID(row.ID),
+			row.TaskGroup,
+			row.Name,
+			row.TaskName,
+			row.State,
+			formatter.FormatTime(row.StartedAt),
+			formatter.FormatTime(row.FinishedAt),
+			uptime,
+		})
+		keys = append(keys, toTaskKey(row.State, row.FullAllocationAsJSON, row.TaskName))
+	}
+
+	columns := []string{"Job", "Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
+	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
 }
