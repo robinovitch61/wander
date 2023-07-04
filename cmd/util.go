@@ -219,7 +219,7 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 }
 
 func retrieveJobColumns(cmd *cobra.Command) []string {
-	columnsString := retrieveWithDefault(cmd, jobColumnsArg, "ID,Type,Namespace,Status,Count,Submitted,Since Submit")
+	columnsString := retrieveWithDefault(cmd, jobColumnsArg, "Job,Type,Namespace,Status,Count,Submitted,Since Submit")
 	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {

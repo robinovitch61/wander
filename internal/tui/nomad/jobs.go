@@ -52,7 +52,7 @@ func getCount(row *api.JobListStub) string {
 
 func getJobRowFromColumns(row *api.JobListStub, columns []string) []string {
 	knownColMap := map[string]string{
-		"ID":           row.ID,
+		"Job":          row.ID,
 		"Type":         row.Type,
 		"Namespace":    row.Namespace,
 		"Priority":     strconv.Itoa(row.Priority),

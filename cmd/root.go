@@ -108,7 +108,7 @@ var (
 	jobColumnsArg = arg{
 		cliLong:       "job-columns",
 		cfgFileEnvVar: "wander_job_columns",
-		description:   `Columns to display for Jobs - can reference Meta keys. Default "ID,Type,Namespace,Status,Count,Submitted,Since Submit"`,
+		description:   `Columns to display for Jobs - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
 	}
 	allTaskColumnsArg = arg{
 		cliLong:       "all-tasks-columns",
