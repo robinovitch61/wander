@@ -108,7 +108,7 @@ var (
 	jobColumnsArg = arg{
 		cliLong:       "job-columns",
 		cfgFileEnvVar: "wander_job_columns",
-		description:   `Columns to display for Jobs - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
+		description:   `Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
 	}
 	allTaskColumnsArg = arg{
 		cliLong:       "all-tasks-columns",
@@ -163,8 +163,8 @@ var (
 		description:   `If "true", start with compact header. Default "false"`,
 	}
 	startAllTasksView = arg{
-		cliLong:       "all-tasks",
-		cfgFileEnvVar: "wander_all_tasks",
+		cliLong:       "start-all-tasks",
+		cfgFileEnvVar: "wander_start_all_tasks",
 		description:   `If "true", start in All Tasks view. Default "false"`,
 	}
 
