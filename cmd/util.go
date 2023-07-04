@@ -248,6 +248,11 @@ func retrieveStartCompact(cmd *cobra.Command) bool {
 	return trueIfTrue(v)
 }
 
+func retrieveStartAllTasksView(cmd *cobra.Command) bool {
+	v := retrieveWithDefault(cmd, startAllTasksView, "false")
+	return trueIfTrue(v)
+}
+
 // customLoggingMiddleware provides basic connection logging. Connects are logged with the
 // remote address, invoked command, TERM setting, window dimensions and if the
 // auth was public key based. Disconnect will log the remote address and
@@ -294,6 +299,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	jobColumns := retrieveJobColumns(cmd)
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 	startCompact := retrieveStartCompact(cmd)
+	startAllTasksView := retrieveStartAllTasksView(cmd)
 
 	dev.Debug(fmt.Sprintf("Version: %s, %s, %s", versioninfo.Version, versioninfo.Revision, versioninfo.Short()))
 	initialModel := app.InitialModel(app.Config{
@@ -321,10 +327,11 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 			Namespace: eventNamespace,
 			JQQuery:   eventJQQuery,
 		},
-		UpdateSeconds: time.Second * time.Duration(updateSeconds),
-		JobColumns:    jobColumns,
-		LogoColor:     logoColor,
-		StartCompact:  startCompact,
+		UpdateSeconds:     time.Second * time.Duration(updateSeconds),
+		JobColumns:        jobColumns,
+		LogoColor:         logoColor,
+		StartCompact:      startCompact,
+		StartAllTasksView: startAllTasksView,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }

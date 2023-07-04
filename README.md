@@ -132,6 +132,9 @@ Example yaml file showing all options (uncomment an option to enable it):
 # If "true", start with compact header. Default "false"
 #wander_compact_header: true
 
+# If "true", start in All Tasks view. Default "false"
+#wander_all_tasks: true
+
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 

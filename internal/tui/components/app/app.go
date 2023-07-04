@@ -49,6 +49,7 @@ type Config struct {
 	JobColumns                    []string
 	LogoColor                     string
 	StartCompact                  bool
+	StartAllTasksView             bool
 }
 
 type Model struct {
@@ -90,21 +91,22 @@ type Model struct {
 
 func InitialModel(c Config) Model {
 	firstPage := nomad.JobsPage
+	if c.StartAllTasksView {
+		firstPage = nomad.AllTasksPage
+	}
 	initialHeader := header.New(
 		constants.LogoString,
 		c.LogoColor,
 		c.URL,
 		c.Version,
-		// TODO LEO: don't forget about inJobsMode here
-		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut, false, true),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
 	)
 	return Model{
 		config:      c,
 		header:      initialHeader,
 		currentPage: firstPage,
 		updateID:    nextUpdateID(),
-		// TODO LEO: make inJobsMode starting value configurable?
-		inJobsMode: true,
+		inJobsMode:  !c.StartAllTasksView,
 	}
 }
 
