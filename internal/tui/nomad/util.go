@@ -1,51 +1,85 @@
 package nomad
 
 import (
-	"errors"
+	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
+	"time"
 )
 
-func doQuery(url, token string, params [][2]string) (*http.Response, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Nomad-Token", token)
+const keySeparator = "|【=◈︿◈=】|"
 
-	query := req.URL.Query()
-	for _, p := range params {
-		query.Add(p[0], p[1])
-	}
-	req.URL.RawQuery = query.Encode()
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+type taskRowEntry struct {
+	FullAllocationAsJSON                 string
+	ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                time.Time
 }
 
-func get(url, token string, params [][2]string) ([]byte, error) {
-	resp, err := doQuery(url, token, params)
-	if err != nil {
-		return nil, err
+func tasksAsTable(taskRowEntries []taskRowEntry) ([]string, []page.Row) {
+	var taskResponseRows [][]string
+	var keys []string
+	for _, row := range taskRowEntries {
+		uptime := "-"
+		if row.State == "running" {
+			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
+		}
+		taskResponseRows = append(taskResponseRows, []string{
+			formatter.ShortAllocID(row.ID),
+			row.TaskGroup,
+			row.Name,
+			row.TaskName,
+			row.State,
+			formatter.FormatTime(row.StartedAt),
+			formatter.FormatTime(row.FinishedAt),
+			uptime,
+		})
+		keys = append(keys, toTaskKey(row))
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
+	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
+}
+
+func toTaskKey(taskRowEntry taskRowEntry) string {
+	isRunning := "false"
+	if taskRowEntry.State == "running" {
+		isRunning = "true"
+	}
+	return taskRowEntry.FullAllocationAsJSON + keySeparator + taskRowEntry.TaskName + keySeparator + isRunning
+}
+
+type TaskInfo struct {
+	Alloc    api.Allocation
+	TaskName string
+	Running  bool
+}
+
+func TaskInfoFromKey(key string) (TaskInfo, error) {
+	split := strings.Split(key, keySeparator)
+	running, err := strconv.ParseBool(split[2])
 	if err != nil {
-		return nil, err
+		return TaskInfo{}, err
 	}
-	if string(body) == "ACL token not found" {
-		return nil, errors.New("token not authorized")
+	var alloc api.Allocation
+	err = json.Unmarshal([]byte(split[0]), &alloc)
+	if err != nil {
+		return TaskInfo{}, err
 	}
-	return body, nil
+	return TaskInfo{Alloc: alloc, TaskName: split[1], Running: running}, nil
 }
 
 func getWebSocketConnection(secure bool, host, path, token string, params map[string]string) (*websocket.Conn, error) {

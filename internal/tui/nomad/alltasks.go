@@ -8,15 +8,15 @@ import (
 	"sort"
 )
 
-func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
+func FetchAllTasks(client api.Client) tea.Cmd {
 	return func() tea.Msg {
-		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
+		allocations, _, err := client.Allocations().List(&api.QueryOptions{})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
 		var taskRowEntries []taskRowEntry
-		for _, alloc := range allocationsForJob {
+		for _, alloc := range allocations {
 			allocAsJSON, err := json.Marshal(alloc)
 			if err != nil {
 				return message.ErrMsg{Err: err}
@@ -55,6 +55,6 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := tasksAsTable(taskRowEntries)
-		return PageLoadedMsg{Page: JobTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		return PageLoadedMsg{Page: AllTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
