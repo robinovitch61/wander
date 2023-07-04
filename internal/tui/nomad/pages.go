@@ -20,6 +20,7 @@ type Page int8
 const (
 	Unset Page = iota
 	JobsPage
+	AllTasksPage
 	JobSpecPage
 	JobEventsPage
 	JobEventPage
@@ -42,6 +43,12 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 			LoadingString: JobsPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
 			ViewportConditionalStyle: constants.JobsTableStatusStyles,
+		},
+		AllTasksPage: {
+			Width: width, Height: height,
+			LoadingString: AllTasksPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			ViewportConditionalStyle: constants.TasksTableStatusStyles,
 		},
 		JobSpecPage: {
 			Width: width, Height: height,
@@ -132,6 +139,16 @@ func (p Page) DoesReload() bool {
 	return true
 }
 
+func (p Page) ShowsTasks() bool {
+	taskPages := []Page{AllTasksPage, JobTasksPage}
+	for _, taskPage := range taskPages {
+		if taskPage == p {
+			return true
+		}
+	}
+	return false
+}
+
 func (p Page) doesUpdate() bool {
 	noUpdatePages := []Page{
 		LoglinePage,     // doesn't load
@@ -160,9 +177,13 @@ func (p Page) String() string {
 		return "undefined"
 	case JobsPage:
 		return "jobs"
+	case AllTasksPage:
+		return "all tasks"
 	case JobSpecPage:
 		return "job spec"
-	case JobEventsPage, AllocEventsPage:
+	case JobEventsPage:
+		return "job events"
+	case AllocEventsPage:
 		return "events"
 	case JobMetaPage:
 		return "meta"
@@ -192,6 +213,8 @@ func (p Page) Forward() Page {
 	switch p {
 	case JobsPage:
 		return JobTasksPage
+	case AllTasksPage:
+		return LogsPage
 	case JobEventsPage:
 		return JobEventPage
 	case AllocEventsPage:
@@ -206,7 +229,14 @@ func (p Page) Forward() Page {
 	return p
 }
 
-func (p Page) Backward() Page {
+func returnToPage(inJobsMode bool) Page {
+	if inJobsMode {
+		return JobTasksPage
+	}
+	return AllTasksPage
+}
+
+func (p Page) Backward(inJobsMode bool) Page {
 	switch p {
 	case JobSpecPage:
 		return JobsPage
@@ -217,7 +247,7 @@ func (p Page) Backward() Page {
 	case JobMetaPage:
 		return JobsPage
 	case AllocEventsPage:
-		return JobTasksPage
+		return returnToPage(inJobsMode)
 	case AllocEventPage:
 		return AllocEventsPage
 	case AllEventsPage:
@@ -227,11 +257,11 @@ func (p Page) Backward() Page {
 	case JobTasksPage:
 		return JobsPage
 	case ExecPage:
-		return JobTasksPage
+		return returnToPage(inJobsMode)
 	case AllocSpecPage:
-		return JobTasksPage
+		return returnToPage(inJobsMode)
 	case LogsPage:
-		return JobTasksPage
+		return returnToPage(inJobsMode)
 	case LoglinePage:
 		return LogsPage
 	}
@@ -246,15 +276,19 @@ func taskFilterPrefix(taskName, allocName string) string {
 	return fmt.Sprintf("%s in %s", style.Bold.Render(taskName), allocName)
 }
 
+func namespaceFilterPrefix(namespace string) string {
+	if namespace == "*" {
+		return "All Namespaces"
+	}
+	return fmt.Sprintf("Namespace %s", style.Bold.Render(namespace))
+}
+
 func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID string, eventTopics Topics, eventNamespace string) string {
 	switch p {
 	case JobsPage:
-		if namespace == "*" {
-			namespace = "All Namespaces"
-		} else {
-			namespace = fmt.Sprintf("Namespace %s", style.Bold.Render(namespace))
-		}
-		return fmt.Sprintf("Jobs in %s", namespace)
+		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace))
+	case AllTasksPage:
+		return fmt.Sprintf("All Tasks in %s", namespaceFilterPrefix(namespace))
 	case JobSpecPage:
 		return fmt.Sprintf("Spec for Job %s", style.Bold.Render(jobID))
 	case JobEventsPage:
@@ -320,7 +354,7 @@ func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 func getShortHelp(bindings []key.Binding) string {
 	var output string
 	for _, km := range bindings {
-		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "   "
+		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "  "
 	}
 	output = strings.TrimSpace(output)
 	return output
@@ -334,7 +368,7 @@ func GetPageKeyHelp(
 	currentPage Page,
 	filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool,
 	logType LogType,
-	compact bool,
+	compact, inJobsMode bool,
 ) string {
 	if compact {
 		changeKeyHelp(&keymap.KeyMap.Compact, "expand header")
@@ -365,12 +399,17 @@ func GetPageKeyHelp(
 	if filterApplied {
 		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
-	} else if prevPage := currentPage.Backward(); prevPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward().String()))
+	} else if prevPage := currentPage.Backward(inJobsMode); prevPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward(inJobsMode).String()))
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
-	if currentPage == JobsPage || currentPage == JobTasksPage {
+	if currentPage == JobsPage || currentPage.ShowsTasks() {
+		if currentPage == JobsPage {
+			fourthRow = append(fourthRow, keymap.KeyMap.TasksMode)
+		} else if currentPage == AllTasksPage {
+			fourthRow = append(fourthRow, keymap.KeyMap.JobsMode)
+		}
 		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
 		if logType == StdOut {
@@ -386,7 +425,7 @@ func GetPageKeyHelp(
 		fourthRow = append(fourthRow, keymap.KeyMap.JobMeta)
 	}
 
-	if currentPage == JobTasksPage {
+	if currentPage.ShowsTasks() {
 		fourthRow = append(fourthRow, keymap.KeyMap.AllocEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
 	}

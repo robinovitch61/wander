@@ -108,7 +108,17 @@ var (
 	jobColumnsArg = arg{
 		cliLong:       "job-columns",
 		cfgFileEnvVar: "wander_job_columns",
-		description:   `Columns to display for Jobs - can reference Meta keys. Default 'ID,Type,Namespace,Status,Count,Submitted,Since Submit'`,
+		description:   `Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
+	}
+	allTaskColumnsArg = arg{
+		cliLong:       "all-tasks-columns",
+		cfgFileEnvVar: "wander_all_tasks_columns",
+		description:   `Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
+	}
+	jobTaskColumnsArg = arg{
+		cliLong:       "tasks-for-job-columns",
+		cfgFileEnvVar: "wander_tasks_for_job_columns",
+		description:   `Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
 	}
 	logOffsetArg = arg{
 		cliShort:      "o",
@@ -152,6 +162,11 @@ var (
 		cfgFileEnvVar: "wander_compact_header",
 		description:   `If "true", start with compact header. Default "false"`,
 	}
+	startAllTasksView = arg{
+		cliLong:       "start-all-tasks",
+		cfgFileEnvVar: "wander_start_all_tasks",
+		description:   `If "true", start in All Tasks view. Default "false"`,
+	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
 view jobs, allocations, tasks, logs, and more, all from the terminal
@@ -192,6 +207,8 @@ func init() {
 		skipVerifyArg,
 		updateSecondsArg,
 		jobColumnsArg,
+		allTaskColumnsArg,
+		jobTaskColumnsArg,
 		logOffsetArg,
 		logTailArg,
 		copySavePathArg,
@@ -199,6 +216,7 @@ func init() {
 		eventNamespaceArg,
 		eventJQQueryArg,
 		startCompactArg,
+		startAllTasksView,
 	} {
 		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
 		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))

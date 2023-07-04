@@ -1,51 +1,53 @@
 package nomad
 
 import (
-	"errors"
+	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
+	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
+	"time"
 )
 
-func doQuery(url, token string, params [][2]string) (*http.Response, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Nomad-Token", token)
+const keySeparator = "|【=◈︿◈=】|"
 
-	query := req.URL.Query()
-	for _, p := range params {
-		query.Add(p[0], p[1])
-	}
-	req.URL.RawQuery = query.Encode()
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+type taskRowEntry struct {
+	FullAllocationAsJSON                        string
+	JobID, ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                       time.Time
 }
 
-func get(url, token string, params [][2]string) ([]byte, error) {
-	resp, err := doQuery(url, token, params)
-	if err != nil {
-		return nil, err
+func toTaskKey(state, fullAllocationAsJSON, taskName string) string {
+	isRunning := "false"
+	if state == "running" {
+		isRunning = "true"
 	}
+	return fullAllocationAsJSON + keySeparator + taskName + keySeparator + isRunning
+}
 
-	body, err := ioutil.ReadAll(resp.Body)
+type TaskInfo struct {
+	Alloc    api.Allocation
+	TaskName string
+	Running  bool
+}
+
+func TaskInfoFromKey(key string) (TaskInfo, error) {
+	split := strings.Split(key, keySeparator)
+	running, err := strconv.ParseBool(split[2])
 	if err != nil {
-		return nil, err
+		return TaskInfo{}, err
 	}
-	if string(body) == "ACL token not found" {
-		return nil, errors.New("token not authorized")
+	var alloc api.Allocation
+	err = json.Unmarshal([]byte(split[0]), &alloc)
+	if err != nil {
+		return TaskInfo{}, err
 	}
-	return body, nil
+	return TaskInfo{Alloc: alloc, TaskName: split[1], Running: running}, nil
 }
 
 func getWebSocketConnection(secure bool, host, path, token string, params map[string]string) (*websocket.Conn, error) {
@@ -89,4 +91,12 @@ func PrettifyLine(l string, p Page) tea.Cmd {
 			AllPageRows: rows,
 		}
 	}
+}
+
+func getUptime(status string, startTime int64) string {
+	uptime := "-"
+	if status == "running" {
+		uptime = formatter.FormatTimeNsSinceNow(startTime)
+	}
+	return uptime
 }

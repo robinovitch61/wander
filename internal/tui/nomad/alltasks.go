@@ -10,24 +10,24 @@ import (
     "sort"
 )
 
-func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []string) tea.Cmd {
+func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 	return func() tea.Msg {
-		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
+		allocations, _, err := client.Allocations().List(&api.QueryOptions{})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
-		var jobTaskRowEntries []taskRowEntry
-		for _, alloc := range allocationsForJob {
+		var taskRowEntries []taskRowEntry
+		for _, alloc := range allocations {
 			allocAsJSON, err := json.Marshal(alloc)
 			if err != nil {
 				return message.ErrMsg{Err: err}
 			}
 
 			for taskName, task := range alloc.TaskStates {
-				jobTaskRowEntries = append(jobTaskRowEntries, taskRowEntry{
-					JobID:                alloc.JobID,
+				taskRowEntries = append(taskRowEntries, taskRowEntry{
 					FullAllocationAsJSON: string(allocAsJSON),
+					JobID:                alloc.JobID,
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
 					Name:                 alloc.Name,
@@ -39,30 +39,33 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 			}
 		}
 
-		sort.Slice(jobTaskRowEntries, func(x, y int) bool {
-			firstTask := jobTaskRowEntries[x]
-			secondTask := jobTaskRowEntries[y]
-			if firstTask.TaskName == secondTask.TaskName {
-				if firstTask.Name == secondTask.Name {
-					if firstTask.State == secondTask.State {
-						if firstTask.StartedAt.Equal(secondTask.StartedAt) {
-							return firstTask.ID > secondTask.ID
+		sort.Slice(taskRowEntries, func(x, y int) bool {
+			firstTask := taskRowEntries[x]
+			secondTask := taskRowEntries[y]
+			if firstTask.JobID == secondTask.JobID {
+				if firstTask.TaskName == secondTask.TaskName {
+					if firstTask.Name == secondTask.Name {
+						if firstTask.State == secondTask.State {
+							if firstTask.StartedAt.Equal(secondTask.StartedAt) {
+								return firstTask.ID > secondTask.ID
+							}
+							return firstTask.StartedAt.After(secondTask.StartedAt)
 						}
-						return firstTask.StartedAt.After(secondTask.StartedAt)
+						return firstTask.State > secondTask.State
 					}
-					return firstTask.State > secondTask.State
+					return firstTask.Name < secondTask.Name
 				}
-				return firstTask.Name < secondTask.Name
+				return firstTask.TaskName < secondTask.TaskName
 			}
-			return firstTask.TaskName < secondTask.TaskName
+			return firstTask.JobID < secondTask.JobID
 		})
 
-		tableHeader, allPageData := jobTasksAsTable(jobTaskRowEntries, columns)
-		return PageLoadedMsg{Page: JobTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		tableHeader, allPageData := tasksAsTable(taskRowEntries, columns)
+		return PageLoadedMsg{Page: AllTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 
-func getJobTaskRowFromColumns(row taskRowEntry, columns []string) []string {
+func getTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	knownColMap := map[string]string{
 		"Job":        row.JobID,
 		"Alloc ID":   formatter.ShortAllocID(row.ID),
@@ -86,11 +89,11 @@ func getJobTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	return rowEntries
 }
 
-func jobTasksAsTable(jobTaskRowEntries []taskRowEntry, columns []string) ([]string, []page.Row) {
+func tasksAsTable(taskRowEntries []taskRowEntry, columns []string) ([]string, []page.Row) {
 	var taskResponseRows [][]string
 	var keys []string
-	for _, row := range jobTaskRowEntries {
-		taskResponseRows = append(taskResponseRows, getJobTaskRowFromColumns(row, columns))
+	for _, row := range taskRowEntries {
+		taskResponseRows = append(taskResponseRows, getTaskRowFromColumns(row, columns))
 		keys = append(keys, toTaskKey(row.State, row.FullAllocationAsJSON, row.TaskName))
 	}
 

@@ -219,8 +219,28 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 }
 
 func retrieveJobColumns(cmd *cobra.Command) []string {
-	updateSecondsString := retrieveWithDefault(cmd, jobColumnsArg, "ID,Type,Namespace,Status,Count,Submitted,Since Submit")
-	split := strings.Split(updateSecondsString, ",")
+	columnsString := retrieveWithDefault(cmd, jobColumnsArg, "Job,Type,Namespace,Status,Count,Submitted,Since Submit")
+	split := strings.Split(columnsString, ",")
+	var trimmed []string
+	for _, s := range split {
+		trimmed = append(trimmed, strings.TrimSpace(s))
+	}
+	return trimmed
+}
+
+func retrieveAllTaskColumns(cmd *cobra.Command) []string {
+	columnsString := retrieveWithDefault(cmd, allTaskColumnsArg, "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
+	split := strings.Split(columnsString, ",")
+	var trimmed []string
+	for _, s := range split {
+		trimmed = append(trimmed, strings.TrimSpace(s))
+	}
+	return trimmed
+}
+
+func retrieveJobTaskColumns(cmd *cobra.Command) []string {
+	columnsString := retrieveWithDefault(cmd, jobTaskColumnsArg, "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
+	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {
 		trimmed = append(trimmed, strings.TrimSpace(s))
@@ -245,6 +265,11 @@ func retrieveLogTail(cmd *cobra.Command) bool {
 
 func retrieveStartCompact(cmd *cobra.Command) bool {
 	v := retrieveWithDefault(cmd, startCompactArg, "false")
+	return trueIfTrue(v)
+}
+
+func retrieveStartAllTasksView(cmd *cobra.Command) bool {
+	v := retrieveWithDefault(cmd, startAllTasksView, "false")
 	return trueIfTrue(v)
 }
 
@@ -292,8 +317,11 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	eventJQQuery := retrieveEventJQQuery(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
 	jobColumns := retrieveJobColumns(cmd)
+	allTaskColumns := retrieveAllTaskColumns(cmd)
+	jobTaskColumns := retrieveJobTaskColumns(cmd)
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 	startCompact := retrieveStartCompact(cmd)
+	startAllTasksView := retrieveStartAllTasksView(cmd)
 
 	dev.Debug(fmt.Sprintf("Version: %s, %s, %s", versioninfo.Version, versioninfo.Revision, versioninfo.Short()))
 	initialModel := app.InitialModel(app.Config{
@@ -321,10 +349,13 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 			Namespace: eventNamespace,
 			JQQuery:   eventJQQuery,
 		},
-		UpdateSeconds: time.Second * time.Duration(updateSeconds),
-		JobColumns:    jobColumns,
-		LogoColor:     logoColor,
-		StartCompact:  startCompact,
+		UpdateSeconds:     time.Second * time.Duration(updateSeconds),
+		JobColumns:        jobColumns,
+		AllTaskColumns:    allTaskColumns,
+		JobTaskColumns:    jobTaskColumns,
+		LogoColor:         logoColor,
+		StartCompact:      startCompact,
+		StartAllTasksView: startAllTasksView,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }

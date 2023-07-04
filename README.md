@@ -126,11 +126,20 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Seconds between updates for job & allocation pages. Disable with "-1". Default "2"
 #wander_update_seconds: 1
 
-# Columns to display for Jobs - can reference Meta keys. Default 'ID,Type,Namespace,Status,Count,Submitted,Since Submit'
-#wander_job_columns: 'ID,Type,Namespace,Priority,Status,Count,Submitted,Since Submit,SomeMetaKey'
+# Columns to display for Jobs view - can reference Meta keys. Default "ID,Type,Namespace,Status,Count,Submitted,Since Submit"
+#wander_job_columns: "Job,Type,Namespace,Priority,Status,Count,Submitted,Since Submit,SomeMetaKey"
+
+# Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+#wander_tasks_for_job_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+
+# Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+#wander_all_tasks_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
 # If "true", start with compact header. Default "false"
 #wander_compact_header: true
+
+# If "true", start in All Tasks view. Default "false"
+#wander_start_all_tasks: true
 
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000

@@ -47,8 +47,11 @@ type Config struct {
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
 	JobColumns                    []string
+	AllTaskColumns                []string
+	JobTaskColumns                []string
 	LogoColor                     string
 	StartCompact                  bool
+	StartAllTasksView             bool
 }
 
 type Model struct {
@@ -60,6 +63,7 @@ type Model struct {
 	currentPage nomad.Page
 	pageModels  map[nomad.Page]*page.Model
 
+	inJobsMode   bool
 	jobID        string
 	jobNamespace string
 	alloc        api.Allocation
@@ -89,18 +93,22 @@ type Model struct {
 
 func InitialModel(c Config) Model {
 	firstPage := nomad.JobsPage
+	if c.StartAllTasksView {
+		firstPage = nomad.AllTasksPage
+	}
 	initialHeader := header.New(
 		constants.LogoString,
 		c.LogoColor,
 		c.URL,
 		c.Version,
-		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut, false),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
 	)
 	return Model{
 		config:      c,
 		header:      initialHeader,
 		currentPage: firstPage,
 		updateID:    nextUpdateID(),
+		inJobsMode:  !c.StartAllTasksView,
 	}
 }
 
@@ -379,15 +387,17 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 				case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 					m.event = selectedPageRow.Key
-				case nomad.JobTasksPage:
-					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
-					if err != nil {
-						m.err = err
-						return nil
-					}
-					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
 				case nomad.LogsPage:
 					m.logline = selectedPageRow.Row
+				default:
+					if m.currentPage.ShowsTasks() {
+						taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
+						if err != nil {
+							m.err = err
+							return nil
+						}
+						m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
+					}
 				}
 
 				nextPage := m.currentPage.Forward()
@@ -407,7 +417,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.getCurrentPageModel().SetDoesNeedNewInput()
 				}
 
-				backPage := m.currentPage.Backward()
+				backPage := m.currentPage.Backward(m.inJobsMode)
 				if backPage != m.currentPage {
 					m.setPage(backPage)
 					cmds = append(cmds, m.getCurrentPageCmd())
@@ -424,7 +434,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 		if key.Matches(msg, keymap.KeyMap.Exec) {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-				if m.currentPage == nomad.JobTasksPage {
+				if m.currentPage.ShowsTasks() {
 					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 					if err != nil {
 						m.err = err
@@ -446,15 +456,17 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 					m.setPage(nomad.JobSpecPage)
 					return m.getCurrentPageCmd()
-				case nomad.JobTasksPage:
-					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
-					if err != nil {
-						m.err = err
-						return nil
+				default:
+					if m.currentPage.ShowsTasks() {
+						taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
+						if err != nil {
+							m.err = err
+							return nil
+						}
+						m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
+						m.setPage(nomad.AllocSpecPage)
+						return m.getCurrentPageCmd()
 					}
-					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
-					m.setPage(nomad.AllocSpecPage)
-					return m.getCurrentPageCmd()
 				}
 			}
 		}
@@ -467,6 +479,22 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
+		if key.Matches(msg, keymap.KeyMap.TasksMode) && m.currentPage == nomad.JobsPage {
+			if m.inJobsMode {
+				m.setPage(nomad.AllTasksPage)
+				m.inJobsMode = false
+				return m.getCurrentPageCmd()
+			}
+		}
+
+		if key.Matches(msg, keymap.KeyMap.JobsMode) && m.currentPage == nomad.AllTasksPage {
+			if !m.inJobsMode {
+				m.setPage(nomad.JobsPage)
+				m.inJobsMode = true
+				return m.getCurrentPageCmd()
+			}
+		}
+
 		if key.Matches(msg, keymap.KeyMap.JobMeta) && m.currentPage == nomad.JobsPage {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
@@ -475,7 +503,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
-		if key.Matches(msg, keymap.KeyMap.AllocEvents) && m.currentPage == nomad.JobTasksPage {
+		if key.Matches(msg, keymap.KeyMap.AllocEvents) && m.currentPage.ShowsTasks() {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 				if err != nil {
@@ -573,7 +601,7 @@ func (m *Model) setInPty(inPty bool) {
 }
 
 func (m *Model) updateKeyHelp() {
-	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType, m.compact)
+	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType, m.compact, m.inJobsMode)
 	m.header.SetKeyHelp(newKeyHelp)
 }
 
@@ -591,6 +619,8 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
 		return nomad.FetchJobs(m.client, m.config.JobColumns)
+	case nomad.AllTasksPage:
+		return nomad.FetchAllTasks(m.client, m.config.AllTaskColumns)
 	case nomad.JobSpecPage:
 		return nomad.FetchJobSpec(m.client, m.jobID, m.jobNamespace)
 	case nomad.JobEventsPage:
@@ -608,7 +638,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.JobTasksPage:
-		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace)
+		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace, m.config.JobTaskColumns)
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:

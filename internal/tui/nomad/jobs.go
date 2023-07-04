@@ -50,24 +50,16 @@ func getCount(row *api.JobListStub) string {
 	return strconv.Itoa(num) + "/" + strconv.Itoa(denom)
 }
 
-func getUptime(row *api.JobListStub) string {
-	uptime := "-"
-	if row.Status == "running" {
-		uptime = formatter.FormatTimeNsSinceNow(row.SubmitTime)
-	}
-	return uptime
-}
-
-func getRowFromColumns(row *api.JobListStub, columns []string) []string {
+func getJobRowFromColumns(row *api.JobListStub, columns []string) []string {
 	knownColMap := map[string]string{
-		"ID":           row.ID,
+		"Job":          row.ID,
 		"Type":         row.Type,
 		"Namespace":    row.Namespace,
 		"Priority":     strconv.Itoa(row.Priority),
 		"Status":       row.Status,
 		"Count":        getCount(row),
 		"Submitted":    formatter.FormatTimeNs(row.SubmitTime),
-		"Since Submit": getUptime(row),
+		"Since Submit": getUptime(row.Status, row.SubmitTime),
 	}
 
 	var rowEntries []string
@@ -89,7 +81,7 @@ func jobResponsesAsTable(jobResponse []*api.JobListStub, columns []string) ([]st
 	var jobResponseRows [][]string
 	var keys []string
 	for _, row := range jobResponse {
-		jobResponseRows = append(jobResponseRows, getRowFromColumns(row, columns))
+		jobResponseRows = append(jobResponseRows, getJobRowFromColumns(row, columns))
 		keys = append(keys, toJobsKey(row))
 	}
 	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
