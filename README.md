@@ -11,28 +11,14 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
 
 - Browse jobs, allocations, and tasks
 - Live tail logs
-- Exec to run commands in running tasks
-- Tail global or targeted events using a jq query
-- Save any view as a local file
-- See full specs
+- Tail global or targeted events
+- Exec to interact with running tasks
+- See full job or allocation specs
+- Save any content to a local file
 
-<div align="center">
-   <em>View jobs</em>
-   <img src="./img/jobs.png" width="100%"/>
-   <em>View allocations</em>
-   <img src="./img/allocations.png" width="100%"/>
-   <em>View and tail logs</em>
-   <img src="./img/logs.png" width="100%"/>
-   <em>Exec into running tasks</em>
-   <img src="./img/exec.png" width="100%"/>
-   <em>Tail events</em>
-   <img src="./img/events.png" width="100%"/>
-   <em>Save any content to a local file</em>
-   <img src="./img/save.png" width="100%"/>
-   <em>View full job and allocation specs</em>
-   <img src="./img/spec.png" width="100%"/>
-</div>
-&nbsp;
+![](./img/wander.gif)
+
+![](./img/wander_flow2.drawio.png)
 
 `wander` is written with tools from [Charm](https://charm.sh/).
 
