@@ -15,29 +15,29 @@ import (
 
 const keySeparator = "|【=◈︿◈=】|"
 
-// allocationRowEntry is an item extracted from allocationResponseEntry
-type allocationRowEntry struct {
+// taskRowEntry is an item extracted from allocationResponseEntry
+type taskRowEntry struct {
 	FullAllocationAsJSON                 string
 	ID, TaskGroup, Name, TaskName, State string
 	StartedAt, FinishedAt                time.Time
 }
 
-func FetchAllocations(client api.Client, jobID, jobNamespace string) tea.Cmd {
+func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 	return func() tea.Msg {
-		allocs, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
+		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
 
-		var allocationRowEntries []allocationRowEntry
-		for _, alloc := range allocs {
+		var taskRowEntries []taskRowEntry
+		for _, alloc := range allocationsForJob {
 			allocAsJSON, err := json.Marshal(alloc)
 			if err != nil {
 				return message.ErrMsg{Err: err}
 			}
 
 			for taskName, task := range alloc.TaskStates {
-				allocationRowEntries = append(allocationRowEntries, allocationRowEntry{
+				taskRowEntries = append(taskRowEntries, taskRowEntry{
 					FullAllocationAsJSON: string(allocAsJSON),
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
@@ -50,9 +50,9 @@ func FetchAllocations(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			}
 		}
 
-		sort.Slice(allocationRowEntries, func(x, y int) bool {
-			firstTask := allocationRowEntries[x]
-			secondTask := allocationRowEntries[y]
+		sort.Slice(taskRowEntries, func(x, y int) bool {
+			firstTask := taskRowEntries[x]
+			secondTask := taskRowEntries[y]
 			if firstTask.TaskName == secondTask.TaskName {
 				if firstTask.Name == secondTask.Name {
 					if firstTask.State == secondTask.State {
@@ -68,20 +68,20 @@ func FetchAllocations(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			return firstTask.TaskName < secondTask.TaskName
 		})
 
-		tableHeader, allPageData := allocationsAsTable(allocationRowEntries)
-		return PageLoadedMsg{Page: AllocationsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		tableHeader, allPageData := tasksAsTable(taskRowEntries)
+		return PageLoadedMsg{Page: JobTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 
-func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row) {
-	var allocationResponseRows [][]string
+func tasksAsTable(taskRowEntries []taskRowEntry) ([]string, []page.Row) {
+	var taskResponseRows [][]string
 	var keys []string
-	for _, row := range allocations {
+	for _, row := range taskRowEntries {
 		uptime := "-"
 		if row.State == "running" {
 			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
 		}
-		allocationResponseRows = append(allocationResponseRows, []string{
+		taskResponseRows = append(taskResponseRows, []string{
 			formatter.ShortAllocID(row.ID),
 			row.TaskGroup,
 			row.Name,
@@ -91,11 +91,11 @@ func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row)
 			formatter.FormatTime(row.FinishedAt),
 			uptime,
 		})
-		keys = append(keys, toAllocationsKey(row))
+		keys = append(keys, toTaskKey(row))
 	}
 
 	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
-	table := formatter.GetRenderedTableAsString(columns, allocationResponseRows)
+	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {
@@ -105,30 +105,30 @@ func allocationsAsTable(allocations []allocationRowEntry) ([]string, []page.Row)
 	return table.HeaderRows, rows
 }
 
-func toAllocationsKey(allocationRowEntry allocationRowEntry) string {
+func toTaskKey(taskRowEntry taskRowEntry) string {
 	isRunning := "false"
-	if allocationRowEntry.State == "running" {
+	if taskRowEntry.State == "running" {
 		isRunning = "true"
 	}
-	return allocationRowEntry.FullAllocationAsJSON + keySeparator + allocationRowEntry.TaskName + keySeparator + isRunning
+	return taskRowEntry.FullAllocationAsJSON + keySeparator + taskRowEntry.TaskName + keySeparator + isRunning
 }
 
-type AllocationInfo struct {
+type TaskInfo struct {
 	Alloc    api.Allocation
 	TaskName string
 	Running  bool
 }
 
-func AllocationInfoFromKey(key string) (AllocationInfo, error) {
+func TaskInfoFromKey(key string) (TaskInfo, error) {
 	split := strings.Split(key, keySeparator)
 	running, err := strconv.ParseBool(split[2])
 	if err != nil {
-		return AllocationInfo{}, err
+		return TaskInfo{}, err
 	}
 	var alloc api.Allocation
 	err = json.Unmarshal([]byte(split[0]), &alloc)
 	if err != nil {
-		return AllocationInfo{}, err
+		return TaskInfo{}, err
 	}
-	return AllocationInfo{Alloc: alloc, TaskName: split[1], Running: running}, nil
+	return TaskInfo{Alloc: alloc, TaskName: split[1], Running: running}, nil
 }

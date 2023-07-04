@@ -24,12 +24,12 @@ const ExecWebSocketHeartbeatDuration = time.Second * 10
 
 const TablePadding = "   "
 
-var JobsViewportConditionalStyle = map[string]lipgloss.Style{
+var JobsTableStatusStyles = map[string]lipgloss.Style{
 	TablePadding + "pending" + TablePadding: style.JobRowPending,
 	TablePadding + "dead" + TablePadding:    style.JobRowDead,
 }
 
-var AllocationsViewportConditionalStyle = JobsViewportConditionalStyle
+var TasksTableStatusStyles = JobsTableStatusStyles
 
 const DefaultPageInput = "/bin/sh"
 

@@ -19,7 +19,7 @@ import (
 
 type Config struct {
 	Width, Height                                          int
-	FilterPrefix, LoadingString                            string
+	LoadingString                                          string
 	CopySavePath, SelectionEnabled, WrapText, RequestInput bool
 	ViewportConditionalStyle                               map[string]lipgloss.Style
 }
@@ -45,7 +45,7 @@ type Model struct {
 }
 
 func New(c Config) Model {
-	pageFilter := filter.New(c.FilterPrefix)
+	pageFilter := filter.New("")
 	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight())
 	pageViewport.SetSelectionEnabled(c.SelectionEnabled)
 	pageViewport.SetWrapText(c.WrapText)

@@ -315,6 +315,8 @@ func (m *Model) initialize() error {
 		m.toggleCompact()
 	}
 
+	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(m.currentPage))
+
 	m.initialized = true
 	return nil
 }
@@ -377,13 +379,13 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 				case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 					m.event = selectedPageRow.Key
-				case nomad.AllocationsPage:
-					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+				case nomad.JobTasksPage:
+					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 					if err != nil {
 						m.err = err
 						return nil
 					}
-					m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
+					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
 				case nomad.LogsPage:
 					m.logline = selectedPageRow.Row
 				}
@@ -422,14 +424,14 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 		if key.Matches(msg, keymap.KeyMap.Exec) {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-				if m.currentPage == nomad.AllocationsPage {
-					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+				if m.currentPage == nomad.JobTasksPage {
+					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 					if err != nil {
 						m.err = err
 						return nil
 					}
-					if allocInfo.Running {
-						m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
+					if taskInfo.Running {
+						m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
 						m.setPage(nomad.ExecPage)
 						return m.getCurrentPageCmd()
 					}
@@ -444,13 +446,13 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
 					m.setPage(nomad.JobSpecPage)
 					return m.getCurrentPageCmd()
-				case nomad.AllocationsPage:
-					allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+				case nomad.JobTasksPage:
+					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 					if err != nil {
 						m.err = err
 						return nil
 					}
-					m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
+					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
 					m.setPage(nomad.AllocSpecPage)
 					return m.getCurrentPageCmd()
 				}
@@ -473,14 +475,14 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
-		if key.Matches(msg, keymap.KeyMap.AllocEvents) && m.currentPage == nomad.AllocationsPage {
+		if key.Matches(msg, keymap.KeyMap.AllocEvents) && m.currentPage == nomad.JobTasksPage {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-				allocInfo, err := nomad.AllocationInfoFromKey(selectedPageRow.Key)
+				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 				if err != nil {
 					m.err = err
 					return nil
 				}
-				m.alloc, m.taskName = allocInfo.Alloc, allocInfo.TaskName
+				m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
 				m.setPage(nomad.AllocEventsPage)
 				return m.getCurrentPageCmd()
 			}
@@ -605,8 +607,8 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchEventsStream(m.client, m.config.Event.Topics, m.config.Event.Namespace, nomad.AllEventsPage)
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
-	case nomad.AllocationsPage:
-		return nomad.FetchAllocations(m.client, m.jobID, m.jobNamespace)
+	case nomad.JobTasksPage:
+		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace)
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:
@@ -641,5 +643,5 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.jobID, m.taskName, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
+	return page.GetFilterPrefix(m.config.Namespace, m.jobID, m.taskName, m.alloc.Name, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
 }

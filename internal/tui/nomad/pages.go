@@ -28,7 +28,7 @@ const (
 	AllocEventPage
 	AllEventsPage
 	AllEventPage
-	AllocationsPage
+	JobTasksPage
 	ExecPage
 	AllocSpecPage
 	LogsPage
@@ -39,9 +39,9 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 	return map[Page]page.Config{
 		JobsPage: {
 			Width: width, Height: height,
-			FilterPrefix: "Jobs", LoadingString: JobsPage.LoadingString(),
-			CopySavePath: copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
-			ViewportConditionalStyle: constants.JobsViewportConditionalStyle,
+			LoadingString: JobsPage.LoadingString(),
+			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			ViewportConditionalStyle: constants.JobsTableStatusStyles,
 		},
 		JobSpecPage: {
 			Width: width, Height: height,
@@ -83,11 +83,11 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 			LoadingString: AllEventPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
-		AllocationsPage: {
+		JobTasksPage: {
 			Width: width, Height: height,
-			LoadingString: AllocationsPage.LoadingString(),
+			LoadingString: JobTasksPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
-			ViewportConditionalStyle: constants.AllocationsViewportConditionalStyle,
+			ViewportConditionalStyle: constants.TasksTableStatusStyles,
 		},
 		ExecPage: {
 			Width: width, Height: height,
@@ -170,8 +170,8 @@ func (p Page) String() string {
 		return "all events"
 	case JobEventPage, AllocEventPage, AllEventPage:
 		return "event"
-	case AllocationsPage:
-		return "allocations"
+	case JobTasksPage:
+		return "tasks"
 	case ExecPage:
 		return "exec"
 	case AllocSpecPage:
@@ -191,14 +191,14 @@ func (p Page) LoadingString() string {
 func (p Page) Forward() Page {
 	switch p {
 	case JobsPage:
-		return AllocationsPage
+		return JobTasksPage
 	case JobEventsPage:
 		return JobEventPage
 	case AllocEventsPage:
 		return AllocEventPage
 	case AllEventsPage:
 		return AllEventPage
-	case AllocationsPage:
+	case JobTasksPage:
 		return LogsPage
 	case LogsPage:
 		return LoglinePage
@@ -217,57 +217,70 @@ func (p Page) Backward() Page {
 	case JobMetaPage:
 		return JobsPage
 	case AllocEventsPage:
-		return AllocationsPage
+		return JobTasksPage
 	case AllocEventPage:
 		return AllocEventsPage
 	case AllEventsPage:
 		return JobsPage
 	case AllEventPage:
 		return AllEventsPage
-	case AllocationsPage:
+	case JobTasksPage:
 		return JobsPage
 	case ExecPage:
-		return AllocationsPage
+		return JobTasksPage
 	case AllocSpecPage:
-		return AllocationsPage
+		return JobTasksPage
 	case LogsPage:
-		return AllocationsPage
+		return JobTasksPage
 	case LoglinePage:
 		return LogsPage
 	}
 	return p
 }
 
-func (p Page) GetFilterPrefix(jobID, taskName, allocID string, eventTopics Topics, eventNamespace string) string {
+func allocEventFilterPrefix(allocName, allocID string) string {
+	return fmt.Sprintf("%s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+}
+
+func taskFilterPrefix(taskName, allocName string) string {
+	return fmt.Sprintf("%s in %s", style.Bold.Render(taskName), allocName)
+}
+
+func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID string, eventTopics Topics, eventNamespace string) string {
 	switch p {
 	case JobsPage:
-		return "Jobs"
+		if namespace == "*" {
+			namespace = "All Namespaces"
+		} else {
+			namespace = fmt.Sprintf("Namespace %s", style.Bold.Render(namespace))
+		}
+		return fmt.Sprintf("Jobs in %s", namespace)
 	case JobSpecPage:
-		return fmt.Sprintf("Job Spec for %s", style.Bold.Render(jobID))
+		return fmt.Sprintf("Spec for Job %s", style.Bold.Render(jobID))
 	case JobEventsPage:
-		return fmt.Sprintf("Events for %s (%s)", jobID, getTopicNames(eventTopics))
+		return fmt.Sprintf("Events for Job %s (%s)", style.Bold.Render(jobID), getTopicNames(eventTopics))
 	case JobEventPage:
-		return fmt.Sprintf("Event for %s", jobID)
+		return fmt.Sprintf("Event for Job %s", style.Bold.Render(jobID))
 	case JobMetaPage:
-		return fmt.Sprintf("Meta for %s", jobID)
+		return fmt.Sprintf("Meta for Job %s", jobID)
 	case AllocEventsPage:
-		return fmt.Sprintf("Events for %s %s", style.Bold.Render(jobID), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Events for Allocation %s", allocEventFilterPrefix(allocName, allocID))
 	case AllocEventPage:
-		return fmt.Sprintf("Event for %s %s", style.Bold.Render(jobID), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Event for Allocation %s", allocEventFilterPrefix(allocName, allocID))
 	case AllEventsPage:
-		return fmt.Sprintf("All Events in %s (%s)", eventNamespace, formatEventTopics(eventTopics))
+		return fmt.Sprintf("All Events in Namespace %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
 		return fmt.Sprintf("Event")
-	case AllocationsPage:
-		return fmt.Sprintf("Allocations for %s", style.Bold.Render(jobID))
+	case JobTasksPage:
+		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
 	case ExecPage:
-		return fmt.Sprintf("Exec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Exec for Task %s", taskFilterPrefix(taskName, allocName))
 	case AllocSpecPage:
-		return fmt.Sprintf("Allocation Spec for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Spec for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case LogsPage:
-		return fmt.Sprintf("Logs for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Logs for Task %s", taskFilterPrefix(taskName, allocName))
 	case LoglinePage:
-		return fmt.Sprintf("Log Line for %s %s", style.Bold.Render(taskName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
 	default:
 		panic("page not found")
 	}
@@ -357,7 +370,7 @@ func GetPageKeyHelp(
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
-	if currentPage == JobsPage || currentPage == AllocationsPage {
+	if currentPage == JobsPage || currentPage == JobTasksPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
 		if logType == StdOut {
@@ -373,7 +386,7 @@ func GetPageKeyHelp(
 		fourthRow = append(fourthRow, keymap.KeyMap.JobMeta)
 	}
 
-	if currentPage == AllocationsPage {
+	if currentPage == JobTasksPage {
 		fourthRow = append(fourthRow, keymap.KeyMap.AllocEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
 	}
