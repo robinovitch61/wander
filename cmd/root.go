@@ -116,8 +116,8 @@ var (
 		description:   `Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
 	}
 	jobTaskColumnsArg = arg{
-		cliLong:       "job-tasks-columns",
-		cfgFileEnvVar: "wander_job_tasks_columns",
+		cliLong:       "tasks-for-job-columns",
+		cfgFileEnvVar: "wander_tasks_for_job_columns",
 		description:   `Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
 	}
 	logOffsetArg = arg{
