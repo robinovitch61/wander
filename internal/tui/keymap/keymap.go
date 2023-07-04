@@ -46,8 +46,8 @@ var KeyMap = keyMap{
 		key.WithHelp("J", "jobs"),
 	),
 	TasksMode: key.NewBinding(
-		key.WithKeys("T"),
-		key.WithHelp("T", "all tasks"),
+		key.WithKeys("A"),
+		key.WithHelp("A", "all tasks"),
 	),
 	JobEvents: key.NewBinding(
 		key.WithKeys("v"),

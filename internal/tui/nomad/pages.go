@@ -181,7 +181,9 @@ func (p Page) String() string {
 		return "all tasks"
 	case JobSpecPage:
 		return "job spec"
-	case JobEventsPage, AllocEventsPage:
+	case JobEventsPage:
+		return "job events"
+	case AllocEventsPage:
 		return "events"
 	case JobMetaPage:
 		return "meta"
@@ -190,7 +192,7 @@ func (p Page) String() string {
 	case JobEventPage, AllocEventPage, AllEventPage:
 		return "event"
 	case JobTasksPage:
-		return "job tasks"
+		return "tasks"
 	case ExecPage:
 		return "exec"
 	case AllocSpecPage:
@@ -351,7 +353,7 @@ func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 func getShortHelp(bindings []key.Binding) string {
 	var output string
 	for _, km := range bindings {
-		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "   "
+		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "  "
 	}
 	output = strings.TrimSpace(output)
 	return output
@@ -401,7 +403,12 @@ func GetPageKeyHelp(
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 
-	if currentPage == JobsPage || currentPage == JobTasksPage {
+	if currentPage == JobsPage || currentPage.ShowsTasks() {
+		if currentPage == JobsPage {
+			fourthRow = append(fourthRow, keymap.KeyMap.TasksMode)
+		} else if currentPage == AllTasksPage {
+			fourthRow = append(fourthRow, keymap.KeyMap.JobsMode)
+		}
 		fourthRow = append(fourthRow, keymap.KeyMap.Spec)
 	} else if currentPage == LogsPage {
 		if logType == StdOut {
@@ -417,7 +424,7 @@ func GetPageKeyHelp(
 		fourthRow = append(fourthRow, keymap.KeyMap.JobMeta)
 	}
 
-	if currentPage == JobTasksPage {
+	if currentPage.ShowsTasks() {
 		fourthRow = append(fourthRow, keymap.KeyMap.AllocEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
 	}

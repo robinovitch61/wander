@@ -17,9 +17,9 @@ const (
 var (
 	Regular                    = lipgloss.NewStyle()
 	Bold                       = Regular.Copy().Bold(true)
-	Logo                       = Regular.Copy().Padding(0, 1).Foreground(yellow)
+	Logo                       = Regular.Copy().Padding(0, 0).Foreground(yellow)
 	ClusterUrl                 = Bold.Copy()
-	KeyHelp                    = Regular.Copy().Padding(0, 2)
+	KeyHelp                    = Regular.Copy().Padding(0, 1)
 	KeyHelpKey                 = Regular.Copy().Foreground(blue).Bold(true)
 	KeyHelpDescription         = Regular.Copy()
 	Header                     = Regular.Copy().Padding(0, 1).Border(lipgloss.RoundedBorder(), true)

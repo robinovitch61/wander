@@ -49,19 +49,22 @@ func FetchAllTasks(client api.Client) tea.Cmd {
 		sort.Slice(taskRowEntries, func(x, y int) bool {
 			firstTask := taskRowEntries[x]
 			secondTask := taskRowEntries[y]
-			if firstTask.TaskName == secondTask.TaskName {
-				if firstTask.Name == secondTask.Name {
-					if firstTask.State == secondTask.State {
-						if firstTask.StartedAt.Equal(secondTask.StartedAt) {
-							return firstTask.ID > secondTask.ID
+			if firstTask.JobID == secondTask.JobID {
+				if firstTask.TaskName == secondTask.TaskName {
+					if firstTask.Name == secondTask.Name {
+						if firstTask.State == secondTask.State {
+							if firstTask.StartedAt.Equal(secondTask.StartedAt) {
+								return firstTask.ID > secondTask.ID
+							}
+							return firstTask.StartedAt.After(secondTask.StartedAt)
 						}
-						return firstTask.StartedAt.After(secondTask.StartedAt)
+						return firstTask.State > secondTask.State
 					}
-					return firstTask.State > secondTask.State
+					return firstTask.Name < secondTask.Name
 				}
-				return firstTask.Name < secondTask.Name
+				return firstTask.TaskName < secondTask.TaskName
 			}
-			return firstTask.TaskName < secondTask.TaskName
+			return firstTask.JobID < secondTask.JobID
 		})
 
 		tableHeader, allPageData := tasksAsTable(taskRowEntries)
