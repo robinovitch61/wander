@@ -297,9 +297,9 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case JobMetaPage:
 		return fmt.Sprintf("Meta for Job %s", jobID)
 	case AllocEventsPage:
-		return fmt.Sprintf("Events for %s", allocEventFilterPrefix(allocName, allocID))
+		return fmt.Sprintf("Events for Allocation %s", allocEventFilterPrefix(allocName, allocID))
 	case AllocEventPage:
-		return fmt.Sprintf("Event for %s", allocEventFilterPrefix(allocName, allocID))
+		return fmt.Sprintf("Event for Allocation %s", allocEventFilterPrefix(allocName, allocID))
 	case AllEventsPage:
 		return fmt.Sprintf("All Events in Namespace %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
@@ -307,13 +307,13 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case JobTasksPage:
 		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
 	case ExecPage:
-		return fmt.Sprintf("Exec for %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Exec for Task %s", taskFilterPrefix(taskName, allocName))
 	case AllocSpecPage:
-		return fmt.Sprintf("Allocation Spec for %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Spec for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case LogsPage:
-		return fmt.Sprintf("Logs for %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Logs for Task %s", taskFilterPrefix(taskName, allocName))
 	case LoglinePage:
-		return fmt.Sprintf("Log Line for %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
 	default:
 		panic("page not found")
 	}
