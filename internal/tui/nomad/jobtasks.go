@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// TODO LEO: differs from alltasks?
 type jobTaskRowEntry struct {
 	FullAllocationAsJSON                 string
 	ID, TaskGroup, Name, TaskName, State string
