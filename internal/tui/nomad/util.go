@@ -11,9 +11,16 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const keySeparator = "|【=◈︿◈=】|"
+
+type taskRowEntry struct {
+	FullAllocationAsJSON                        string
+	JobID, ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                       time.Time
+}
 
 func toTaskKey(state, fullAllocationAsJSON, taskName string) string {
 	isRunning := "false"

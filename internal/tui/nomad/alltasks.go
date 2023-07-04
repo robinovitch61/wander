@@ -1,21 +1,14 @@
 package nomad
 
 import (
-	"encoding/json"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/hashicorp/nomad/api"
-	"github.com/robinovitch61/wander/internal/tui/components/page"
-	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/message"
-	"sort"
-	"time"
+    "encoding/json"
+    tea "github.com/charmbracelet/bubbletea"
+    "github.com/hashicorp/nomad/api"
+    "github.com/robinovitch61/wander/internal/tui/components/page"
+    "github.com/robinovitch61/wander/internal/tui/formatter"
+    "github.com/robinovitch61/wander/internal/tui/message"
+    "sort"
 )
-
-type taskRowEntry struct {
-	FullAllocationAsJSON                        string
-	JobID, ID, TaskGroup, Name, TaskName, State string
-	StartedAt, FinishedAt                       time.Time
-}
 
 func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 	return func() tea.Msg {

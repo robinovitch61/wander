@@ -1,21 +1,14 @@
 package nomad
 
 import (
-	"encoding/json"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/hashicorp/nomad/api"
-	"github.com/robinovitch61/wander/internal/tui/components/page"
-	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/message"
-	"sort"
-	"time"
+    "encoding/json"
+    tea "github.com/charmbracelet/bubbletea"
+    "github.com/hashicorp/nomad/api"
+    "github.com/robinovitch61/wander/internal/tui/components/page"
+    "github.com/robinovitch61/wander/internal/tui/formatter"
+    "github.com/robinovitch61/wander/internal/tui/message"
+    "sort"
 )
-
-type jobTaskRowEntry struct {
-	FullAllocationAsJSON                 string
-	ID, TaskGroup, Name, TaskName, State string
-	StartedAt, FinishedAt                time.Time
-}
 
 func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []string) tea.Cmd {
 	return func() tea.Msg {
@@ -24,7 +17,7 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 			return message.ErrMsg{Err: err}
 		}
 
-		var jobTaskRowEntries []jobTaskRowEntry
+		var jobTaskRowEntries []taskRowEntry
 		for _, alloc := range allocationsForJob {
 			allocAsJSON, err := json.Marshal(alloc)
 			if err != nil {
@@ -32,7 +25,8 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 			}
 
 			for taskName, task := range alloc.TaskStates {
-				jobTaskRowEntries = append(jobTaskRowEntries, jobTaskRowEntry{
+				jobTaskRowEntries = append(jobTaskRowEntries, taskRowEntry{
+					JobID:                alloc.JobID,
 					FullAllocationAsJSON: string(allocAsJSON),
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
@@ -68,8 +62,9 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 	}
 }
 
-func getJobTaskRowFromColumns(row jobTaskRowEntry, columns []string) []string {
+func getJobTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	knownColMap := map[string]string{
+		"Job":        row.JobID,
 		"Alloc ID":   formatter.ShortAllocID(row.ID),
 		"Task Group": row.TaskGroup,
 		"Alloc Name": row.Name,
@@ -91,7 +86,7 @@ func getJobTaskRowFromColumns(row jobTaskRowEntry, columns []string) []string {
 	return rowEntries
 }
 
-func jobTasksAsTable(jobTaskRowEntries []jobTaskRowEntry, columns []string) ([]string, []page.Row) {
+func jobTasksAsTable(jobTaskRowEntries []taskRowEntry, columns []string) ([]string, []page.Row) {
 	var taskResponseRows [][]string
 	var keys []string
 	for _, row := range jobTaskRowEntries {
