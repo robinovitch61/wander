@@ -276,18 +276,19 @@ func taskFilterPrefix(taskName, allocName string) string {
 	return fmt.Sprintf("%s in %s", style.Bold.Render(taskName), allocName)
 }
 
+func namespaceFilterPrefix(namespace string) string {
+	if namespace == "*" {
+		return "All Namespaces"
+	}
+	return fmt.Sprintf("Namespace %s", style.Bold.Render(namespace))
+}
+
 func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID string, eventTopics Topics, eventNamespace string) string {
 	switch p {
-	// TODO LEO: add namespace here if configured
 	case JobsPage:
-		if namespace == "*" {
-			namespace = "All Namespaces"
-		} else {
-			namespace = fmt.Sprintf("Namespace %s", style.Bold.Render(namespace))
-		}
-		return fmt.Sprintf("Jobs in %s", namespace)
+		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace))
 	case AllTasksPage:
-		return "All Tasks"
+		return fmt.Sprintf("All Tasks in %s", namespaceFilterPrefix(namespace))
 	case JobSpecPage:
 		return fmt.Sprintf("Spec for Job %s", style.Bold.Render(jobID))
 	case JobEventsPage:
