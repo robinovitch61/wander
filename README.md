@@ -132,6 +132,9 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 #wander_job_tasks_columns: "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
+# Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+#wander_all_tasks_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+
 # If "true", start with compact header. Default "false"
 #wander_compact_header: true
 

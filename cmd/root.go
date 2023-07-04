@@ -110,6 +110,11 @@ var (
 		cfgFileEnvVar: "wander_job_columns",
 		description:   `Columns to display for Jobs - can reference Meta keys. Default "ID,Type,Namespace,Status,Count,Submitted,Since Submit"`,
 	}
+	allTaskColumnsArg = arg{
+		cliLong:       "all-tasks-columns",
+		cfgFileEnvVar: "wander_all_tasks_columns",
+		description:   `Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
+	}
 	jobTaskColumnsArg = arg{
 		cliLong:       "job-tasks-columns",
 		cfgFileEnvVar: "wander_job_tasks_columns",
@@ -202,6 +207,7 @@ func init() {
 		skipVerifyArg,
 		updateSecondsArg,
 		jobColumnsArg,
+		allTaskColumnsArg,
 		jobTaskColumnsArg,
 		logOffsetArg,
 		logTailArg,

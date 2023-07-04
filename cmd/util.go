@@ -219,8 +219,18 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 }
 
 func retrieveJobColumns(cmd *cobra.Command) []string {
-	jobColumnsString := retrieveWithDefault(cmd, jobColumnsArg, "ID,Type,Namespace,Status,Count,Submitted,Since Submit")
-	split := strings.Split(jobColumnsString, ",")
+	columnsString := retrieveWithDefault(cmd, jobColumnsArg, "ID,Type,Namespace,Status,Count,Submitted,Since Submit")
+	split := strings.Split(columnsString, ",")
+	var trimmed []string
+	for _, s := range split {
+		trimmed = append(trimmed, strings.TrimSpace(s))
+	}
+	return trimmed
+}
+
+func retrieveAllTaskColumns(cmd *cobra.Command) []string {
+	columnsString := retrieveWithDefault(cmd, allTaskColumnsArg, "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
+	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {
 		trimmed = append(trimmed, strings.TrimSpace(s))
@@ -229,8 +239,8 @@ func retrieveJobColumns(cmd *cobra.Command) []string {
 }
 
 func retrieveJobTaskColumns(cmd *cobra.Command) []string {
-	jobTaskColumnsString := retrieveWithDefault(cmd, jobTaskColumnsArg, "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
-	split := strings.Split(jobTaskColumnsString, ",")
+	columnsString := retrieveWithDefault(cmd, jobTaskColumnsArg, "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
+	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {
 		trimmed = append(trimmed, strings.TrimSpace(s))
@@ -307,6 +317,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	eventJQQuery := retrieveEventJQQuery(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
 	jobColumns := retrieveJobColumns(cmd)
+	allTaskColumns := retrieveAllTaskColumns(cmd)
 	jobTaskColumns := retrieveJobTaskColumns(cmd)
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 	startCompact := retrieveStartCompact(cmd)
@@ -340,6 +351,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		},
 		UpdateSeconds:     time.Second * time.Duration(updateSeconds),
 		JobColumns:        jobColumns,
+		AllTaskColumns:    allTaskColumns,
 		JobTaskColumns:    jobTaskColumns,
 		LogoColor:         logoColor,
 		StartCompact:      startCompact,
