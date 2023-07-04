@@ -17,7 +17,7 @@ type jobTaskRowEntry struct {
 	StartedAt, FinishedAt                time.Time
 }
 
-func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
+func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []string) tea.Cmd {
 	return func() tea.Msg {
 		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
 		if err != nil {
@@ -63,33 +63,42 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			return firstTask.TaskName < secondTask.TaskName
 		})
 
-		tableHeader, allPageData := jobTasksAsTable(jobTaskRowEntries)
+		tableHeader, allPageData := jobTasksAsTable(jobTaskRowEntries, columns)
 		return PageLoadedMsg{Page: JobTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
 	}
 }
 
-func jobTasksAsTable(jobTaskRowEntries []jobTaskRowEntry) ([]string, []page.Row) {
+func getJobTaskRowFromColumns(row jobTaskRowEntry, columns []string) []string {
+	knownColMap := map[string]string{
+		"Alloc ID":   formatter.ShortAllocID(row.ID),
+		"Task Group": row.TaskGroup,
+		"Alloc Name": row.Name,
+		"Task Name":  row.TaskName,
+		"State":      row.State,
+		"Started":    formatter.FormatTime(row.StartedAt),
+		"Finished":   formatter.FormatTime(row.FinishedAt),
+		"Uptime":     getUptime(row.State, row.StartedAt.UnixNano()),
+	}
+
+	var rowEntries []string
+	for _, col := range columns {
+		if v, exists := knownColMap[col]; exists {
+			rowEntries = append(rowEntries, v)
+		} else {
+			rowEntries = append(rowEntries, "")
+		}
+	}
+	return rowEntries
+}
+
+func jobTasksAsTable(jobTaskRowEntries []jobTaskRowEntry, columns []string) ([]string, []page.Row) {
 	var taskResponseRows [][]string
 	var keys []string
 	for _, row := range jobTaskRowEntries {
-		uptime := "-"
-		if row.State == "running" {
-			uptime = formatter.FormatTimeNsSinceNow(row.StartedAt.UnixNano())
-		}
-		taskResponseRows = append(taskResponseRows, []string{
-			formatter.ShortAllocID(row.ID),
-			row.TaskGroup,
-			row.Name,
-			row.TaskName,
-			row.State,
-			formatter.FormatTime(row.StartedAt),
-			formatter.FormatTime(row.FinishedAt),
-			uptime,
-		})
+		taskResponseRows = append(taskResponseRows, getJobTaskRowFromColumns(row, columns))
 		keys = append(keys, toTaskKey(row.State, row.FullAllocationAsJSON, row.TaskName))
 	}
 
-	columns := []string{"Alloc ID", "Task Group", "Alloc Name", "Task Name", "State", "Started", "Finished", "Uptime"}
 	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
 
 	var rows []page.Row

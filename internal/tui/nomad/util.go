@@ -85,3 +85,11 @@ func PrettifyLine(l string, p Page) tea.Cmd {
 		}
 	}
 }
+
+func getUptime(status string, startTime int64) string {
+	uptime := "-"
+	if status == "running" {
+		uptime = formatter.FormatTimeNsSinceNow(startTime)
+	}
+	return uptime
+}

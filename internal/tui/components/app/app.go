@@ -47,6 +47,7 @@ type Config struct {
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
 	JobColumns                    []string
+	JobTaskColumns                []string
 	LogoColor                     string
 	StartCompact                  bool
 	StartAllTasksView             bool
@@ -636,7 +637,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
 	case nomad.JobTasksPage:
-		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace)
+		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace, m.config.JobTaskColumns)
 	case nomad.ExecPage:
 		return nomad.LoadExecPage()
 	case nomad.AllocSpecPage:
