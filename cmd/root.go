@@ -157,7 +157,6 @@ var (
 		cfgFileEnvVar: "wander_logo_color",
 	}
 	startCompactArg = arg{
-		cliShort:      "h",
 		cliLong:       "compact-header",
 		cfgFileEnvVar: "wander_compact_header",
 		description:   `If "true", start with compact header. Default "false"`,
