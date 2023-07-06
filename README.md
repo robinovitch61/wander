@@ -30,6 +30,9 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
 
 ```shell
 brew install robinovitch61/tap/wander
+
+# to upgrade
+brew update && brew upgrade wander
 ```
 
 ### > Install from AUR

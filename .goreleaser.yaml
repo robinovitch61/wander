@@ -20,6 +20,17 @@ builds:
       - linux
       - windows
 
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}Darwin
+      {{- else if eq .Os "linux" }}Linux
+      {{- else if eq .Os "windows" }}Windows
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
 checksum:
   name_template: 'checksums.txt'
 
@@ -42,16 +53,19 @@ release:
     name: wander
 
 brews:
-  - homepage: https://github.com/robinovitch61/wander
-    description: "A terminal app for Nomad by HashiCorp"
+  - name: wander
+    homepage: https://github.com/robinovitch61/wander
+    description: "A terminal app/TUI for HashiCorp Nomad"
     folder: Formula
-    tap:
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@theleo.zone
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    repository:
       owner: robinovitch61
       name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    commit_author:
-      name: goreleaserbot
-      email: goreleaserbot@theleo.zone
-    install: |
-      bin.install "wander"
+
+gomod:
+  proxy: true
