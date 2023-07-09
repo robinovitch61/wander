@@ -71,7 +71,7 @@ func getJobRowFromColumns(row *api.JobListStub, columns []string) []string {
 		} else if m, inMeta := row.Meta[col]; inMeta {
 			rowEntries = append(rowEntries, m)
 		} else {
-			rowEntries = append(rowEntries, "")
+			rowEntries = append(rowEntries, "-")
 		}
 	}
 	return rowEntries

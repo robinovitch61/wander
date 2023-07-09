@@ -166,6 +166,11 @@ var (
 		cfgFileEnvVar: "wander_start_all_tasks",
 		description:   `If "true", start in All Tasks view. Default "false"`,
 	}
+	compactTablesArg = arg{
+		cliLong:       "compact-tables",
+		cfgFileEnvVar: "wander_compact_tables",
+		description:   `If "true", remove unnecessary gaps between table columns when possible. Default "true"`,
+	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
 view jobs, allocations, tasks, logs, and more, all from the terminal
@@ -216,6 +221,7 @@ func init() {
 		eventJQQueryArg,
 		startCompactArg,
 		startAllTasksView,
+		compactTablesArg,
 	} {
 		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
 		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))

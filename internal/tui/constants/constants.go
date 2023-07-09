@@ -22,6 +22,8 @@ const ExecWebSocketClosed = "> connection closed <"
 
 const ExecWebSocketHeartbeatDuration = time.Second * 10
 
+const TableSeparator = "|【=◈︿◈=】|"
+
 const TablePadding = "   "
 
 var JobsTableStatusStyles = map[string]lipgloss.Style{

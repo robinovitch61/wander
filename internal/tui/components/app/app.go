@@ -52,6 +52,7 @@ type Config struct {
 	LogoColor                     string
 	StartCompact                  bool
 	StartAllTasksView             bool
+	CompactTables                 bool
 }
 
 type Model struct {
@@ -314,7 +315,7 @@ func (m *Model) initialize() error {
 	m.client = *client
 
 	m.pageModels = make(map[nomad.Page]*page.Model)
-	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath) {
+	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath, m.config.CompactTables) {
 		p := page.New(c)
 		m.pageModels[k] = &p
 	}

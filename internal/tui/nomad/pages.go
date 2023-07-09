@@ -36,18 +36,20 @@ const (
 	LoglinePage
 )
 
-func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Config {
+func GetAllPageConfigs(width, height int, copySavePath, compactTables bool) map[Page]page.Config {
 	return map[Page]page.Config{
 		JobsPage: {
 			Width: width, Height: height,
 			LoadingString: JobsPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.JobsTableStatusStyles,
 		},
 		AllTasksPage: {
 			Width: width, Height: height,
 			LoadingString: AllTasksPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.TasksTableStatusStyles,
 		},
 		JobSpecPage: {
@@ -69,6 +71,7 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 			Width: width, Height: height,
 			LoadingString: JobMetaPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			CompactTableContent: compactTables,
 		},
 		AllocEventsPage: {
 			Width: width, Height: height,
@@ -94,6 +97,7 @@ func GetAllPageConfigs(width, height int, copySavePath bool) map[Page]page.Confi
 			Width: width, Height: height,
 			LoadingString: JobTasksPage.LoadingString(),
 			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.TasksTableStatusStyles,
 		},
 		ExecPage: {

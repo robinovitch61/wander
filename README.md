@@ -130,6 +130,10 @@ Example yaml file showing all options (uncomment an option to enable it):
 # If "true", start in All Tasks view. Default "false"
 #wander_start_all_tasks: true
 
+# If "true", remove unnecessary gaps between table columns when possible. Default "true"
+# If you want column positions to remain static as you scroll and filter, set this to false
+#wander_compact_tables: true
+
 # Log byte offset from which logs start. Default "1000000"
 #wander_log_offset: 1000000
 

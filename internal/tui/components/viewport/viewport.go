@@ -49,8 +49,8 @@ type Model struct {
 	height int
 	// contentHeight is the height of the viewport in terminal rows, excluding the header and footer
 	contentHeight int
-	// maxLineLength is the maximum line length in terminal characters across header and content
-	maxLineLength int
+	// maxVisibleLineLength is the maximum line length in terminal characters across header and visible content
+	maxVisibleLineLength int
 
 	keyMap viewportKeyMap
 
@@ -62,7 +62,8 @@ type Model struct {
 	saveDialog textinput.Model
 	toast      toast.Model
 
-	showPrompt bool
+	compactTableContent bool
+	showPrompt          bool
 
 	HeaderStyle          lipgloss.Style
 	SelectedContentStyle lipgloss.Style
@@ -73,7 +74,7 @@ type Model struct {
 	ConditionalStyle map[string]lipgloss.Style
 }
 
-func New(width, height int) (m Model) {
+func New(width, height int, compactTableContent bool) (m Model) {
 	m.saveDialog = textinput.New()
 	m.saveDialog.Prompt = "> "
 	m.saveDialog.PromptStyle = style.SaveDialogPromptStyle
@@ -81,6 +82,8 @@ func New(width, height int) (m Model) {
 	m.saveDialog.TextStyle = style.SaveDialogTextStyle
 
 	m.setWidthAndHeight(width, height)
+
+	m.compactTableContent = compactTableContent
 
 	m.updateContentHeight()
 	m.keyMap = GetKeyMap()
@@ -211,6 +214,48 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func compactLines(lines []string, maxContentLengthInCol []int) []string {
+	var output []string
+	for _, line := range lines {
+		columns := strings.Split(line, constants.TableSeparator)
+		for i, column := range columns {
+			columns[i] = strings.TrimRight(column, " ") + strings.Repeat(" ", maxContentLengthInCol[i]-len(strings.TrimRight(column, " ")))
+		}
+		output = append(output, strings.Join(columns, constants.TablePadding))
+	}
+	return output
+}
+
+// horizontallyCompact takes a table view and eliminates unnecessary gaps between columns
+func horizontallyCompact(header, content []string) ([]string, []string) {
+	allLines := append(header, content...)
+	if len(allLines) == 0 {
+		return header, content
+	}
+	numCols := len(strings.Split(allLines[0], constants.TableSeparator))
+
+	var maxContentLengthInCol []int
+	for i := 0; i < numCols; i++ {
+		maxContentLengthInCol = append(maxContentLengthInCol, 0)
+	}
+
+	for _, line := range allLines {
+		columns := strings.Split(line, constants.TableSeparator)
+		if len(columns) != numCols {
+			// something weird like TableSeparator in content
+			// default to non-compact view
+			return header, content
+		}
+		for i, column := range columns {
+			maxContentLengthInCol[i] = max(maxContentLengthInCol[i], len(strings.TrimRight(column, " ")))
+		}
+	}
+
+	compactHeader := compactLines(header, maxContentLengthInCol)
+	compactContent := compactLines(content, maxContentLengthInCol)
+	return compactHeader, compactContent
+}
+
 func (m Model) View() string {
 	var viewString string
 
@@ -221,12 +266,14 @@ func (m Model) View() string {
 	}
 
 	header := m.getHeader()
+	visibleLines := m.getVisibleLines()
+	header, visibleLines = m.processLines(header, visibleLines)
+
 	for _, headerLine := range header {
 		headerViewLine := m.getVisiblePartOfLine(headerLine)
 		addLineToViewString(m.HeaderStyle.Render(headerViewLine))
 	}
 
-	visibleLines := m.getVisibleLines()
 	hasNoHighlight := stringWidth(m.stringToHighlight) == 0
 	for idx, line := range visibleLines {
 		contentIdx := m.getContentIdx(m.yOffset + idx)
@@ -333,7 +380,7 @@ func (m *Model) SetSelectedContentIdx(n int) {
 }
 
 func (m *Model) SetXOffset(n int) {
-	maxXOffset := m.maxLineLength - m.width
+	maxXOffset := m.maxVisibleLineLength - m.width
 	m.xOffset = max(0, min(maxXOffset, n))
 }
 
@@ -397,23 +444,25 @@ func (m *Model) updateWrappedContent() {
 }
 
 func (m *Model) updateForHeaderAndContent() {
-	m.updateMaxLineLength()
 	m.updateContentHeight()
 	m.fixViewForSelection()
+	m.updateMaxVisibleLineLength()
 }
 
 func (m *Model) updateForWrapText() {
 	m.updateContentHeight()
 	m.updateWrappedContent()
-	m.updateMaxLineLength()
 	m.SetXOffset(0)
 	m.fixViewForSelection()
+	m.updateMaxVisibleLineLength()
 }
 
-func (m *Model) updateMaxLineLength() {
-	for _, line := range append(m.getHeader(), m.getContent()...) {
-		if lineLength := stringWidth(strings.TrimRight(line, " ")); lineLength > m.maxLineLength {
-			m.maxLineLength = lineLength
+func (m *Model) updateMaxVisibleLineLength() {
+	m.maxVisibleLineLength = 0
+	header, content := m.processLines(m.getHeader(), m.getVisibleLines())
+	for _, line := range append(header, content...) {
+		if lineLength := stringWidth(line); lineLength > m.maxVisibleLineLength {
+			m.maxVisibleLineLength = lineLength
 		}
 	}
 }
@@ -467,6 +516,7 @@ func (m *Model) setYOffset(n int) {
 	} else {
 		m.yOffset = max(0, n)
 	}
+	m.updateMaxVisibleLineLength()
 }
 
 // selectedContentIdxDown moves the selectedContentIdx down by the given number of terminal rows
@@ -556,6 +606,22 @@ func (m Model) getVisibleLines() []string {
 	return m.getContent()[start:end]
 }
 
+// processLines strips the table separators and optionally
+// compacts them horizontally
+func (m Model) processLines(header, content []string) ([]string, []string) {
+	if m.compactTableContent && !m.wrapText {
+		return horizontallyCompact(header, content)
+	} else {
+		clean := func(lines []string) []string {
+			for i, line := range lines {
+				lines[i] = strings.ReplaceAll(line, constants.TableSeparator, constants.TablePadding)
+			}
+			return lines
+		}
+		return clean(header), clean(content)
+	}
+}
+
 func (m Model) getVisiblePartOfLine(line string) string {
 	rightTrimmedLineLength := stringWidth(strings.TrimRight(line, " "))
 	end := min(stringWidth(line), m.xOffset+m.width)
@@ -589,6 +655,7 @@ func (m Model) getWrappedLines(line string) []string {
 	if stringWidth(line) < m.width {
 		return []string{line}
 	}
+	line = strings.ReplaceAll(line, constants.TableSeparator, constants.TablePadding)
 	line = strings.TrimRight(line, " ")
 	return splitLineIntoSizedChunks(line, m.width)
 }
@@ -646,12 +713,13 @@ func (m Model) getFooter() (string, int) {
 
 func (m Model) getSaveCommand() tea.Cmd {
 	return func() tea.Msg {
-		var content string
-		for _, line := range append(m.getHeader(), m.content...) {
-			content += strings.TrimRight(line, " ") + "\n"
+		var saveContent string
+		header, content := m.processLines(m.getHeader(), m.content)
+		for _, line := range append(header, content...) {
+			saveContent += strings.TrimRight(line, " ") + "\n"
 		}
 
-		savePathWithFileName, err := fileio.SaveToFile(m.saveDialog.Value(), content)
+		savePathWithFileName, err := fileio.SaveToFile(m.saveDialog.Value(), saveContent)
 		if err != nil {
 			return SaveStatusMsg{Err: err.Error()}
 		}

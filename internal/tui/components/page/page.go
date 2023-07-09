@@ -21,6 +21,7 @@ type Config struct {
 	Width, Height                                          int
 	LoadingString                                          string
 	CopySavePath, SelectionEnabled, WrapText, RequestInput bool
+	CompactTableContent                                    bool
 	ViewportConditionalStyle                               map[string]lipgloss.Style
 }
 
@@ -46,7 +47,7 @@ type Model struct {
 
 func New(c Config) Model {
 	pageFilter := filter.New("")
-	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight())
+	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight(), c.CompactTableContent)
 	pageViewport.SetSelectionEnabled(c.SelectionEnabled)
 	pageViewport.SetWrapText(c.WrapText)
 	pageViewport.ConditionalStyle = c.ViewportConditionalStyle

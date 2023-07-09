@@ -67,7 +67,7 @@ func createTableConfig(numCols int) tableConfig {
 	table.SetColumnSeparator("")
 	table.SetBorder(false)
 	if numCols > 1 {
-		table.SetTablePadding(constants.TablePadding)
+		table.SetTablePadding(constants.TableSeparator)
 	}
 	table.SetNoWhiteSpace(true)
 	table.SetAutoWrapText(false)
@@ -81,7 +81,7 @@ func GetRenderedTableAsString(columns []string, data [][]string) Table {
 	table.writer.AppendBulk(data)
 	table.writer.Render()
 	allRows := strings.Split(table.string.String(), "\n")
-	headerRows := []string{allRows[0]}
+	headerRows := []string{allRows[0] + constants.TableSeparator}
 	contentRows := allRows[1 : len(allRows)-1] // last row is \n
 	return Table{headerRows, contentRows}
 }

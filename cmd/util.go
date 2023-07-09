@@ -273,6 +273,11 @@ func retrieveStartAllTasksView(cmd *cobra.Command) bool {
 	return trueIfTrue(v)
 }
 
+func retrieveCompactTables(cmd *cobra.Command) bool {
+	v := retrieveWithDefault(cmd, compactTablesArg, "true")
+	return trueIfTrue(v)
+}
+
 // customLoggingMiddleware provides basic connection logging. Connects are logged with the
 // remote address, invoked command, TERM setting, window dimensions and if the
 // auth was public key based. Disconnect will log the remote address and
@@ -322,6 +327,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	logoColor := retrieveNonCLIWithDefault(logoColorArg, "")
 	startCompact := retrieveStartCompact(cmd)
 	startAllTasksView := retrieveStartAllTasksView(cmd)
+	compactTables := retrieveCompactTables(cmd)
 
 	dev.Debug(fmt.Sprintf("Version: %s, %s, %s", versioninfo.Version, versioninfo.Revision, versioninfo.Short()))
 	initialModel := app.InitialModel(app.Config{
@@ -356,6 +362,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		LogoColor:         logoColor,
 		StartCompact:      startCompact,
 		StartAllTasksView: startAllTasksView,
+		CompactTables:     compactTables,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }
