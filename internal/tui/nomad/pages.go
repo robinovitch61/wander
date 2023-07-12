@@ -153,6 +153,10 @@ func (p Page) ShowsTasks() bool {
 	return false
 }
 
+func (p Page) CanBeStart() bool {
+	return p == JobsPage || p == AllTasksPage
+}
+
 func (p Page) doesUpdate() bool {
 	noUpdatePages := []Page{
 		LoglinePage,     // doesn't load

@@ -170,16 +170,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.getCurrentPageModel().SetLoading(false)
 
+			if m.currentPage.CanBeStart() && len(msg.AllPageRows) == 0 {
+				// oddly, nomad http api errors when one provides the wrong token,
+				// but returns empty results when one provides an empty token
+				m.getCurrentPageModel().SetHeader([]string{"Error"})
+				m.getCurrentPageModel().SetAllPageData([]page.Row{
+					{"", "No results. Is the cluster empty or was no nomad token provided?"},
+					{"", "Press q or ctrl+c to quit."},
+				})
+				m.getCurrentPageModel().SetViewportSelectionEnabled(false)
+			}
+
 			switch m.currentPage {
-			case nomad.JobsPage:
-				if m.currentPage == nomad.JobsPage && len(msg.AllPageRows) == 0 {
-					// oddly, nomad http api errors when one provides the wrong token, but returns empty results when one provides an empty token
-					m.getCurrentPageModel().SetAllPageData([]page.Row{
-						{"", "No job results. Is the cluster empty or no nomad token provided?"},
-						{"", "Press q or ctrl+c to quit."},
-					})
-					m.getCurrentPageModel().SetViewportSelectionEnabled(false)
-				}
 			case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
 				m.eventsStream = msg.EventsStream
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
