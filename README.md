@@ -211,6 +211,18 @@ nomad job run example.nomad
 wander
 ```
 
+## Manually Specifying the `wander` Version
+
+`wander` uses [carlmjohnson/versioninfo](https://blog.carlmjohnson.net/post/2023/golang-git-hash-how-to/) to expose
+version/revision info. If the environment in which you're installing wander does not allow for git repos, prebuilt 
+binaries, or `go install`, then you can manually specify the output of `wander --version` at build time as follows:
+
+```sh
+go build -ldflags "-X github.com/robinovitch61/wander/cmd.Version=vX.Y.Z"
+```
+
+In this case, you're responsible for ensuring the specified version is in sync with what is actually being built.
+
 ## Development
 
 The `scripts/dev.sh` script watches the source code and rebuilds the app on changes

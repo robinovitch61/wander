@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/carlmjohnson/versioninfo"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/spf13/cobra"
@@ -181,7 +180,7 @@ in a productivity-focused UI.`
 		Short:   "A terminal application for Nomad by HashiCorp",
 		Long:    description,
 		Run:     mainEntrypoint,
-		Version: versioninfo.Short(),
+		Version: getVersion(),
 	}
 )
 

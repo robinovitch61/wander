@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
-	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
@@ -21,6 +20,21 @@ import (
 	"strings"
 	"time"
 )
+
+var (
+	// Version is public so users can optionally specify or override the version
+	// at build time by passing in ldflags, e.g.
+	//   go build -ldflags "-X github.com/robinovitch61/wander/cmd.Version=vX.Y.Z"
+	// see https://github.com/robinovitch61/wander/issues/102
+	Version = ""
+)
+
+func getVersion() string {
+	if Version != "" {
+		return Version
+	}
+	return versioninfo.Short()
+}
 
 func validateToken(token string) error {
 	if len(token) > 0 && len(token) != 36 {
@@ -329,9 +343,8 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	startAllTasksView := retrieveStartAllTasksView(cmd)
 	compactTables := retrieveCompactTables(cmd)
 
-	dev.Debug(fmt.Sprintf("Version: %s, %s, %s", versioninfo.Version, versioninfo.Revision, versioninfo.Short()))
 	initialModel := app.InitialModel(app.Config{
-		Version:   versioninfo.Short(),
+		Version:   getVersion(),
 		URL:       nomadAddr,
 		Token:     nomadToken,
 		Region:    region,
