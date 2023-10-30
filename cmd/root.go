@@ -158,6 +158,12 @@ var (
 			isBool:        true,
 			defaultIfBool: true,
 		},
+		"start-filtering": {
+			cfgFileEnvVar: "wander_start_filtering",
+			description:   `Start with filtering active on first view`,
+			isBool:        true,
+			defaultIfBool: false,
+		},
 	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
@@ -218,6 +224,7 @@ func init() {
 		"compact-header",
 		"start-all-tasks",
 		"compact-tables",
+		"start-filtering",
 	} {
 		c := rootNameToArg[cliLong]
 		if c.isBool {

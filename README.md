@@ -137,6 +137,9 @@ Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and u
 # Log byte offset from which logs start. Default 1000000
 #wander_log_offset: 1000000
 
+# If True, start with filtering active on first view. Default False
+#wander_start_filtering: False
+
 # If True, follow new logs as they come in rather than having to reload. Default True
 #wander_log_tail: True
 
