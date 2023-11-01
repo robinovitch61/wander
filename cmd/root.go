@@ -12,6 +12,7 @@ import (
 
 type arg struct {
 	cliShort, cliLong, cfgFileEnvVar, description string
+	isBool, defaultIfBool                         bool
 }
 
 var (
@@ -157,6 +158,8 @@ var (
 	}
 	startCompactArg = arg{
 		cliLong:       "compact-header",
+		isBool:        true,
+		defaultIfBool: false,
 		cfgFileEnvVar: "wander_compact_header",
 		description:   `If "true", start with compact header. Default "false"`,
 	}
@@ -222,7 +225,11 @@ func init() {
 		startAllTasksView,
 		compactTablesArg,
 	} {
-		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
+		if c.isBool {
+			rootCmd.PersistentFlags().BoolP(c.cliLong, c.cliShort, c.defaultIfBool, c.description)
+		} else {
+			rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
+		}
 		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
 	}
 
