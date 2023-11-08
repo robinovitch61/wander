@@ -280,7 +280,7 @@ func mainEntrypoint(cmd *cobra.Command, args []string) {
 	program := tea.NewProgram(initialModel, options...)
 
 	dev.Debug("~STARTING UP~")
-	if err := program.Start(); err != nil {
+	if _, err := program.Run(); err != nil {
 		fmt.Printf("Error on wander startup: %v", err)
 		os.Exit(1)
 	}
