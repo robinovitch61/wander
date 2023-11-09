@@ -5,170 +5,152 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
 
 type arg struct {
-	cliShort, cliLong, cfgFileEnvVar, description string
+	cliShort, cfgFileEnvVar, description, defaultString string
+	isBool, isInt, defaultIfBool                        bool
+	defaultIfInt                                        int
 }
 
 var (
-	// Used for flags.
-	cfgFile string
-
-	cfgArg = arg{
-		cliShort:    "c",
-		cliLong:     "config",
-		description: `Config file path. Default "$HOME/.wander.yaml"`,
-	}
-	helpArg = arg{
-		cliLong:     "help",
-		description: `Print usage`,
-	}
-	// TODO LEO: remove this in v1.0.0
-	oldAddrArg = arg{
-		cliShort:      "a",
-		cliLong:       "addr",
-		cfgFileEnvVar: "wander_addr",
-	}
-	addrArg = arg{
-		cliShort:      "a",
-		cliLong:       "addr",
-		cfgFileEnvVar: "nomad_addr",
-		description:   `Nomad address. Default "http://localhost:4646"`,
-	}
-	// TODO LEO: remove this in v1.0.0
-	oldTokenArg = arg{
-		cliShort:      "t",
-		cliLong:       "token",
-		cfgFileEnvVar: "wander_token",
-	}
-	tokenArg = arg{
-		cliShort:      "t",
-		cliLong:       "token",
-		cfgFileEnvVar: "nomad_token",
-		description:   `Nomad token. Default ""`,
-	}
-	regionArg = arg{
-		cliShort:      "r",
-		cliLong:       "region",
-		cfgFileEnvVar: "nomad_region",
-		description:   `Nomad region. Default ""`,
-	}
-	namespaceArg = arg{
-		cliShort:      "n",
-		cliLong:       "namespace",
-		cfgFileEnvVar: "nomad_namespace",
-		description:   `Nomad namespace. Default "*"`,
-	}
-	httpAuthArg = arg{
-		cliLong:       "http-auth",
-		cfgFileEnvVar: "nomad_http_auth",
-		description:   `Nomad http auth, in the form of "user" or "user:pass". Default ""`,
-	}
-	cacertArg = arg{
-		cliLong:       "cacert",
-		cfgFileEnvVar: "nomad_cacert",
-		description:   `Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate. Default ""`,
-	}
-	capathArg = arg{
-		cliLong:       "capath",
-		cfgFileEnvVar: "nomad_capath",
-		description:   `Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used. Default ""`,
-	}
-	clientCertArg = arg{
-		cliLong:       "client-cert",
-		cfgFileEnvVar: "nomad_client_cert",
-		description:   `Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key. Default ""`,
-	}
-	clientKeyArg = arg{
-		cliLong:       "client-key",
-		cfgFileEnvVar: "nomad_client_key",
-		description:   `Path to an unencrypted PEM encoded private key matching the client cert. Default ""`,
-	}
-	tlsServerNameArg = arg{
-		cliLong:       "tls-server-name",
-		cfgFileEnvVar: "nomad_tls_server_name",
-		description:   `The server name to use as the SNI host when connecting via TLS. Default ""`,
-	}
-	skipVerifyArg = arg{
-		cliLong:       "skip-verify",
-		cfgFileEnvVar: "nomad_skip_verify",
-		description:   `If "true", do not verify TLS certificates. Default "false"`,
-	}
-	updateSecondsArg = arg{
-		cliShort:      "u",
-		cliLong:       "update",
-		cfgFileEnvVar: "wander_update_seconds",
-		description:   `Seconds between updates for job & allocation pages. Disable with "-1". Default "2"`,
-	}
-	jobColumnsArg = arg{
-		cliLong:       "job-columns",
-		cfgFileEnvVar: "wander_job_columns",
-		description:   `Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
-	}
-	allTaskColumnsArg = arg{
-		cliLong:       "all-tasks-columns",
-		cfgFileEnvVar: "wander_all_tasks_columns",
-		description:   `Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
-	}
-	jobTaskColumnsArg = arg{
-		cliLong:       "tasks-for-job-columns",
-		cfgFileEnvVar: "wander_tasks_for_job_columns",
-		description:   `Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
-	}
-	logOffsetArg = arg{
-		cliShort:      "o",
-		cliLong:       "log-offset",
-		cfgFileEnvVar: "wander_log_offset",
-		description:   `Log byte offset from which logs start. Default "1000000"`,
-	}
-	logTailArg = arg{
-		cliShort:      "f",
-		cliLong:       "log-tail",
-		cfgFileEnvVar: "wander_log_tail",
-		description:   `Follow new logs as they come in rather than having to reload. Default "true"`,
-	}
-	copySavePathArg = arg{
-		cliShort:      "s",
-		cliLong:       "copy-save-path",
-		cfgFileEnvVar: "wander_copy_save_path",
-		description:   `If "true", copy the full path to file after save. Default "false"`,
-	}
-	eventTopicsArg = arg{
-		cliLong:       "event-topics",
-		cfgFileEnvVar: "wander_event_topics",
-		description:   `Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"`,
-	}
-	eventNamespaceArg = arg{
-		cliLong:       "event-namespace",
-		cfgFileEnvVar: "wander_event_namespace",
-		description:   `Namespace used in stream for all events. "*" for all namespaces. Default "default"`,
-	}
-	eventJQQueryArg = arg{
-		cliLong:       "event-jq-query",
-		cfgFileEnvVar: "wander_event_jq_query",
-		description:   `jq query for events. "." for entire JSON. Default shown at https://github.com/robinovitch61/wander`,
-	}
-	logoColorArg = arg{
-		cfgFileEnvVar: "wander_logo_color",
-	}
-	startCompactArg = arg{
-		cliLong:       "compact-header",
-		cfgFileEnvVar: "wander_compact_header",
-		description:   `If "true", start with compact header. Default "false"`,
-	}
-	startAllTasksView = arg{
-		cliLong:       "start-all-tasks",
-		cfgFileEnvVar: "wander_start_all_tasks",
-		description:   `If "true", start in All Tasks view. Default "false"`,
-	}
-	compactTablesArg = arg{
-		cliLong:       "compact-tables",
-		cfgFileEnvVar: "wander_compact_tables",
-		description:   `If "true", remove unnecessary gaps between table columns when possible. Default "true"`,
+	rootNameToArg = map[string]arg{
+		"config": {
+			cliShort:    "c",
+			description: `Config file path. Will check for $HOME/.wander.yaml if not specified`,
+		},
+		"help": {
+			description: `Print usage`,
+		},
+		"addr": {
+			cliShort:      "a",
+			cfgFileEnvVar: "nomad_addr",
+			description:   `Nomad address`,
+			defaultString: "http://localhost:4646",
+		},
+		"token": {
+			cliShort:      "t",
+			cfgFileEnvVar: "nomad_token",
+			description:   `Nomad token`,
+		},
+		"region": {
+			cliShort:      "r",
+			cfgFileEnvVar: "nomad_region",
+			description:   `Nomad region`,
+		},
+		"namespace": {
+			cliShort:      "n",
+			cfgFileEnvVar: "nomad_namespace",
+			description:   `Nomad namespace`,
+			defaultString: "*",
+		},
+		"http-auth": {
+			cfgFileEnvVar: "nomad_http_auth",
+			description:   `Nomad http auth, in the form of "user" or "user:pass"`,
+		},
+		"cacert": {
+			cfgFileEnvVar: "nomad_cacert",
+			description:   `Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate`,
+		},
+		"capath": {
+			cfgFileEnvVar: "nomad_capath",
+			description:   `Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used`,
+		},
+		"client-cert": {
+			cfgFileEnvVar: "nomad_client_cert",
+			description:   `Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key`,
+		},
+		"client-key": {
+			cfgFileEnvVar: "nomad_client_key",
+			description:   `Path to an unencrypted PEM encoded private key matching the client cert`,
+		},
+		"tls-server-name": {
+			cfgFileEnvVar: "nomad_tls_server_name",
+			description:   `The server name to use as the SNI host when connecting via TLS`,
+		},
+		"skip-verify": {
+			cfgFileEnvVar: "nomad_skip_verify",
+			description:   `If true, do not verify TLS certificates. Default false`,
+			isBool:        true,
+			defaultIfBool: false,
+		},
+		"update": {
+			cliShort:      "u",
+			cfgFileEnvVar: "wander_update_seconds",
+			description:   `Seconds between updates for job & allocation pages. Disable with -1`,
+			isInt:         true,
+			defaultIfInt:  2,
+		},
+		"job-columns": {
+			cfgFileEnvVar: "wander_job_columns",
+			description:   `Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
+		},
+		"all-tasks-columns": {
+			cfgFileEnvVar: "wander_all_tasks_columns",
+			description:   `Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
+		},
+		"tasks-for-job-columns": {
+			cfgFileEnvVar: "wander_tasks_for_job_columns",
+			description:   `Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
+		},
+		"log-offset": {
+			cliShort:      "o",
+			cfgFileEnvVar: "wander_log_offset",
+			description:   `Log byte offset from which logs start. Default 1000000`,
+			isInt:         true,
+			defaultIfInt:  1000000,
+		},
+		"log-tail": {
+			cliShort:      "f",
+			cfgFileEnvVar: "wander_log_tail",
+			description:   `If true, follow new logs as they come in rather than having to reload. Default true`,
+			isBool:        true,
+			defaultIfBool: true,
+		},
+		"copy-save-path": {
+			cliShort:      "s",
+			cfgFileEnvVar: "wander_copy_save_path",
+			description:   `If true, copy the full path to file after save. Default false`,
+			isBool:        true,
+			defaultIfBool: false,
+		},
+		"event-topics": {
+			cfgFileEnvVar: "wander_event_topics",
+			description:   `Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"`,
+		},
+		"event-namespace": {
+			cfgFileEnvVar: "wander_event_namespace",
+			description:   `Namespace used in stream for all events. "*" for all namespaces. Default "default"`,
+		},
+		"event-jq-query": {
+			cfgFileEnvVar: "wander_event_jq_query",
+			description:   `jq query for events. "." for entire JSON. Default shown at https://github.com/robinovitch61/wander`,
+		},
+		"logo-color": {
+			cfgFileEnvVar: "wander_logo_color",
+		},
+		"compact-header": {
+			cfgFileEnvVar: "wander_compact_header",
+			description:   `If true, start with compact header. Default false`,
+			isBool:        true,
+			defaultIfBool: false,
+		},
+		"start-all-tasks": {
+			cfgFileEnvVar: "wander_start_all_tasks",
+			description:   `If true, start in All Tasks view. Default false`,
+			isBool:        true,
+			defaultIfBool: false,
+		},
+		"compact-tables": {
+			cfgFileEnvVar: "wander_compact_tables",
+			description:   `If true, remove unnecessary gaps between table columns when possible. Default true`,
+			isBool:        true,
+			defaultIfBool: true,
+		},
 	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
@@ -176,9 +158,12 @@ view jobs, allocations, tasks, logs, and more, all from the terminal
 in a productivity-focused UI.`
 
 	rootCmd = &cobra.Command{
-		Use:     "wander",
-		Short:   "A terminal application for Nomad by HashiCorp",
-		Long:    description,
+		Use:   "wander",
+		Short: "A terminal application for Nomad by HashiCorp",
+		Long:  description,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return initConfig(cmd, rootNameToArg)
+		},
 		Run:     mainEntrypoint,
 		Version: getVersion(),
 	}
@@ -189,63 +174,80 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// init is called once when the cmd package is loaded
+// https://golangdocs.com/init-function-in-golang
 func init() {
-	cobra.OnInitialize(initConfig)
-	// NOTE: default values here are unused even if default exists as they break the desired priority of cli args > env vars > config file > default if exists
+	cliLong := "config"
+	rootCmd.PersistentFlags().StringP(cliLong, rootNameToArg[cliLong].cliShort, rootNameToArg[cliLong].defaultString, rootNameToArg[cliLong].description)
 
-	// root
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, cfgArg.cliLong, cfgArg.cliShort, "", cfgArg.description)
-	rootCmd.PersistentFlags().BoolP(helpArg.cliLong, helpArg.cliShort, false, helpArg.description)
-	for _, c := range []arg{
-		addrArg,
-		tokenArg,
-		regionArg,
-		namespaceArg,
-		httpAuthArg,
-		cacertArg,
-		capathArg,
-		clientCertArg,
-		clientKeyArg,
-		tlsServerNameArg,
-		skipVerifyArg,
-		updateSecondsArg,
-		jobColumnsArg,
-		allTaskColumnsArg,
-		jobTaskColumnsArg,
-		logOffsetArg,
-		logTailArg,
-		copySavePathArg,
-		eventTopicsArg,
-		eventNamespaceArg,
-		eventJQQueryArg,
-		startCompactArg,
-		startAllTasksView,
-		compactTablesArg,
-	} {
-		rootCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
-		viper.BindPFlag(c.cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
-	}
+	cliLong = "help"
+	rootCmd.PersistentFlags().BoolP(cliLong, rootNameToArg[cliLong].cliShort, rootNameToArg[cliLong].defaultIfBool, rootNameToArg[cliLong].description)
 
 	// colors, config or env var only
-	viper.BindPFlag(logoColorArg.cliLong, rootCmd.PersistentFlags().Lookup(logoColorArg.cfgFileEnvVar))
+	viper.BindPFlag("", rootCmd.PersistentFlags().Lookup(rootNameToArg["logo-color"].cfgFileEnvVar))
+
+	for _, cliLong = range []string{
+		"addr",
+		"token",
+		"region",
+		"namespace",
+		"http-auth",
+		"cacert",
+		"capath",
+		"client-cert",
+		"client-key",
+		"tls-server-name",
+		"skip-verify",
+		"update",
+		"job-columns",
+		"all-tasks-columns",
+		"tasks-for-job-columns",
+		"log-offset",
+		"log-tail",
+		"copy-save-path",
+		"event-topics",
+		"event-namespace",
+		"event-jq-query",
+		"compact-header",
+		"start-all-tasks",
+		"compact-tables",
+	} {
+		c := rootNameToArg[cliLong]
+		if c.isBool {
+			rootCmd.PersistentFlags().BoolP(cliLong, c.cliShort, c.defaultIfBool, c.description)
+		} else if c.isInt {
+			rootCmd.PersistentFlags().IntP(cliLong, c.cliShort, c.defaultIfInt, c.description)
+		} else {
+			rootCmd.PersistentFlags().StringP(cliLong, c.cliShort, c.defaultString, c.description)
+		}
+		viper.BindPFlag(cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
+	}
 
 	// serve
-	for _, c := range []arg{
-		hostArg,
-		portArg,
-		hostKeyPathArg,
-		hostKeyPEMArg,
+	for _, cliLong := range []string{
+		"host",
+		"port",
+		"host-key-path",
+		"host-key-pem",
 	} {
-		serveCmd.PersistentFlags().StringP(c.cliLong, c.cliShort, "", c.description)
-		viper.BindPFlag(c.cliLong, serveCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
+		c := serveNameToArg[cliLong]
+		if c.isBool {
+			serveCmd.PersistentFlags().BoolP(cliLong, c.cliShort, c.defaultIfBool, c.description)
+		} else if c.isInt {
+			serveCmd.PersistentFlags().IntP(cliLong, c.cliShort, c.defaultIfInt, c.description)
+		} else {
+			serveCmd.PersistentFlags().StringP(cliLong, c.cliShort, c.defaultString, c.description)
+		}
+		viper.BindPFlag(cliLong, serveCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
 	}
 
 	rootCmd.AddCommand(serveCmd)
 }
 
-func initConfig() {
+func initConfig(cmd *cobra.Command, nameToArg map[string]arg) error {
+	cfgFile := cmd.Flag("config").Value.String()
 	if cfgFile != "" {
-		// Use config file from the flag.
+		// Use config file from the flag
 		_, err := os.Stat(cfgFile)
 		if err != nil {
 			fmt.Println(err)
@@ -260,6 +262,7 @@ func initConfig() {
 
 		viper.SetConfigFile(cfgFile)
 	} else {
+		// check if default ~/.wander.yaml exists and use it if so
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
@@ -268,11 +271,45 @@ func initConfig() {
 		viper.SetConfigName(".wander")
 	}
 
-	viper.AutomaticEnv()
-
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// no config file found, that's ok
+		} else {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
+
+	// bind viper to env vars
+	viper.AutomaticEnv()
+
+	bindFlags(cmd, nameToArg)
+	return nil
+}
+
+func bindFlags(cmd *cobra.Command, nameToArg map[string]arg) {
+	v := viper.GetViper()
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		// Determine the naming convention of the flags when represented in the config file
+		cliLong := f.Name
+		viperName := nameToArg[cliLong].cfgFileEnvVar
+
+		// TODO LEO: remove
+		dev.Debug(fmt.Sprintf("cliLong: %s, viperName: %s, changed: %t, isSet: %t", cliLong, viperName, f.Changed, v.IsSet(cliLong)))
+
+		// Apply the viper config value to the flag when the flag is not manually specified
+		// and viper has a value from the config file or env var
+		if !f.Changed && v.IsSet(viperName) {
+			val := v.Get(viperName)
+			err := cmd.Flags().Set(cliLong, fmt.Sprintf("%v", val))
+			if err != nil {
+				fmt.Println(fmt.Sprintf("error setting flag %s: %v", cliLong, err))
+				os.Exit(1)
+			}
+		}
+	})
 }
 
 func mainEntrypoint(cmd *cobra.Command, args []string) {

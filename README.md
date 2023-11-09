@@ -82,37 +82,37 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Nomad address. Default "http://localhost:4646"
 #nomad_addr: http://localhost:4646
 
-# Nomad token. Default ""
+# Nomad token
 #nomad_token: my-token
 
-# Nomad region. Default ""
+# Nomad region
 #nomad_region: west
 
 # Nomad namespace. Default "*"
 #nomad_namespace: "my-namespace"
 
-# Nomad http auth, in the form of "user" or "user:pass". Default ""
+# Nomad http auth, in the form of "user" or "user:pass"
 #nomad_http_auth: "username:password"
 
-# Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate. Default ""
+# Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate
 #nomad_cacert: "/path/to/cert"
 
-# Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used. Default ""
+# Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used
 #nomad_capath: "/path/to/cert/directory"
 
-# Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key. Default ""
+# Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key
 #nomad_client_cert: "/path/to/cert"
 
-# Path to an unencrypted PEM encoded private key matching the client cert. Default ""
+# Path to an unencrypted PEM encoded private key matching the client cert
 #nomad_client_key: "/path/to/key"
 
-# The server name to use as the SNI host when connecting via TLS. Default ""
+# The server name to use as the SNI host when connecting via TLS
 #nomad_tls_server_name: server-name
 
-# If "true", do not verify TLS certificates. Default "false"
+# If true, do not verify TLS certificates. Default false
 #nomad_skip_verify: true
 
-# Seconds between updates for job & allocation pages. Disable with "-1". Default "2"
+# Seconds between updates for job & allocation pages. Disable with -1. Default 2
 #wander_update_seconds: 1
 
 # Columns to display for Jobs view - can reference Meta keys. Default "ID,Type,Namespace,Status,Count,Submitted,Since Submit"
@@ -124,23 +124,23 @@ Example yaml file showing all options (uncomment an option to enable it):
 # Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 #wander_all_tasks_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
-# If "true", start with compact header. Default "false"
+# If true, start with compact header. Default false
 #wander_compact_header: true
 
-# If "true", start in All Tasks view. Default "false"
+# If true, start in All Tasks view. Default false
 #wander_start_all_tasks: true
 
-# If "true", remove unnecessary gaps between table columns when possible. Default "true"
+# If true, remove unnecessary gaps between table columns when possible. Default true
 # If you want column positions to remain static as you scroll and filter, set this to false
 #wander_compact_tables: true
 
-# Log byte offset from which logs start. Default "1000000"
+# Log byte offset from which logs start. Default 1000000
 #wander_log_offset: 1000000
 
-# Follow new logs as they come in rather than having to reload. Default "true"
+# If true, follow new logs as they come in rather than having to reload. Default true
 #wander_log_tail: true
 
-# If "true", copy the full path to file after save. Default "false"
+# If true, copy the full path to file after save. Default false
 #wander_copy_save_path: true
 
 # Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"
@@ -165,7 +165,7 @@ Example yaml file showing all options (uncomment an option to enable it):
 # For `wander serve`. Hostname of the machine hosting the ssh server. Default "localhost"
 #wander_host: localhost
 
-# For `wander serve`. Port for the ssh server. Default "21324"
+# For `wander serve`. Port for the ssh server. Default 21324
 #wander_port: 21324
 
 # For `wander serve`. Host key path for wander ssh server. Default none, i.e. ""

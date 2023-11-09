@@ -18,29 +18,29 @@ import (
 )
 
 var (
-	hostArg = arg{
-		cliShort:      "h",
-		cliLong:       "host",
-		cfgFileEnvVar: "wander_host",
-		description:   `Host for wander ssh server. Default "localhost"`,
-	}
-	portArg = arg{
-		cliShort:      "p",
-		cliLong:       "port",
-		cfgFileEnvVar: "wander_port",
-		description:   `Port for wander ssh server. Default "21324"`,
-	}
-	hostKeyPathArg = arg{
-		cliShort:      "k",
-		cliLong:       "host-key-path",
-		cfgFileEnvVar: "wander_host_key_path",
-		description:   `Host key path for wander ssh server. Default none, i.e. ""`,
-	}
-	hostKeyPEMArg = arg{
-		cliShort:      "m",
-		cliLong:       "host-key-pem",
-		cfgFileEnvVar: "wander_host_key_pem",
-		description:   `Host key PEM block for wander ssh server. Default none, i.e. ""`,
+	serveNameToArg = map[string]arg{
+		"host": {
+			cliShort:      "h",
+			cfgFileEnvVar: "wander_host",
+			description:   `Host for wander ssh server. Default "localhost"`,
+		},
+		"port": {
+			cliShort:      "p",
+			cfgFileEnvVar: "wander_port",
+			description:   `Port for wander ssh server. Default 21324`,
+			isInt:         true,
+			defaultIfInt:  21324,
+		},
+		"host-key-path": {
+			cliShort:      "k",
+			cfgFileEnvVar: "wander_host_key_path",
+			description:   `Host key path for wander ssh server. Default none, i.e. ""`,
+		},
+		"host-key-pem": {
+			cliShort:      "m",
+			cfgFileEnvVar: "wander_host_key_pem",
+			description:   `Host key PEM block for wander ssh server. Default none, i.e. ""`,
+		},
 	}
 
 	serveDescription = `Starts an ssh server hosting wander.`
@@ -49,20 +49,23 @@ var (
 		Use:   "serve",
 		Short: "Start ssh server for wander",
 		Long:  serveDescription,
-		Run:   serveEntrypoint,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return initConfig(cmd, serveNameToArg)
+		},
+		Run: serveEntrypoint,
 	}
 )
 
 func serveEntrypoint(cmd *cobra.Command, args []string) {
-	host := retrieveWithDefault(cmd, hostArg, "localhost")
-	portStr := retrieveWithDefault(cmd, portArg, "21324")
+	host := retrieveWithDefault(cmd, "host", serveNameToArg, "localhost")
+	portStr := retrieveWithDefault(cmd, "port", serveNameToArg, "21324")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not convert %s to integer", portStr))
 		os.Exit(1)
 	}
-	hostKeyPath := retrieveWithDefault(cmd, hostKeyPathArg, "")
-	hostKeyPEM := retrieveWithDefault(cmd, hostKeyPEMArg, "")
+	hostKeyPath := retrieveWithDefault(cmd, "host-key-path", serveNameToArg, "")
+	hostKeyPEM := retrieveWithDefault(cmd, "host-key-pem", serveNameToArg, "")
 
 	options := []ssh.Option{wish.WithAddress(fmt.Sprintf("%s:%d", host, port))}
 	if hostKeyPath != "" {
