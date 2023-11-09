@@ -35,10 +35,4 @@ var TasksTableStatusStyles = JobsTableStatusStyles
 
 const DefaultPageInput = "/bin/sh"
 
-const DefaultEventJQQuery = `.Events[] | {
-	"1:Index": .Index,
-	"2:Topic": .Topic,
-	"3:Type": .Type,
-	"4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
-	"5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
-}`
+const DefaultEventJQQuery = `.Events[] | {"1:Index": .Index, "2:Topic": .Topic, "3:Type": .Type, "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID), "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])}`

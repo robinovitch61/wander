@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -74,7 +75,7 @@ var (
 		},
 		"skip-verify": {
 			cfgFileEnvVar: "nomad_skip_verify",
-			description:   `If true, do not verify TLS certificates. Default false`,
+			description:   `Do not verify TLS certificates`,
 			isBool:        true,
 			defaultIfBool: false,
 		},
@@ -87,67 +88,73 @@ var (
 		},
 		"job-columns": {
 			cfgFileEnvVar: "wander_job_columns",
-			description:   `Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"`,
+			description:   `Columns to display for Jobs view - can reference Meta keys`,
+			defaultString: "Job,Type,Namespace,Status,Count,Submitted,Since Submit",
 		},
 		"all-tasks-columns": {
 			cfgFileEnvVar: "wander_all_tasks_columns",
-			description:   `Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
+			description:   `Columns to display for All Tasks view`,
+			defaultString: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime",
 		},
 		"tasks-for-job-columns": {
 			cfgFileEnvVar: "wander_tasks_for_job_columns",
-			description:   `Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"`,
+			description:   `Columns to display for Tasks for Job view`,
+			defaultString: "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime",
 		},
 		"log-offset": {
 			cliShort:      "o",
 			cfgFileEnvVar: "wander_log_offset",
-			description:   `Log byte offset from which logs start. Default 1000000`,
+			description:   `Log byte offset from which logs start`,
 			isInt:         true,
 			defaultIfInt:  1000000,
 		},
 		"log-tail": {
 			cliShort:      "f",
 			cfgFileEnvVar: "wander_log_tail",
-			description:   `If true, follow new logs as they come in rather than having to reload. Default true`,
+			description:   `Follow new logs as they come in rather than having to reload`,
 			isBool:        true,
 			defaultIfBool: true,
 		},
 		"copy-save-path": {
 			cliShort:      "s",
 			cfgFileEnvVar: "wander_copy_save_path",
-			description:   `If true, copy the full path to file after save. Default false`,
+			description:   `Copy the full path to file after save`,
 			isBool:        true,
 			defaultIfBool: false,
 		},
 		"event-topics": {
 			cfgFileEnvVar: "wander_event_topics",
-			description:   `Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"`,
+			description:   `Topics to follow in event streams, comma-separated`,
+			defaultString: "Job,Allocation,Deployment,Evaluation",
 		},
 		"event-namespace": {
 			cfgFileEnvVar: "wander_event_namespace",
-			description:   `Namespace used in stream for all events. "*" for all namespaces. Default "default"`,
+			description:   `Namespace used in stream for all events. "*" for all namespaces`,
+			defaultString: "default",
 		},
 		"event-jq-query": {
 			cfgFileEnvVar: "wander_event_jq_query",
-			description:   `jq query for events. "." for entire JSON. Default shown at https://github.com/robinovitch61/wander`,
+			description:   `jq query for events. "." for entire JSON`,
+			defaultString: constants.DefaultEventJQQuery,
 		},
 		"logo-color": {
 			cfgFileEnvVar: "wander_logo_color",
 		},
 		"compact-header": {
 			cfgFileEnvVar: "wander_compact_header",
-			description:   `If true, start with compact header. Default false`,
+			description:   `Start with compact header`,
 			isBool:        true,
 			defaultIfBool: false,
 		},
 		"start-all-tasks": {
 			cfgFileEnvVar: "wander_start_all_tasks",
-			description:   `If true, start in All Tasks view. Default false`,
+			description:   `Start in All Tasks view`,
 			isBool:        true,
 			defaultIfBool: false,
 		},
 		"compact-tables": {
 			cfgFileEnvVar: "wander_compact_tables",
-			description:   `If true, remove unnecessary gaps between table columns when possible. Default true`,
+			description:   `Remove unnecessary gaps between table columns when possible`,
 			isBool:        true,
 			defaultIfBool: true,
 		},
@@ -245,7 +252,7 @@ func init() {
 }
 
 func initConfig(cmd *cobra.Command, nameToArg map[string]arg) error {
-	cfgFile := cmd.Flag("config").Value.String()
+	cfgFile := cmd.Flags().Lookup("config").Value.String()
 	if cfgFile != "" {
 		// Use config file from the flag
 		_, err := os.Stat(cfgFile)
@@ -295,9 +302,6 @@ func bindFlags(cmd *cobra.Command, nameToArg map[string]arg) {
 		// Determine the naming convention of the flags when represented in the config file
 		cliLong := f.Name
 		viperName := nameToArg[cliLong].cfgFileEnvVar
-
-		// TODO LEO: remove
-		dev.Debug(fmt.Sprintf("cliLong: %s, viperName: %s, changed: %t, isSet: %t", cliLong, viperName, f.Changed, v.IsSet(cliLong)))
 
 		// Apply the viper config value to the flag when the flag is not manually specified
 		// and viper has a value from the config file or env var

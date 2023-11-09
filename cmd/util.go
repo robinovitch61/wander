@@ -9,9 +9,7 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
-	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/components/app"
-	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,20 +49,6 @@ func trueIfTrue(v string) bool {
 	return false
 }
 
-// TODO LEO: rm
-func retrieveWithDefault(cmd *cobra.Command, cliLong string, nameToArg map[string]arg, defaultVal string) string {
-	val := cmd.Flag(cliLong).Value.String()
-	if val == "" {
-		// TODO LEO rm
-		dev.Debug(fmt.Sprintf("No value for %s, checking env var %s", cliLong, nameToArg[cliLong].cfgFileEnvVar))
-		val = viper.GetString(nameToArg[cliLong].cfgFileEnvVar)
-	}
-	if val == "" {
-		return defaultVal
-	}
-	return val
-}
-
 func retrieveNonCLIWithDefault(a arg, defaultVal string) string {
 	val := viper.GetString(a.cfgFileEnvVar)
 	if val == "" {
@@ -74,11 +58,11 @@ func retrieveNonCLIWithDefault(a arg, defaultVal string) string {
 }
 
 func retrieveAddress(cmd *cobra.Command) string {
-	return cmd.Flag("addr").Value.String()
+	return cmd.Flags().Lookup("addr").Value.String()
 }
 
 func retrieveToken(cmd *cobra.Command) string {
-	val := cmd.Flag("token").Value.String()
+	val := cmd.Flags().Lookup("token").Value.String()
 	err := validateToken(val)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -88,44 +72,44 @@ func retrieveToken(cmd *cobra.Command) string {
 }
 
 func retrieveRegion(cmd *cobra.Command) string {
-	return cmd.Flag("region").Value.String()
+	return cmd.Flags().Lookup("region").Value.String()
 }
 
 func retrieveNamespace(cmd *cobra.Command) string {
-	return cmd.Flag("namespace").Value.String()
+	return cmd.Flags().Lookup("namespace").Value.String()
 }
 
 func retrieveHTTPAuth(cmd *cobra.Command) string {
-	return cmd.Flag("http-auth").Value.String()
+	return cmd.Flags().Lookup("http-auth").Value.String()
 }
 
 func retrieveCACert(cmd *cobra.Command) string {
-	return cmd.Flag("cacert").Value.String()
+	return cmd.Flags().Lookup("cacert").Value.String()
 }
 
 func retrieveCAPath(cmd *cobra.Command) string {
-	return cmd.Flag("capath").Value.String()
+	return cmd.Flags().Lookup("capath").Value.String()
 }
 
 func retrieveClientCert(cmd *cobra.Command) string {
-	return cmd.Flag("client-cert").Value.String()
+	return cmd.Flags().Lookup("client-cert").Value.String()
 }
 
 func retrieveClientKey(cmd *cobra.Command) string {
-	return cmd.Flag("client-key").Value.String()
+	return cmd.Flags().Lookup("client-key").Value.String()
 }
 
 func retrieveTLSServerName(cmd *cobra.Command) string {
-	return cmd.Flag("tls-server-name").Value.String()
+	return cmd.Flags().Lookup("tls-server-name").Value.String()
 }
 
 func retrieveSkipVerify(cmd *cobra.Command) bool {
-	v := cmd.Flag("skip-verify").Value.String()
+	v := cmd.Flags().Lookup("skip-verify").Value.String()
 	return trueIfTrue(v)
 }
 
 func retrieveCopySavePath(cmd *cobra.Command) bool {
-	v := cmd.Flag("copy-save-path").Value.String()
+	v := cmd.Flags().Lookup("copy-save-path").Value.String()
 	return trueIfTrue(v)
 }
 
@@ -150,7 +134,7 @@ func retrieveEventTopics(cmd *cobra.Command) nomad.Topics {
 		return "", fmt.Errorf("%s cannot be parsed into topic", t)
 	}
 
-	topicString := retrieveWithDefault(cmd, "event-topics", rootNameToArg, "Job,Allocation,Deployment,Evaluation")
+	topicString := cmd.Flags().Lookup("event-topics").Value.String()
 	topics := make(nomad.Topics)
 	for _, t := range strings.Split(topicString, ",") {
 		split := strings.Split(strings.TrimSpace(t), ":")
@@ -177,11 +161,11 @@ func retrieveEventTopics(cmd *cobra.Command) nomad.Topics {
 }
 
 func retrieveEventNamespace(cmd *cobra.Command) string {
-	return retrieveWithDefault(cmd, "event-namespace", rootNameToArg, "default")
+	return cmd.Flags().Lookup("event-namespace").Value.String()
 }
 
 func retrieveEventJQQuery(cmd *cobra.Command) *gojq.Code {
-	query := retrieveWithDefault(cmd, "event-jq-query", rootNameToArg, constants.DefaultEventJQQuery)
+	query := cmd.Flags().Lookup("event-jq-query").Value.String()
 	parsed, err := gojq.Parse(query)
 	if err != nil {
 		fmt.Printf("Error parsing event jq query: %s\n", err.Error())
@@ -196,7 +180,7 @@ func retrieveEventJQQuery(cmd *cobra.Command) *gojq.Code {
 }
 
 func retrieveUpdateSeconds(cmd *cobra.Command) int {
-	updateSecondsString := retrieveWithDefault(cmd, "update", rootNameToArg, "2")
+	updateSecondsString := cmd.Flags().Lookup("update").Value.String()
 	updateSeconds, err := strconv.Atoi(updateSecondsString)
 	if err != nil {
 		fmt.Println(fmt.Errorf("update value %s cannot be converted to an integer", updateSecondsString))
@@ -206,7 +190,7 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 }
 
 func retrieveJobColumns(cmd *cobra.Command) []string {
-	columnsString := retrieveWithDefault(cmd, "job-columns", rootNameToArg, "Job,Type,Namespace,Status,Count,Submitted,Since Submit")
+	columnsString := cmd.Flags().Lookup("job-columns").Value.String()
 	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {
@@ -216,7 +200,7 @@ func retrieveJobColumns(cmd *cobra.Command) []string {
 }
 
 func retrieveAllTaskColumns(cmd *cobra.Command) []string {
-	columnsString := retrieveWithDefault(cmd, "all-tasks-columns", rootNameToArg, "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
+	columnsString := cmd.Flags().Lookup("all-tasks-columns").Value.String()
 	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {
@@ -226,7 +210,7 @@ func retrieveAllTaskColumns(cmd *cobra.Command) []string {
 }
 
 func retrieveJobTaskColumns(cmd *cobra.Command) []string {
-	columnsString := retrieveWithDefault(cmd, "tasks-for-job-columns", rootNameToArg, "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime")
+	columnsString := cmd.Flags().Lookup("tasks-for-job-columns").Value.String()
 	split := strings.Split(columnsString, ",")
 	var trimmed []string
 	for _, s := range split {
@@ -236,7 +220,7 @@ func retrieveJobTaskColumns(cmd *cobra.Command) []string {
 }
 
 func retrieveLogOffset(cmd *cobra.Command) int {
-	logOffsetString := retrieveWithDefault(cmd, "log-offset", rootNameToArg, "1000000")
+	logOffsetString := cmd.Flags().Lookup("log-offset").Value.String()
 	logOffset, err := strconv.Atoi(logOffsetString)
 	if err != nil {
 		fmt.Println(fmt.Errorf("log offset %s cannot be converted to an integer", logOffsetString))
@@ -246,22 +230,22 @@ func retrieveLogOffset(cmd *cobra.Command) int {
 }
 
 func retrieveLogTail(cmd *cobra.Command) bool {
-	v := retrieveWithDefault(cmd, "log-tail", rootNameToArg, "true")
+	v := cmd.Flags().Lookup("log-tail").Value.String()
 	return trueIfTrue(v)
 }
 
 func retrieveStartCompact(cmd *cobra.Command) bool {
-	v := retrieveWithDefault(cmd, "compact-header", rootNameToArg, "false")
+	v := cmd.Flags().Lookup("compact-header").Value.String()
 	return trueIfTrue(v)
 }
 
 func retrieveStartAllTasksView(cmd *cobra.Command) bool {
-	v := retrieveWithDefault(cmd, "start-all-tasks", rootNameToArg, "false")
+	v := cmd.Flags().Lookup("start-all-tasks").Value.String()
 	return trueIfTrue(v)
 }
 
 func retrieveCompactTables(cmd *cobra.Command) bool {
-	v := retrieveWithDefault(cmd, "compact-tables", rootNameToArg, "true")
+	v := cmd.Flags().Lookup("compact-tables").Value.String()
 	return trueIfTrue(v)
 }
 

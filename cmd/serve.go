@@ -22,24 +22,25 @@ var (
 		"host": {
 			cliShort:      "h",
 			cfgFileEnvVar: "wander_host",
-			description:   `Host for wander ssh server. Default "localhost"`,
+			description:   `Host for wander ssh server`,
+			defaultString: "localhost",
 		},
 		"port": {
 			cliShort:      "p",
 			cfgFileEnvVar: "wander_port",
-			description:   `Port for wander ssh server. Default 21324`,
+			description:   `Port for wander ssh server`,
 			isInt:         true,
 			defaultIfInt:  21324,
 		},
 		"host-key-path": {
 			cliShort:      "k",
 			cfgFileEnvVar: "wander_host_key_path",
-			description:   `Host key path for wander ssh server. Default none, i.e. ""`,
+			description:   `Host key path for wander ssh server`,
 		},
 		"host-key-pem": {
 			cliShort:      "m",
 			cfgFileEnvVar: "wander_host_key_pem",
-			description:   `Host key PEM block for wander ssh server. Default none, i.e. ""`,
+			description:   `Host key PEM block for wander ssh server`,
 		},
 	}
 
@@ -57,15 +58,15 @@ var (
 )
 
 func serveEntrypoint(cmd *cobra.Command, args []string) {
-	host := retrieveWithDefault(cmd, "host", serveNameToArg, "localhost")
-	portStr := retrieveWithDefault(cmd, "port", serveNameToArg, "21324")
+	host := cmd.Flags().Lookup("host").Value.String()
+	portStr := cmd.Flags().Lookup("port").Value.String()
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not convert %s to integer", portStr))
 		os.Exit(1)
 	}
-	hostKeyPath := retrieveWithDefault(cmd, "host-key-path", serveNameToArg, "")
-	hostKeyPEM := retrieveWithDefault(cmd, "host-key-pem", serveNameToArg, "")
+	hostKeyPath := cmd.Flags().Lookup("host-key-path").Value.String()
+	hostKeyPEM := cmd.Flags().Lookup("host-key-pem").Value.String()
 
 	options := []ssh.Option{wish.WithAddress(fmt.Sprintf("%s:%d", host, port))}
 	if hostKeyPath != "" {
