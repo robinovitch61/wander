@@ -76,108 +76,109 @@ Run the app by running `wander` in a terminal. See `wander --help` and config se
 
 Priority in order of highest to lowest is command line arguments, then environment variables, then the config file.
 
-Example yaml file showing all options (uncomment an option to enable it):
+Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and uncomment/edit as desired):
 
-```shell
+```yaml
 # Nomad address. Default "http://localhost:4646"
-#nomad_addr: http://localhost:4646
+#nomad_addr: "http://localhost:4646"
 
 # Nomad token
-#nomad_token: my-token
+#nomad_token: ""
 
 # Nomad region
-#nomad_region: west
+#nomad_region: ""
 
 # Nomad namespace. Default "*"
-#nomad_namespace: "my-namespace"
+#nomad_namespace: "*"
 
 # Nomad http auth, in the form of "user" or "user:pass"
-#nomad_http_auth: "username:password"
+#nomad_http_auth: ""
 
 # Path to a PEM encoded CA cert file to use to verify the Nomad server SSL certificate
-#nomad_cacert: "/path/to/cert"
+#nomad_cacert: ""
 
 # Path to a directory of PEM encoded CA cert files to verify the Nomad server SSL certificate. If both cacert and capath are specified, cacert is used
-#nomad_capath: "/path/to/cert/directory"
+#nomad_capath: ""
 
 # Path to a PEM encoded client cert for TLS authentication to the Nomad server. Must also specify client key
-#nomad_client_cert: "/path/to/cert"
+#nomad_client_cert: ""
 
 # Path to an unencrypted PEM encoded private key matching the client cert
-#nomad_client_key: "/path/to/key"
+#nomad_client_key: ""
 
 # The server name to use as the SNI host when connecting via TLS
-#nomad_tls_server_name: server-name
+#nomad_tls_server_name: ""
 
-# If true, do not verify TLS certificates. Default false
-#nomad_skip_verify: true
+# If True, do not verify TLS certificates. Default False
+#nomad_skip_verify: False
 
 # Seconds between updates for job & allocation pages. Disable with -1. Default 2
-#wander_update_seconds: 1
+#wander_update_seconds: 2
 
-# Columns to display for Jobs view - can reference Meta keys. Default "ID,Type,Namespace,Status,Count,Submitted,Since Submit"
-#wander_job_columns: "Job,Type,Namespace,Priority,Status,Count,Submitted,Since Submit,SomeMetaKey"
+# Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"
+#wander_job_columns: "Job,Type,Namespace,Status,Count,Submitted,Since Submit"
 
 # Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
-#wander_tasks_for_job_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+#wander_tasks_for_job_columns: "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
 # Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 #wander_all_tasks_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
-# If true, start with compact header. Default false
-#wander_compact_header: true
+# If True, start with compact header. Default False
+#wander_compact_header: False
 
-# If true, start in All Tasks view. Default false
-#wander_start_all_tasks: true
+# If True, start in All Tasks view. Default False
+#wander_start_all_tasks: False
 
-# If true, remove unnecessary gaps between table columns when possible. Default true
-# If you want column positions to remain static as you scroll and filter, set this to false
-#wander_compact_tables: true
+# If True, remove unnecessary gaps between table columns when possible. Default True
+# If you want column positions to remain static as you scroll and filter, set this to False
+#wander_compact_tables: True
 
 # Log byte offset from which logs start. Default 1000000
 #wander_log_offset: 1000000
 
-# If true, follow new logs as they come in rather than having to reload. Default true
-#wander_log_tail: true
+# If True, follow new logs as they come in rather than having to reload. Default True
+#wander_log_tail: True
 
-# If true, copy the full path to file after save. Default false
-#wander_copy_save_path: true
+# If True, copy the full path to file after save. Default False
+#wander_copy_save_path: False
 
 # Topics to follow in event streams, comma-separated. Default "Job,Allocation,Deployment,Evaluation"
 # see https://www.nomadproject.io/api-docs/events#event-stream
-#wander_event_topics: Job:my-job,Job:my-other-job,Allocation:my-job,Evaluation,Deployment:*
+#wander_event_topics: "Job,Allocation,Deployment,Evaluation"
 
 # Namespace used in stream for all events. "*" for all namespaces. Default "default"
-#wander_event_namespace: "*" # * needs surrounding "" in yaml
+#wander_event_namespace: "default"
 
-# jq (https://stedolan.github.io/jq/) query used for parsing events. "." to show entire event JSON. Default is:
-# wander_event_jq_query: >
-#   .Events[] | {
-#      "1:Index": .Index,
-#      "2:Topic": .Topic,
-#      "3:Type": .Type,
-#      "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
-#      "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
-#   }
+# The jq (https://stedolan.github.io/jq/) query used for parsing events. "." to show entire event JSON. Default is:
+#  .Events[] | {
+#     "1:Index": .Index,
+#     "2:Topic": .Topic,
+#     "3:Type": .Type,
+#     "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
+#     "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
+#  }
 # The numbering exists to preserve ordering, as https://github.com/itchyny/gojq does not keep the order of object keys
-#wander_event_jq_query: .
+#wander_event_jq_query: >
+#  .Events[] | {
+#     "1:Index": .Index,
+#     "2:Topic": .Topic,
+#     "3:Type": .Type,
+#     "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
+#     "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
+#  }
 
 # For `wander serve`. Hostname of the machine hosting the ssh server. Default "localhost"
-#wander_host: localhost
+#wander_host: "localhost"
 
 # For `wander serve`. Port for the ssh server. Default 21324
 #wander_port: 21324
 
-# For `wander serve`. Host key path for wander ssh server. Default none, i.e. ""
-#wander_host_key_path: .ssh/term_info_ed25519
+# For `wander serve`. Host key path for wander ssh server
+#wander_host_key_path: ""
 
-# For `wander serve`. Host key PEM block for wander ssh server. Default none, i.e. ""
-#wander_host_key_pem: |
-#    -----BEGIN OPENSSH PRIVATE KEY-----
-#    b3BlbnNzaD1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAACFwAAAAdzc2gtcm
-#    ...
-#    XBMuWaiQMCZjAwAAAAp3YW5kZXItc3NoAQIEBAUGBw==
-#    -----END OPENSSH PRIVATE KEY-----
+# For `wander serve`. Host key PEM block for wander ssh server
+#wander_host_key_pem: ""
 
 # Custom colors
 #wander_logo_color: "#DBBD70"
