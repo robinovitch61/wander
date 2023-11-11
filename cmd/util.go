@@ -49,12 +49,8 @@ func trueIfTrue(v string) bool {
 	return false
 }
 
-func retrieveNonCLIWithDefault(a arg, defaultVal string) string {
-	val := viper.GetString(a.cfgFileEnvVar)
-	if val == "" {
-		return defaultVal
-	}
-	return val
+func retrieveLogoColor() string {
+	return viper.GetString(rootNameToArg["logo-color"].cfgFileEnvVar)
 }
 
 func retrieveAddress(cmd *cobra.Command) string {
@@ -63,8 +59,7 @@ func retrieveAddress(cmd *cobra.Command) string {
 
 func retrieveToken(cmd *cobra.Command) string {
 	val := cmd.Flags().Lookup("token").Value.String()
-	err := validateToken(val)
-	if err != nil {
+	if err := validateToken(val); err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
@@ -270,8 +265,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	nomadAddr := retrieveAddress(cmd)
 	nomadToken := retrieveToken(cmd)
 	if overrideToken != "" {
-		err := validateToken(overrideToken)
-		if err != nil {
+		if err := validateToken(overrideToken); err != nil {
 			fmt.Println(err.Error())
 		}
 		nomadToken = overrideToken
@@ -295,7 +289,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	jobColumns := retrieveJobColumns(cmd)
 	allTaskColumns := retrieveAllTaskColumns(cmd)
 	jobTaskColumns := retrieveJobTaskColumns(cmd)
-	logoColor := retrieveNonCLIWithDefault(rootNameToArg["logo-color"], "")
+	logoColor := retrieveLogoColor()
 	startCompact := retrieveStartCompact(cmd)
 	startAllTasksView := retrieveStartAllTasksView(cmd)
 	compactTables := retrieveCompactTables(cmd)
