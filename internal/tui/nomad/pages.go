@@ -36,89 +36,89 @@ const (
 	LoglinePage
 )
 
-func GetAllPageConfigs(width, height int, copySavePath, compactTables bool) map[Page]page.Config {
+func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
 	return map[Page]page.Config{
 		JobsPage: {
 			Width: width, Height: height,
-			LoadingString: JobsPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    JobsPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.JobsTableStatusStyles,
 		},
 		AllTasksPage: {
 			Width: width, Height: height,
-			LoadingString: AllTasksPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    AllTasksPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.TasksTableStatusStyles,
 		},
 		JobSpecPage: {
 			Width: width, Height: height,
-			LoadingString: JobSpecPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    JobSpecPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		JobEventsPage: {
 			Width: width, Height: height,
-			LoadingString: JobEventsPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    JobEventsPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
 		JobEventPage: {
 			Width: width, Height: height,
-			LoadingString: JobEventPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    JobEventPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		JobMetaPage: {
 			Width: width, Height: height,
-			LoadingString: JobMetaPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    JobMetaPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 			CompactTableContent: compactTables,
 		},
 		AllocEventsPage: {
 			Width: width, Height: height,
-			LoadingString: AllocEventsPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    AllocEventsPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
 		AllocEventPage: {
 			Width: width, Height: height,
-			LoadingString: AllocEventPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    AllocEventPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		AllEventsPage: {
 			Width: width, Height: height,
-			LoadingString: AllEventsPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    AllEventsPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
 		AllEventPage: {
 			Width: width, Height: height,
-			LoadingString: AllEventPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    AllEventPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		JobTasksPage: {
 			Width: width, Height: height,
-			LoadingString: JobTasksPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    JobTasksPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.TasksTableStatusStyles,
 		},
 		ExecPage: {
 			Width: width, Height: height,
-			LoadingString: ExecPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: true,
+			LoadingString:    ExecPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: true,
 		},
 		AllocSpecPage: {
 			Width: width, Height: height,
-			LoadingString: AllocSpecPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    AllocSpecPage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 		LogsPage: {
 			Width: width, Height: height,
-			LoadingString: LogsPage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: true, WrapText: false, RequestInput: false,
+			LoadingString:    LogsPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
 		LoglinePage: {
 			Width: width, Height: height,
-			LoadingString: LoglinePage.LoadingString(),
-			CopySavePath:  copySavePath, SelectionEnabled: false, WrapText: true, RequestInput: false,
+			LoadingString:    LoglinePage.LoadingString(),
+			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
 	}
 }

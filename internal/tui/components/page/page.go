@@ -18,11 +18,11 @@ import (
 )
 
 type Config struct {
-	Width, Height                                          int
-	LoadingString                                          string
-	CopySavePath, SelectionEnabled, WrapText, RequestInput bool
-	CompactTableContent                                    bool
-	ViewportConditionalStyle                               map[string]lipgloss.Style
+	Width, Height                            int
+	LoadingString                            string
+	SelectionEnabled, WrapText, RequestInput bool
+	CompactTableContent                      bool
+	ViewportConditionalStyle                 map[string]lipgloss.Style
 }
 
 type Model struct {
@@ -45,8 +45,11 @@ type Model struct {
 	initialized      bool
 }
 
-func New(c Config) Model {
+func New(c Config, copySavePath, startFiltering bool) Model {
 	pageFilter := filter.New("")
+	if startFiltering {
+		pageFilter.Focus()
+	}
 	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight(), c.CompactTableContent)
 	pageViewport.SetSelectionEnabled(c.SelectionEnabled)
 	pageViewport.SetWrapText(c.WrapText)
@@ -69,7 +72,7 @@ func New(c Config) Model {
 		filter:           pageFilter,
 		loadingString:    c.LoadingString,
 		loading:          true,
-		copySavePath:     c.CopySavePath,
+		copySavePath:     copySavePath,
 		doesRequestInput: c.RequestInput,
 		textinput:        pageTextInput,
 		needsNewInput:    needsNewInput,
