@@ -35,4 +35,5 @@ var TasksTableStatusStyles = JobsTableStatusStyles
 
 const DefaultPageInput = "/bin/sh"
 
+// DefaultEventJQQuery is a single line as this shows up verbatim in `wander --help`
 const DefaultEventJQQuery = `.Events[] | {"1:Index": .Index, "2:Topic": .Topic, "3:Type": .Type, "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID), "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])}`
