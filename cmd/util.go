@@ -244,6 +244,11 @@ func retrieveCompactTables(cmd *cobra.Command) bool {
 	return trueIfTrue(v)
 }
 
+func retrieveStartFiltering(cmd *cobra.Command) bool {
+	v := cmd.Flags().Lookup("start-filtering").Value.String()
+	return trueIfTrue(v)
+}
+
 // customLoggingMiddleware provides basic connection logging. Connects are logged with the
 // remote address, invoked command, TERM setting, window dimensions and if the
 // auth was public key based. Disconnect will log the remote address and
@@ -293,6 +298,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	startCompact := retrieveStartCompact(cmd)
 	startAllTasksView := retrieveStartAllTasksView(cmd)
 	compactTables := retrieveCompactTables(cmd)
+	startFiltering := retrieveStartFiltering(cmd)
 
 	initialModel := app.InitialModel(app.Config{
 		Version:   getVersion(),
@@ -327,6 +333,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		StartCompact:      startCompact,
 		StartAllTasksView: startAllTasksView,
 		CompactTables:     compactTables,
+		StartFiltering:    startFiltering,
 	})
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }

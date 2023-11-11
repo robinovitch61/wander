@@ -53,6 +53,7 @@ type Config struct {
 	StartCompact                  bool
 	StartAllTasksView             bool
 	CompactTables                 bool
+	StartFiltering                bool
 }
 
 type Model struct {
@@ -92,11 +93,16 @@ type Model struct {
 	err           error
 }
 
-func InitialModel(c Config) Model {
+func getFirstPage(c Config) nomad.Page {
 	firstPage := nomad.JobsPage
 	if c.StartAllTasksView {
 		firstPage = nomad.AllTasksPage
 	}
+	return firstPage
+}
+
+func InitialModel(c Config) Model {
+	firstPage := getFirstPage(c)
 	initialHeader := header.New(
 		constants.LogoString,
 		c.LogoColor,
@@ -316,9 +322,12 @@ func (m *Model) initialize() error {
 	}
 	m.client = *client
 
+	firstPage := getFirstPage(m.config)
+
 	m.pageModels = make(map[nomad.Page]*page.Model)
-	for k, c := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CopySavePath, m.config.CompactTables) {
-		p := page.New(c)
+	for k, pageConfig := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CompactTables) {
+		startFiltering := m.config.StartFiltering && k == firstPage
+		p := page.New(pageConfig, m.config.CopySavePath, startFiltering)
 		m.pageModels[k] = &p
 	}
 
