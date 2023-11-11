@@ -289,7 +289,7 @@ func initConfig(cmd *cobra.Command, nameToArg map[string]arg) error {
 		}
 	}
 
-	// bind viper to env vars
+	// bind viper to env vars, will prioritize env vars over config file
 	viper.AutomaticEnv()
 
 	bindFlags(cmd, nameToArg)
