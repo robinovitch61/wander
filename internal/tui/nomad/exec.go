@@ -136,6 +136,8 @@ func GetKeypress(msg tea.KeyMsg) (keypress string) {
 		}
 	case tea.KeyCtrlD:
 		keypress = string(rune(4))
+	case tea.KeyCtrlC:
+		keypress = string(rune(3))
 	case tea.KeyTab:
 		keypress = string(rune(9))
 	case tea.KeyUp:

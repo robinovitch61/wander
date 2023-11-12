@@ -366,7 +366,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		saving := m.currentPageViewportSaving()
 		enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
 		typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
-		if !typingQLegitimately || m.err != nil {
+		ctrlCInPty := m.inPty && msg.String() == "ctrl+c"
+		if (!ctrlCInPty && !typingQLegitimately) || m.err != nil {
 			return m.cleanupCmd()
 		}
 	}

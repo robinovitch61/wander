@@ -378,6 +378,7 @@ func GetPageKeyHelp(
 	logType LogType,
 	compact, inJobsMode bool,
 ) string {
+	// TODO LEO: ensure q/ctrlc is correct in all pages
 	if compact {
 		changeKeyHelp(&keymap.KeyMap.Compact, "expand header")
 		return getShortHelp([]key.Binding{keymap.KeyMap.Compact})
