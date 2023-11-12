@@ -6,5 +6,5 @@
 mv ~/.wander.{yaml,yaml.tmp}
 vhs vhs.tape
 mv ~/.wander.{yaml.tmp,yaml}
-rm my_logs.txt
+rm -f my_logs.txt
 open ../img/wander.gif

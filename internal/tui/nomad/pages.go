@@ -385,6 +385,12 @@ func GetPageKeyHelp(
 		changeKeyHelp(&keymap.KeyMap.Compact, "compact")
 	}
 
+	if filterFocused || enteringInput {
+		keymap.KeyMap.Exit.SetHelp("ctrl+c", "exit")
+	} else {
+		keymap.KeyMap.Exit.SetHelp("q/ctrl+c", "exit")
+	}
+
 	firstRow := []key.Binding{keymap.KeyMap.Exit}
 
 	if !saving && !filterFocused {
@@ -446,8 +452,7 @@ func GetPageKeyHelp(
 		}
 		if inPty {
 			changeKeyHelp(&keymap.KeyMap.Back, "disable input")
-			secondRow = []key.Binding{keymap.KeyMap.Back}
-			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+			return getShortHelp([]key.Binding{keymap.KeyMap.Back})
 		} else {
 			if webSocketConnected {
 				changeKeyHelp(&keymap.KeyMap.Forward, "enable input")
