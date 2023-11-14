@@ -1,18 +1,27 @@
 package nomad
 
 import (
-    "encoding/json"
-    tea "github.com/charmbracelet/bubbletea"
-    "github.com/hashicorp/nomad/api"
-    "github.com/robinovitch61/wander/internal/tui/components/page"
-    "github.com/robinovitch61/wander/internal/tui/formatter"
-    "github.com/robinovitch61/wander/internal/tui/message"
-    "sort"
+	"encoding/json"
+	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
+	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"github.com/robinovitch61/wander/internal/tui/message"
+	"sort"
 )
 
 func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []string) tea.Cmd {
 	return func() tea.Msg {
-		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
+		allocationsForJob, _, err := client.Jobs().Allocations(
+			jobID,
+			true,
+			&api.QueryOptions{
+				Namespace: jobNamespace,
+				Resources: true,
+			},
+		)
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -24,8 +33,12 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 				return message.ErrMsg{Err: err}
 			}
 
+			resources := getAllocatedResources(alloc)
+			dev.Debug(fmt.Sprintf("Allocated resources for alloc %s: %v", alloc.ID, resources))
 			for taskName, task := range alloc.TaskStates {
+				taskResources := getTaskResources(resources, taskName)
 				jobTaskRowEntries = append(jobTaskRowEntries, taskRowEntry{
+					NodeID:               alloc.NodeID,
 					JobID:                alloc.JobID,
 					FullAllocationAsJSON: string(allocAsJSON),
 					ID:                   alloc.ID,
@@ -35,6 +48,9 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 					State:                task.State,
 					StartedAt:            task.StartedAt.UTC(),
 					FinishedAt:           task.FinishedAt.UTC(),
+					CpuShares:            taskResources.CpuShares,
+					Memory:               taskResources.MemoryMB,
+					MaxMemory:            taskResources.MaxMemoryMB,
 				})
 			}
 		}
@@ -64,6 +80,7 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 
 func getJobTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	knownColMap := map[string]string{
+		"Node ID":    formatter.ShortAllocID(row.NodeID),
 		"Job":        row.JobID,
 		"Alloc ID":   formatter.ShortAllocID(row.ID),
 		"Task Group": row.TaskGroup,
@@ -73,6 +90,9 @@ func getJobTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 		"Started":    formatter.FormatTime(row.StartedAt),
 		"Finished":   formatter.FormatTime(row.FinishedAt),
 		"Uptime":     getUptime(row.State, row.StartedAt.UnixNano()),
+		"CPU":        row.CpuShares,
+		"Memory":     row.Memory,
+		"Max Memory": row.MaxMemory,
 	}
 
 	var rowEntries []string
