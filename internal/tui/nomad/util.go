@@ -2,7 +2,6 @@ package nomad
 
 import (
 	"encoding/json"
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/nomad/api"
@@ -18,10 +17,9 @@ import (
 const keySeparator = "|【=◈︿◈=】|"
 
 type taskRowEntry struct {
-	FullAllocationAsJSON                                string
-	NodeID, JobID, ID, TaskGroup, Name, TaskName, State string
-	StartedAt, FinishedAt                               time.Time
-	CpuShares, Memory, MaxMemory                        string
+	FullAllocationAsJSON                        string
+	JobID, ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                       time.Time
 }
 
 func toTaskKey(state, fullAllocationAsJSON, taskName string) string {
@@ -101,32 +99,4 @@ func getUptime(status string, startTime int64) string {
 		uptime = formatter.FormatTimeNsSinceNow(startTime)
 	}
 	return uptime
-}
-
-func getAllocatedResources(alloc *api.AllocationListStub) map[string]*api.AllocatedTaskResources {
-	resources := alloc.AllocatedResources
-	allocTaskResources := make(map[string]*api.AllocatedTaskResources)
-	if resources != nil {
-		allocTaskResources = resources.Tasks
-	}
-	return allocTaskResources
-}
-
-type taskResources struct {
-	CpuShares, MemoryMB, MaxMemoryMB string
-}
-
-func getTaskResources(allocTaskResources map[string]*api.AllocatedTaskResources, taskName string) taskResources {
-	if allocated, ok := allocTaskResources[taskName]; ok {
-		maxMemMB := "unbounded"
-		if allocated.Memory.MemoryMaxMB > 0 {
-			maxMemMB = fmt.Sprintf("%d MB", allocated.Memory.MemoryMaxMB)
-		}
-		return taskResources{
-			CpuShares:   fmt.Sprintf("%d MHz", allocated.Cpu.CpuShares),
-			MemoryMB:    fmt.Sprintf("%d MB", allocated.Memory.MemoryMB),
-			MaxMemoryMB: maxMemMB,
-		}
-	}
-	return taskResources{}
 }

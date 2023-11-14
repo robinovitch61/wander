@@ -1,18 +1,18 @@
 package nomad
 
 import (
-	"encoding/json"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/hashicorp/nomad/api"
-	"github.com/robinovitch61/wander/internal/tui/components/page"
-	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/message"
-	"sort"
+    "encoding/json"
+    tea "github.com/charmbracelet/bubbletea"
+    "github.com/hashicorp/nomad/api"
+    "github.com/robinovitch61/wander/internal/tui/components/page"
+    "github.com/robinovitch61/wander/internal/tui/formatter"
+    "github.com/robinovitch61/wander/internal/tui/message"
+    "sort"
 )
 
 func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 	return func() tea.Msg {
-		allocations, _, err := client.Allocations().List(&api.QueryOptions{Resources: true})
+		allocations, _, err := client.Allocations().List(&api.QueryOptions{})
 		if err != nil {
 			return message.ErrMsg{Err: err}
 		}
@@ -24,12 +24,9 @@ func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 				return message.ErrMsg{Err: err}
 			}
 
-			resources := getAllocatedResources(alloc)
 			for taskName, task := range alloc.TaskStates {
-				taskResources := getTaskResources(resources, taskName)
 				taskRowEntries = append(taskRowEntries, taskRowEntry{
 					FullAllocationAsJSON: string(allocAsJSON),
-					NodeID:               alloc.NodeID,
 					JobID:                alloc.JobID,
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
@@ -38,9 +35,6 @@ func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 					State:                task.State,
 					StartedAt:            task.StartedAt.UTC(),
 					FinishedAt:           task.FinishedAt.UTC(),
-					CpuShares:            taskResources.CpuShares,
-					Memory:               taskResources.MemoryMB,
-					MaxMemory:            taskResources.MaxMemoryMB,
 				})
 			}
 		}
@@ -73,7 +67,6 @@ func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 
 func getTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	knownColMap := map[string]string{
-		"Node ID":    formatter.ShortAllocID(row.NodeID),
 		"Job":        row.JobID,
 		"Alloc ID":   formatter.ShortAllocID(row.ID),
 		"Task Group": row.TaskGroup,
@@ -83,9 +76,6 @@ func getTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 		"Started":    formatter.FormatTime(row.StartedAt),
 		"Finished":   formatter.FormatTime(row.FinishedAt),
 		"Uptime":     getUptime(row.State, row.StartedAt.UnixNano()),
-		"CPU":        row.CpuShares,
-		"Memory":     row.Memory,
-		"Max Memory": row.MaxMemory,
 	}
 
 	var rowEntries []string
