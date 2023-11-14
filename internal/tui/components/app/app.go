@@ -462,6 +462,23 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
+		if key.Matches(msg, keymap.KeyMap.Stats) {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+				if m.currentPage.ShowsTasks() {
+					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
+					if err != nil {
+						m.err = err
+						return nil
+					}
+					if taskInfo.Running {
+						m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
+						m.setPage(nomad.StatsPage)
+						return m.getCurrentPageCmd()
+					}
+				}
+			}
+		}
+
 		if key.Matches(msg, keymap.KeyMap.Spec) {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				switch m.currentPage {
@@ -660,6 +677,8 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
+	case nomad.StatsPage:
+		return nomad.FetchStats(m.client, m.alloc.ID, m.taskName)
 	default:
 		panic("page load command not found")
 	}
