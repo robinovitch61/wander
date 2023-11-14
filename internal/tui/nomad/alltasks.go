@@ -1,13 +1,13 @@
 package nomad
 
 import (
-    "encoding/json"
-    tea "github.com/charmbracelet/bubbletea"
-    "github.com/hashicorp/nomad/api"
-    "github.com/robinovitch61/wander/internal/tui/components/page"
-    "github.com/robinovitch61/wander/internal/tui/formatter"
-    "github.com/robinovitch61/wander/internal/tui/message"
-    "sort"
+	"encoding/json"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hashicorp/nomad/api"
+	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"github.com/robinovitch61/wander/internal/tui/message"
+	"sort"
 )
 
 func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
@@ -27,6 +27,7 @@ func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 			for taskName, task := range alloc.TaskStates {
 				taskRowEntries = append(taskRowEntries, taskRowEntry{
 					FullAllocationAsJSON: string(allocAsJSON),
+					NodeID:               alloc.NodeID,
 					JobID:                alloc.JobID,
 					ID:                   alloc.ID,
 					TaskGroup:            alloc.TaskGroup,
@@ -67,6 +68,7 @@ func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 
 func getTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	knownColMap := map[string]string{
+		"Node ID":    formatter.ShortAllocID(row.NodeID),
 		"Job":        row.JobID,
 		"Alloc ID":   formatter.ShortAllocID(row.ID),
 		"Task Group": row.TaskGroup,
