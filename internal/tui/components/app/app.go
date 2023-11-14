@@ -176,7 +176,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.getCurrentPageModel().SetLoading(false)
 
-			if m.currentPage.CanBeStart() && len(msg.AllPageRows) == 0 {
+			if m.currentPage.CanBeFirstPage() && len(msg.AllPageRows) == 0 {
 				// oddly, nomad http api errors when one provides the wrong token,
 				// but returns empty results when one provides an empty token
 				m.getCurrentPageModel().SetHeader([]string{"Error"})
@@ -678,7 +678,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	case nomad.StatsPage:
-		return nomad.FetchStats(m.client, m.alloc.ID, m.taskName)
+		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name, m.taskName)
 	default:
 		panic("page load command not found")
 	}

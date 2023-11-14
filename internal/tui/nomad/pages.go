@@ -140,7 +140,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage, StatsPage}
+	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -159,7 +159,7 @@ func (p Page) ShowsTasks() bool {
 	return false
 }
 
-func (p Page) CanBeStart() bool {
+func (p Page) CanBeFirstPage() bool {
 	return p == JobsPage || p == AllTasksPage
 }
 
