@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func SaveToFile(saveDialogValue, fileContent string) (string, error) {
+func SaveToFile(saveDialogValue string, fileContent []string) (string, error) {
 	var path, fileName string
 
 	if saveDialogValue == "" {
@@ -71,9 +71,11 @@ func SaveToFile(saveDialogValue, fileContent string) (string, error) {
 	}
 	defer f.Close()
 
-	_, writeErr := f.WriteString(fileContent)
-	if writeErr != nil {
-		return "", writeErr
+	for _, line := range fileContent {
+		_, writeErr := f.WriteString(line)
+		if writeErr != nil {
+			return "", writeErr
+		}
 	}
 
 	return pathWithFileName, nil

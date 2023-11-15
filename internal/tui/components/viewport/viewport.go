@@ -119,6 +119,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 				m.saveDialog.Blur()
 				m.saveDialog.Reset()
+
 				return m, tea.Batch(cmds...)
 			}
 		}
@@ -713,10 +714,10 @@ func (m Model) getFooter() (string, int) {
 
 func (m Model) getSaveCommand() tea.Cmd {
 	return func() tea.Msg {
-		var saveContent string
+		var saveContent []string
 		header, content := m.processLines(m.getHeader(), m.content)
 		for _, line := range append(header, content...) {
-			saveContent += strings.TrimRight(line, " ") + "\n"
+			saveContent = append(saveContent, strings.TrimRight(line, " ")+"\n")
 		}
 
 		savePathWithFileName, err := fileio.SaveToFile(m.saveDialog.Value(), saveContent)
