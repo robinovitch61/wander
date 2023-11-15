@@ -17,9 +17,9 @@ import (
 const keySeparator = "|【=◈︿◈=】|"
 
 type taskRowEntry struct {
-	FullAllocationAsJSON                        string
-	JobID, ID, TaskGroup, Name, TaskName, State string
-	StartedAt, FinishedAt                       time.Time
+	FullAllocationAsJSON                                string
+	NodeID, JobID, ID, TaskGroup, Name, TaskName, State string
+	StartedAt, FinishedAt                               time.Time
 }
 
 func toTaskKey(state, fullAllocationAsJSON, taskName string) string {

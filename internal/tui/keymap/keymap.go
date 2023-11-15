@@ -18,6 +18,7 @@ type keyMap struct {
 	Filter      key.Binding
 	Forward     key.Binding
 	Reload      key.Binding
+	Stats       key.Binding
 	StdOut      key.Binding
 	StdErr      key.Binding
 	Spec        key.Binding
@@ -76,6 +77,10 @@ var KeyMap = keyMap{
 	Reload: key.NewBinding(
 		key.WithKeys("r"),
 		key.WithHelp("r", "reload"),
+	),
+	Stats: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "stats"),
 	),
 	StdOut: key.NewBinding(
 		key.WithKeys("o"),

@@ -94,12 +94,12 @@ var (
 		"all-tasks-columns": {
 			cfgFileEnvVar: "wander_all_tasks_columns",
 			description:   `Columns to display for All Tasks view`,
-			defaultString: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime",
+			defaultString: "Job,Node ID,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime",
 		},
 		"tasks-for-job-columns": {
 			cfgFileEnvVar: "wander_tasks_for_job_columns",
 			description:   `Columns to display for Tasks for Job view`,
-			defaultString: "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime",
+			defaultString: "Node ID,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime",
 		},
 		"log-offset": {
 			cliShort:      "o",

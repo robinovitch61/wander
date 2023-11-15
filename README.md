@@ -13,12 +13,13 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
 - Live tail logs
 - Tail global or targeted events
 - Exec to interact with running tasks
+- View resource usage stats (memory, CPU)
 - See full job or allocation specs
 - Save any content to a local file
 
 ![](./img/wander.gif)
 
-![](./img/wander_flow2.drawio.png)
+![](./img/wander_flow.drawio.png)
 
 `wander` is written with tools from [Charm](https://charm.sh/).
 
@@ -118,11 +119,11 @@ Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and u
 # Columns to display for Jobs view - can reference Meta keys. Default "Job,Type,Namespace,Status,Count,Submitted,Since Submit"
 #wander_job_columns: "Job,Type,Namespace,Status,Count,Submitted,Since Submit"
 
-# Columns to display for Tasks for Job view. Default "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
-#wander_tasks_for_job_columns: "Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+# Columns to display for Tasks for Job view. Default "Node ID,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+#wander_tasks_for_job_columns: "Node ID,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
-# Columns to display for All Tasks view. Default "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
-#wander_all_tasks_columns: "Job,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+# Columns to display for All Tasks view. Default "Job,Node ID,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
+#wander_all_tasks_columns: "Job,Node ID,Alloc ID,Task Group,Alloc Name,Task Name,State,Started,Finished,Uptime"
 
 # If True, start with compact header. Default False
 #wander_compact_header: False

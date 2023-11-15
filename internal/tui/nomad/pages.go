@@ -34,6 +34,7 @@ const (
 	AllocSpecPage
 	LogsPage
 	LoglinePage
+	StatsPage
 )
 
 func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
@@ -120,6 +121,11 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    LoglinePage.LoadingString(),
 			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
+		StatsPage: {
+			Width: width, Height: height,
+			LoadingString:    StatsPage.LoadingString(),
+			SelectionEnabled: false, WrapText: false, RequestInput: false,
+		},
 	}
 }
 
@@ -153,7 +159,7 @@ func (p Page) ShowsTasks() bool {
 	return false
 }
 
-func (p Page) CanBeStart() bool {
+func (p Page) CanBeFirstPage() bool {
 	return p == JobsPage || p == AllTasksPage
 }
 
@@ -209,6 +215,8 @@ func (p Page) String() string {
 		return "logs"
 	case LoglinePage:
 		return "log"
+	case StatsPage:
+		return "stats"
 	}
 	return "unknown"
 }
@@ -237,7 +245,7 @@ func (p Page) Forward() Page {
 	return p
 }
 
-func returnToPage(inJobsMode bool) Page {
+func returnToTasksPage(inJobsMode bool) Page {
 	if inJobsMode {
 		return JobTasksPage
 	}
@@ -255,7 +263,7 @@ func (p Page) Backward(inJobsMode bool) Page {
 	case JobMetaPage:
 		return JobsPage
 	case AllocEventsPage:
-		return returnToPage(inJobsMode)
+		return returnToTasksPage(inJobsMode)
 	case AllocEventPage:
 		return AllocEventsPage
 	case AllEventsPage:
@@ -265,13 +273,15 @@ func (p Page) Backward(inJobsMode bool) Page {
 	case JobTasksPage:
 		return JobsPage
 	case ExecPage:
-		return returnToPage(inJobsMode)
+		return returnToTasksPage(inJobsMode)
 	case AllocSpecPage:
-		return returnToPage(inJobsMode)
+		return returnToTasksPage(inJobsMode)
 	case LogsPage:
-		return returnToPage(inJobsMode)
+		return returnToTasksPage(inJobsMode)
 	case LoglinePage:
 		return LogsPage
+	case StatsPage:
+		return returnToTasksPage(inJobsMode)
 	}
 	return p
 }
@@ -323,6 +333,8 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Logs for Task %s", taskFilterPrefix(taskName, allocName))
 	case LoglinePage:
 		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
+	case StatsPage:
+		return fmt.Sprintf("Stats for Allocation %s", allocName)
 	default:
 		panic("page not found")
 	}
@@ -441,6 +453,7 @@ func GetPageKeyHelp(
 
 	if currentPage.ShowsTasks() {
 		fourthRow = append(fourthRow, keymap.KeyMap.AllocEvents)
+		fourthRow = append(fourthRow, keymap.KeyMap.Stats)
 		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
 	}
 

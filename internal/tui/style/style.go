@@ -28,6 +28,7 @@ var (
 	FilterApplied              = Regular.Copy().Foreground(black).Background(greenblue)
 	JobRowPending              = Regular.Copy().Foreground(yellow)
 	JobRowDead                 = Regular.Copy().Foreground(red)
+	StatBad                    = Regular.Copy().Foreground(black).Background(red)
 	PseudoPrompt               = Regular.Copy().Background(blue)
 	Viewport                   = Regular.Copy()
 	ViewportHeaderStyle        = Bold.Copy()
