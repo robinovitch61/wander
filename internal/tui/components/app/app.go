@@ -678,7 +678,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	case nomad.StatsPage:
-		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name, m.taskName)
+		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name)
 	default:
 		panic("page load command not found")
 	}

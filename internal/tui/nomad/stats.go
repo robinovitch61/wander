@@ -7,14 +7,30 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
+	"github.com/robinovitch61/wander/internal/tui/style"
 )
 
-func FetchStats(client api.Client, allocID, allocName, taskName string) tea.Cmd {
-	// TODO LEO: list all task resources, and add denominators and percentages
+func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
 	return func() tea.Msg {
 		alloc, _, err := client.Allocations().Info(allocID, nil)
 		if err != nil {
 			return message.ErrMsg{Err: err}
+		}
+		if alloc == nil {
+			return message.ErrMsg{Err: fmt.Errorf("allocation %s (%s) not found", allocName, allocID)}
+		}
+
+		allocGivenResources := alloc.Resources
+		if allocGivenResources == nil {
+			return message.ErrMsg{Err: fmt.Errorf("allocation %s (%s) has no allocGivenResources", allocName, allocID)}
+		}
+		allocatedCpuMhz := allocGivenResources.CPU
+		if allocatedCpuMhz == nil {
+			return message.ErrMsg{Err: fmt.Errorf("allocation %s (%s) has no CPU resources", allocName, allocID)}
+		}
+		allocatedMemoryMB := allocGivenResources.MemoryMB
+		if allocatedMemoryMB == nil {
+			return message.ErrMsg{Err: fmt.Errorf("allocation %s (%s) has no memory resources", allocName, allocID)}
 		}
 
 		stats, err := client.Allocations().Stats(alloc, nil)
@@ -24,38 +40,85 @@ func FetchStats(client api.Client, allocID, allocName, taskName string) tea.Cmd 
 		var tableRows [][]string
 		if stats != nil {
 			allocUsage := stats.ResourceUsage
+			var allocCpuTableVal, allocMemoryTableVal string
 			if allocUsage != nil {
 				allocMemory := allocUsage.MemoryStats
-				allocCpu := allocUsage.CpuStats
 				if allocMemory != nil {
-					tableRows = append(tableRows, []string{fmt.Sprintf("Allocation %s Memory", allocName), fmt.Sprintf("%d KiB", int(float64(allocMemory.Usage)/1024))})
+					memMiB := float64(allocMemory.Usage) / 1024 / 1024
+					givenMemMiB := *allocatedMemoryMB
+					perc := memMiB / float64(givenMemMiB) * 100
+					stylePercent := style.Regular
+					if perc > 100 {
+						stylePercent = style.StatBad
+					}
+					percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
+					allocMemoryTableVal = fmt.Sprintf("%.0f/%d MiB (%s)", memMiB, givenMemMiB, percStr)
 				}
+				allocCpu := allocUsage.CpuStats
 				if allocCpu != nil {
-					tableRows = append(tableRows, []string{fmt.Sprintf("Allocation %s CPU", allocName), fmt.Sprintf("%d MHz", int(allocCpu.TotalTicks))})
+					cpuMhz := int(allocCpu.TotalTicks)
+					givenCpuMhz := *allocatedCpuMhz
+					perc := float64(cpuMhz) / float64(givenCpuMhz) * 100
+					stylePercent := style.Regular
+					if perc > 100 {
+						stylePercent = style.StatBad
+					}
+					percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
+					allocCpuTableVal = fmt.Sprintf("%d/%d MHz (%s)", cpuMhz, givenCpuMhz, percStr)
 				}
+				tableRows = append(tableRows, []string{
+					fmt.Sprintf("Allocation %s", allocName), allocMemoryTableVal, allocCpuTableVal,
+				})
 			}
 
-			if taskResources, ok := stats.Tasks[taskName]; ok && taskResources != nil {
+			for taskName, taskResources := range stats.Tasks {
+				if taskResources == nil {
+					continue
+				}
+				taskGivenResources := alloc.TaskResources[taskName]
+				if taskGivenResources == nil {
+					continue
+				}
 				taskUsage := stats.ResourceUsage
+				var taskCpuTableVal, taskMemoryTableVal string
 				if taskUsage != nil {
 					taskMemory := taskUsage.MemoryStats
-					taskCpu := taskUsage.CpuStats
 					if taskMemory != nil {
-						tableRows = append(tableRows, []string{fmt.Sprintf("Task %s Memory", taskName), fmt.Sprintf("%d KiB", int(float64(taskMemory.Usage)/1024))})
+						memMiB := float64(taskMemory.Usage) / 1024 / 1024
+						givenMemMiB := *taskGivenResources.MemoryMB
+						perc := memMiB / float64(givenMemMiB) * 100
+						stylePercent := style.Regular
+						if perc > 100 {
+							stylePercent = style.StatBad
+						}
+						percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
+						taskMemoryTableVal = fmt.Sprintf("%.0f/%d MiB (%s)", memMiB, givenMemMiB, percStr)
 					}
+					taskCpu := taskUsage.CpuStats
 					if taskCpu != nil {
-						tableRows = append(tableRows, []string{fmt.Sprintf("Task %s CPU", taskName), fmt.Sprintf("%d MHz", int(taskCpu.TotalTicks))})
+						cpuMhz := int(taskCpu.TotalTicks)
+						givenCpuMhz := *taskGivenResources.CPU
+						perc := float64(cpuMhz) / float64(givenCpuMhz) * 100
+						stylePercent := style.Regular
+						if perc > 100 {
+							stylePercent = style.StatBad
+						}
+						percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
+						taskCpuTableVal = fmt.Sprintf("%d/%d MHz (%s)", cpuMhz, givenCpuMhz, percStr)
 					}
+					tableRows = append(tableRows, []string{
+						fmt.Sprintf("Task %s", taskName), taskMemoryTableVal, taskCpuTableVal,
+					})
 				}
 			}
 		}
 
-		table := formatter.GetRenderedTableAsString([]string{"Stat", "Value"}, tableRows)
+		table := formatter.GetRenderedTableAsString([]string{"Entity", "CPU", "Memory"}, tableRows)
 		var pageRows []page.Row
 		for _, row := range table.ContentRows {
 			pageRows = append(pageRows, page.Row{Key: "", Row: row})
 		}
 
-		return PageLoadedMsg{Page: StatsPage, TableHeader: []string{"Stats"}, AllPageRows: pageRows}
+		return PageLoadedMsg{Page: StatsPage, TableHeader: table.HeaderRows, AllPageRows: pageRows}
 	}
 }

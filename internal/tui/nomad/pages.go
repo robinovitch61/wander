@@ -334,7 +334,7 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case LoglinePage:
 		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
 	case StatsPage:
-		return fmt.Sprintf("Stats for Task %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Stats for Allocation %s", allocName)
 	default:
 		panic("page not found")
 	}

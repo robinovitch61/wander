@@ -13,10 +13,15 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
 - Live tail logs
 - Tail global or targeted events
 - Exec to interact with running tasks
+- View resource usage (memory, CPU)
 - See full job or allocation specs
 - Save any content to a local file
 
+# TODO LEO: update this gif to include stats
+
 ![](./img/wander.gif)
+
+# TODO LEO: update this diagram to include stats
 
 ![](./img/wander_flow2.drawio.png)
 
