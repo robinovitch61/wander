@@ -13,7 +13,7 @@ An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nom
 - Live tail logs
 - Tail global or targeted events
 - Exec to interact with running tasks
-- View resource usage (memory, CPU)
+- View resource usage stats (memory, CPU)
 - See full job or allocation specs
 - Save any content to a local file
 
