@@ -46,6 +46,7 @@ Set Padding 10
 Set FontSize 13
 Set Width 900
 Set Height 450
+Set Framerate 15
 
 Hide
 Type "wander"
@@ -98,6 +99,14 @@ Type@100ms "my_logs.txt"
 Sleep 500ms
 Enter
 Sleep 3s
+
+# Back to Tasks for Job
+Escape
+Sleep 1s
+
+# Stats for Allocation
+Type "s"
+Sleep 2s
 
 # Back to Tasks for Job
 Escape
