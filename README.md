@@ -7,7 +7,7 @@
     <a href="https://github.com/robinovitch61/wander/actions"><img src="https://github.com/robinovitch61/wander/workflows/build/badge.svg" alt="Build Status"></a>
 </p>
 
-An efficient terminal application/TUI for your [HashiCorp Nomad](https://www.nomadproject.io/) cluster.
+An efficient terminal application/TUI for interacting with your [HashiCorp Nomad](https://www.nomadproject.io/) cluster.
 
 - Browse jobs, allocations, and tasks
 - Live tail logs
