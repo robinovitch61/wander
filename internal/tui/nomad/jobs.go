@@ -65,7 +65,7 @@ func getJobRowFromColumns(row *api.JobListStub, columns []string) []string {
 	var rowEntries []string
 	for _, col := range columns {
 		// potential conflict here between "known job columns" and meta columns,
-		// e.g. if meta key is "ID", it will be overwritten by the job ID
+		// e.g. if meta key is "Type", it will be overwritten by the job type
 		if v, exists := knownColMap[col]; exists {
 			rowEntries = append(rowEntries, v)
 		} else if m, inMeta := row.Meta[col]; inMeta {
