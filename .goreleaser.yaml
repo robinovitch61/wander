@@ -55,11 +55,11 @@ release:
 brews:
   - name: wander
     homepage: https://github.com/robinovitch61/wander
-    description: "A terminal app/TUI for HashiCorp Nomad"
+    description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
     folder: Formula
     commit_author:
-      name: goreleaserbot
-      email: goreleaserbot@theleo.zone
+      name: "Leo Robinovitch"
+      email: "leorobinovitch@gmail.com"
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     repository:
       owner: robinovitch61
@@ -82,6 +82,21 @@ aurs:
       name: "Leo Robinovitch"
       email: "leorobinovitch@gmail.com"
     skip_upload: auto
+
+nix:
+  - name: wander
+    commit_author:
+      name: "Leo Robinovitch"
+      email: "leorobinovitch@gmail.com"
+    homepage: "https://github.com/robinovitch61/wander"
+    description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
+    license: "MIT"
+    skip_upload: auto
+    repository:
+      owner: robinovitch61
+      name: nur-packages
+      branch: main
+      token: "{{ .Env.NUR_PACKAGES_GITHUB_TOKEN }}"
 
 gomod:
   proxy: true

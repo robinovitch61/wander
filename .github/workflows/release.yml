@@ -2,6 +2,7 @@
 #  GITHUB_TOKEN - token for the wander repository, provided in GitHub Action
 #  HOMEBREW_TAP_GITHUB_TOKEN - token for the homebrew tap repository, must be set
 #  AUR_KEY - key for the AUR repository, must be set
+#  NUR_PACKAGES_GITHUB_TOKEN - token for the NUR packages repository, must be set
 
 name: release
 
@@ -35,3 +36,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           AUR_KEY: ${{ secrets.AUR_KEY }}
+          NUR_PACKAGES_GITHUB_TOKEN: ${{ secrets.NUR_PACKAGES_GITHUB_TOKEN }}

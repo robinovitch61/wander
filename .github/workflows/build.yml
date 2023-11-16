@@ -26,3 +26,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           AUR_KEY: ${{ secrets.AUR_KEY }}
+          NUR_PACKAGES_GITHUB_TOKEN: ${{ secrets.NUR_PACKAGES_GITHUB_TOKEN }}
