@@ -90,7 +90,7 @@ nix:
       email: "leorobinovitch@gmail.com"
     homepage: "https://github.com/robinovitch61/wander"
     description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
-    license: "MIT"
+    license: "mit"  # must be lowercase
     skip_upload: auto
     repository:
       owner: robinovitch61
