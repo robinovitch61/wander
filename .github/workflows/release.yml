@@ -1,6 +1,7 @@
 # Expects secrets:
 #  GITHUB_TOKEN - token for the wander repository, provided in GitHub Action
 #  HOMEBREW_TAP_GITHUB_TOKEN - token for the homebrew tap repository, must be set
+#  AUR_KEY - key for the AUR repository, must be set
 
 name: release
 
@@ -33,3 +34,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          AUR_KEY: ${{ secrets.AUR_KEY }}
