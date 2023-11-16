@@ -81,7 +81,7 @@ aurs:
     commit_author:
       name: "Leo Robinovitch"
       email: "leorobinovitch@gmail.com"
-    skip_upload: true
+    skip_upload: auto
 
 gomod:
   proxy: true
