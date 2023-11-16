@@ -67,5 +67,21 @@ brews:
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
 
+aurs:
+  -
+    name: "wander-bin"
+    homepage: "https://github.com/robinovitch61/wander"
+    description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
+    maintainers:
+        - "Leo Robinovitch <leorobinovitch@gmail.com>"
+    license: "MIT"
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/wander-bin.git"
+    depends:
+      - "glibc"
+    commit_author:
+      name: "Leo Robinovitch"
+      email: "leorobinovitch@gmail.com"
+
 gomod:
   proxy: true
