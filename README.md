@@ -36,6 +36,14 @@ brew install robinovitch61/tap/wander
 brew update && brew upgrade wander
 ```
 
+### > Install from NUR
+
+Ensure [NUR is accessible](https://github.com/nix-community/NUR), then run (for example):
+
+```shell
+nix-shell -p nur.repos.robinovitch61.wander
+```
+
 ### > Install from AUR
 
 Use your favorite AUR helper:
