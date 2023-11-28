@@ -5,24 +5,26 @@ import (
 )
 
 type keyMap struct {
-	Back        key.Binding
-	Exec        key.Binding
-	Exit        key.Binding
-	Compact     key.Binding
-	JobsMode    key.Binding
-	TasksMode   key.Binding
-	JobEvents   key.Binding
-	JobMeta     key.Binding
-	AllocEvents key.Binding
-	AllEvents   key.Binding
-	Filter      key.Binding
-	Forward     key.Binding
-	Reload      key.Binding
-	Stats       key.Binding
-	StdOut      key.Binding
-	StdErr      key.Binding
-	Spec        key.Binding
-	Wrap        key.Binding
+	Back            key.Binding
+	Exec            key.Binding
+	Exit            key.Binding
+	Compact         key.Binding
+	JobsMode        key.Binding
+	TasksMode       key.Binding
+	JobEvents       key.Binding
+	JobMeta         key.Binding
+	AllocEvents     key.Binding
+	AllEvents       key.Binding
+	Filter          key.Binding
+	NextFilteredRow key.Binding
+	PrevFilteredRow key.Binding
+	Forward         key.Binding
+	Reload          key.Binding
+	Stats           key.Binding
+	StdOut          key.Binding
+	StdErr          key.Binding
+	Spec            key.Binding
+	Wrap            key.Binding
 }
 
 var KeyMap = keyMap{
@@ -69,6 +71,14 @@ var KeyMap = keyMap{
 	Filter: key.NewBinding(
 		key.WithKeys("/"),
 		key.WithHelp("/", "filter"),
+	),
+	NextFilteredRow: key.NewBinding(
+		key.WithKeys("n"),
+		key.WithHelp("n", "next match"),
+	),
+	PrevFilteredRow: key.NewBinding(
+		key.WithKeys("N"),
+		key.WithHelp("N", "prev match"),
 	),
 	Forward: key.NewBinding(
 		key.WithKeys("enter"),

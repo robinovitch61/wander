@@ -65,11 +65,17 @@ type Model struct {
 	compactTableContent bool
 	showPrompt          bool
 
+	// SpecialContentIdx can be used to highlight a specific item in the content, e.g. the
+	// currently selected item in a set of filtered results
+	SpecialContentIdx int
+
 	HeaderStyle          lipgloss.Style
 	SelectedContentStyle lipgloss.Style
 	HighlightStyle       lipgloss.Style
-	ContentStyle         lipgloss.Style
-	FooterStyle          lipgloss.Style
+	// SpecialHighlightStyle for example styles the currently selected filtered item differently
+	SpecialHighlightStyle lipgloss.Style
+	ContentStyle          lipgloss.Style
+	FooterStyle           lipgloss.Style
 	// ConditionalStyle styles lines containing key with corresponding style in value
 	ConditionalStyle map[string]lipgloss.Style
 }
@@ -90,9 +96,12 @@ func New(width, height int, compactTableContent bool) (m Model) {
 	m.selectionEnabled = true
 	m.wrapText = false
 
+	m.SpecialContentIdx = -1
+
 	m.HeaderStyle = style.ViewportHeaderStyle
 	m.SelectedContentStyle = style.ViewportSelectedRowStyle
 	m.HighlightStyle = style.ViewportHighlightStyle
+	m.SpecialHighlightStyle = style.ViewportSpecialHighlightStyle
 	m.FooterStyle = style.ViewportFooterStyle
 	return m
 }
@@ -297,12 +306,16 @@ func (m Model) View() string {
 		} else {
 			// this splitting and rejoining of styled content is expensive and causes increased flickering,
 			// so only do it if something is actually highlighted
+			highlightStyle := m.HighlightStyle
+			if contentIdx == m.SpecialContentIdx {
+				highlightStyle = m.SpecialHighlightStyle
+			}
 			lineChunks := strings.Split(contentViewLine, m.stringToHighlight)
 			var styledChunks []string
 			for _, chunk := range lineChunks {
 				styledChunks = append(styledChunks, lineStyle.Render(chunk))
 			}
-			addLineToViewString(strings.Join(styledChunks, m.HighlightStyle.Render(m.stringToHighlight)))
+			addLineToViewString(strings.Join(styledChunks, highlightStyle.Render(m.stringToHighlight)))
 		}
 	}
 
