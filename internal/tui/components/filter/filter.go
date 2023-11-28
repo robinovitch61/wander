@@ -19,6 +19,7 @@ type Model struct {
 	keyMap    filterKeyMap
 	textinput textinput.Model
 	compact   bool
+	suffix    string
 }
 
 func New(prefix string) Model {
@@ -50,6 +51,7 @@ func (m Model) View() string {
 		} else {
 			// editing but no filter value yet
 			m.textinput.Prompt = ""
+			m.SetSuffix("")
 			m.textinput.Cursor.SetMode(cursor.CursorHide)
 			m.textinput.SetValue("type to filter")
 		}
@@ -66,8 +68,10 @@ func (m Model) View() string {
 			m.textinput.PromptStyle = style.Regular
 			m.textinput.TextStyle = style.Regular
 			m.textinput.SetValue("'/' to filter")
+			m.SetSuffix("")
 		}
 	}
+	m.textinput.SetValue(m.textinput.Value() + m.suffix)
 	filterString := m.textinput.View()
 	filterStringStyle := m.textinput.TextStyle.Copy().MarginLeft(1).PaddingLeft(1).PaddingRight(0)
 
@@ -90,12 +94,20 @@ func (m Model) ViewHeight() int {
 	return lipgloss.Height(m.View())
 }
 
-func (m *Model) SetPrefix(prefix string) {
-	m.prefix = prefix
+func (m Model) HasFilterText() bool {
+	return m.Value() != ""
 }
 
 func (m Model) Focused() bool {
 	return m.textinput.Focused()
+}
+
+func (m *Model) SetPrefix(prefix string) {
+	m.prefix = prefix
+}
+
+func (m *Model) SetSuffix(suffix string) {
+	m.suffix = suffix
 }
 
 func (m *Model) Focus() {

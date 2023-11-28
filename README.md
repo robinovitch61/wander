@@ -149,6 +149,9 @@ Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and u
 # If True, start with filtering active on first view. Default False
 #wander_start_filtering: False
 
+# If True, filtering highlights and allows cycling through matches, but does not remove surrounding context. Default True
+#wander_filter_with_context: True
+
 # If True, follow new logs as they come in rather than having to reload. Default True
 #wander_log_tail: True
 

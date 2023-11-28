@@ -54,6 +54,7 @@ type Config struct {
 	StartAllTasksView             bool
 	CompactTables                 bool
 	StartFiltering                bool
+	FilterWithContext             bool
 }
 
 type Model struct {
@@ -170,9 +171,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.PageLoadedMsg:
 		if msg.Page == m.currentPage {
 			m.getCurrentPageModel().SetHeader(msg.TableHeader)
-			m.getCurrentPageModel().SetAllPageData(msg.AllPageRows)
+			m.getCurrentPageModel().SetAllPageRows(msg.AllPageRows)
 			if m.currentPageLoading() {
 				m.getCurrentPageModel().SetViewportXOffset(0)
+			}
+			if m.getCurrentPageModel().FilterWithContext {
+				m.getCurrentPageModel().ResetContextFilter()
 			}
 			m.getCurrentPageModel().SetLoading(false)
 
@@ -180,7 +184,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// oddly, nomad http api errors when one provides the wrong token,
 				// but returns empty results when one provides an empty token
 				m.getCurrentPageModel().SetHeader([]string{"Error"})
-				m.getCurrentPageModel().SetAllPageData([]page.Row{
+				m.getCurrentPageModel().SetAllPageRows([]page.Row{
 					{"", "No results. Is the cluster empty or was no nomad token provided?"},
 					{"", "Press q or ctrl+c to quit."},
 				})
@@ -327,7 +331,7 @@ func (m *Model) initialize() error {
 	m.pageModels = make(map[nomad.Page]*page.Model)
 	for k, pageConfig := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CompactTables) {
 		startFiltering := m.config.StartFiltering && k == firstPage
-		p := page.New(pageConfig, m.config.CopySavePath, startFiltering)
+		p := page.New(pageConfig, m.config.CopySavePath, startFiltering, m.config.FilterWithContext)
 		m.pageModels[k] = &p
 	}
 

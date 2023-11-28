@@ -43,9 +43,13 @@ type Model struct {
 	needsNewInput    bool
 	inputPrefix      string
 	initialized      bool
+
+	// if FilterWithContext is true, filtering doesn't remove rows, just highlights the matching text
+	// and makes it so you can cycle through matches
+	FilterWithContext bool
 }
 
-func New(c Config, copySavePath, startFiltering bool) Model {
+func New(c Config, copySavePath, startFiltering, filterWithContext bool) Model {
 	pageFilter := filter.New("")
 	if startFiltering {
 		pageFilter.Focus()
@@ -66,16 +70,17 @@ func New(c Config, copySavePath, startFiltering bool) Model {
 	}
 
 	model := Model{
-		width:            c.Width,
-		height:           c.Height,
-		viewport:         pageViewport,
-		filter:           pageFilter,
-		loadingString:    c.LoadingString,
-		loading:          true,
-		copySavePath:     copySavePath,
-		doesRequestInput: c.RequestInput,
-		textinput:        pageTextInput,
-		needsNewInput:    needsNewInput,
+		width:             c.Width,
+		height:            c.Height,
+		viewport:          pageViewport,
+		filter:            pageFilter,
+		loadingString:     c.LoadingString,
+		loading:           true,
+		copySavePath:      copySavePath,
+		doesRequestInput:  c.RequestInput,
+		textinput:         pageTextInput,
+		needsNewInput:     needsNewInput,
+		FilterWithContext: filterWithContext,
 	}
 	return model
 }
@@ -138,15 +143,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if m.filter.Focused() {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.Forward):
+				// done editing, apply filter
 				m.filter.Blur()
+				m.updateFilter()
 			}
 		} else {
-			switch {
-			case key.Matches(msg, keymap.KeyMap.Filter):
+			// not focused and hit filter - start filtering
+			if key.Matches(msg, keymap.KeyMap.Filter) {
 				m.filter.Focus()
 				return m, textinput.Blink
 			}
 
+			// not editing filter - pass through to viewport
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
@@ -157,6 +165,25 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		cmds = append(cmds, cmd)
+
+		// after all the filtered data is updated and commands are prepped, we can deal with contextual filtering
+		if m.FilterWithContext {
+			if m.filter.Focused() {
+				// every keystroke modifies what filtered rows match
+				m.ResetContextFilter()
+			} else {
+				if m.FilterWithContext && m.filter.HasFilterText() && len(m.pageData.FilteredContentIdxs) > 0 {
+					switch {
+					case key.Matches(msg, keymap.KeyMap.NextFilteredRow):
+						m.pageData.IncrementFilteredSelectionNum()
+						m.scrollViewportToContentIdx(m.pageData.CurrentFilteredContentIdx)
+					case key.Matches(msg, keymap.KeyMap.PrevFilteredRow):
+						m.pageData.DecrementFilteredSelectionNum()
+						m.scrollViewportToContentIdx(m.pageData.CurrentFilteredContentIdx)
+					}
+				}
+			}
+		}
 
 	default:
 		m.filter, cmd = m.filter.Update(msg)
@@ -202,8 +229,8 @@ func (m *Model) SetLoading(isLoading bool) {
 	m.loading = isLoading
 }
 
-func (m *Model) SetAllPageData(allPageData []Row) {
-	m.pageData.All = allPageData
+func (m *Model) SetAllPageRows(allPageRows []Row) {
+	m.pageData.AllRows = allPageRows
 	m.updateViewport()
 }
 
@@ -212,7 +239,7 @@ func (m *Model) SetFilterPrefix(prefix string) {
 }
 
 func (m *Model) SetViewportSelectionToBottom() {
-	m.viewport.SetSelectedContentIdx(len(m.pageData.Filtered) - 1)
+	m.viewport.SetSelectedContentIdx(len(m.pageData.FilteredRows) - 1)
 }
 
 func (m *Model) ScrollViewportToBottom() {
@@ -228,23 +255,23 @@ func (m *Model) HideToast() {
 }
 
 func (m *Model) AppendToViewport(rows []Row, startOnNewLine bool) {
-	newPageData := m.pageData.All
+	newPageRows := m.pageData.AllRows
 	for i, r := range rows {
 		if r.Row != "" {
 			if i == 0 && !startOnNewLine {
-				allButLastEntry := newPageData[:max(0, len(newPageData)-1)]
+				allButLastEntry := newPageRows[:max(0, len(newPageRows)-1)]
 				currentLastEntry := Row{}
-				if len(m.pageData.All) > 0 {
-					currentLastEntry = m.pageData.All[len(m.pageData.All)-1]
+				if len(m.pageData.AllRows) > 0 {
+					currentLastEntry = m.pageData.AllRows[len(m.pageData.AllRows)-1]
 				}
 				newLastEntry := Row{Key: currentLastEntry.Key, Row: currentLastEntry.Row + r.Row}
-				newPageData = append(allButLastEntry, newLastEntry)
+				newPageRows = append(allButLastEntry, newLastEntry)
 			} else {
-				newPageData = append(newPageData, r)
+				newPageRows = append(newPageRows, r)
 			}
 		}
 	}
-	m.SetAllPageData(newPageData)
+	m.SetAllPageRows(newPageRows)
 }
 
 func (m *Model) SetDoesNeedNewInput() {
@@ -263,8 +290,24 @@ func (m *Model) SetViewportSelectionEnabled(v bool) {
 	m.viewport.SetSelectionEnabled(v)
 }
 
+func (m *Model) setIndexesOfFilteredRows(idxs []int) {
+	m.pageData.FilteredContentIdxs = idxs
+	m.updateFilter()
+}
+
 func (m *Model) ToggleCompact() {
 	m.filter.ToggleCompact()
+}
+
+func (m *Model) ResetContextFilter() {
+	if !m.FilterWithContext {
+		return
+	}
+	m.pageData.FilteredSelectionNum = 0
+	if len(m.pageData.FilteredContentIdxs) > 0 {
+		m.pageData.CurrentFilteredContentIdx = m.pageData.FilteredContentIdxs[m.pageData.FilteredSelectionNum]
+		m.scrollViewportToContentIdx(m.pageData.CurrentFilteredContentIdx)
+	}
 }
 
 func (m Model) Loading() bool {
@@ -276,7 +319,7 @@ func (m Model) GetSelectedPageRow() (Row, error) {
 		return Row{}, fmt.Errorf("selection disabled")
 	}
 	selectedRow := m.viewport.SelectedContentIdx()
-	if filtered := m.pageData.Filtered; len(filtered) > 0 && selectedRow >= 0 && selectedRow < len(filtered) {
+	if filtered := m.pageData.FilteredRows; len(filtered) > 0 && selectedRow >= 0 && selectedRow < len(filtered) {
 		return filtered[selectedRow], nil
 	}
 	return Row{}, fmt.Errorf("selection invalid")
@@ -286,10 +329,10 @@ func (m Model) ViewportSelectionAtBottom() bool {
 	if !m.viewport.SelectionEnabled() {
 		return false
 	}
-	if len(m.pageData.Filtered) == 0 {
+	if len(m.pageData.FilteredRows) == 0 {
 		return true
 	}
-	return m.viewport.SelectedContentIdx() == len(m.pageData.Filtered)-1
+	return m.viewport.SelectedContentIdx() == len(m.pageData.FilteredRows)-1
 }
 
 func (m Model) EnteringInput() bool {
@@ -314,27 +357,71 @@ func (m Model) ViewportHeight() int {
 
 func (m *Model) clearFilter() {
 	m.filter.BlurAndClear()
+	m.setIndexesOfFilteredRows([]int{})
 	m.updateViewport()
 }
 
 func (m *Model) updateViewport() {
 	m.viewport.SetStringToHighlight(m.filter.Value())
 	m.updateFilteredData()
-	m.viewport.SetContent(rowsToStrings(m.pageData.Filtered))
+	m.viewport.SetContent(rowsToStrings(m.pageData.FilteredRows))
 }
 
 func (m *Model) updateFilteredData() {
-	if m.filter.Value() == "" {
-		m.pageData.Filtered = m.pageData.All
+	if !m.filter.HasFilterText() {
+		m.pageData.FilteredRows = m.pageData.AllRows
+		m.setIndexesOfFilteredRows([]int{})
+	} else if m.FilterWithContext {
+		m.pageData.FilteredRows = m.pageData.AllRows
+		var indexesOfFilteredRows []int
+		for i, entry := range m.pageData.AllRows {
+			if strings.Contains(entry.Row, m.filter.Value()) {
+				indexesOfFilteredRows = append(indexesOfFilteredRows, i)
+			}
+		}
+		m.setIndexesOfFilteredRows(indexesOfFilteredRows)
 	} else {
 		var filteredData []Row
-		for _, entry := range m.pageData.All {
+		for _, entry := range m.pageData.AllRows {
 			if strings.Contains(entry.Row, m.filter.Value()) {
 				filteredData = append(filteredData, entry)
 			}
 		}
-		m.pageData.Filtered = filteredData
+		m.pageData.FilteredRows = filteredData
 	}
+}
+
+func (m *Model) updateFilter() {
+	if !m.FilterWithContext {
+		return
+	}
+
+	if len(m.pageData.FilteredContentIdxs) == 0 {
+		m.filter.SetSuffix(" (no matches) ")
+	} else if m.filter.Focused() {
+		m.filter.SetSuffix(
+			fmt.Sprintf(" (%d/%d, %s to apply) ",
+				m.pageData.FilteredSelectionNum+1,
+				len(m.pageData.FilteredContentIdxs),
+				keymap.KeyMap.Forward.Help().Key),
+		)
+	} else {
+		m.filter.SetSuffix(
+			fmt.Sprintf(
+				" (%d/%d, %s/%s to cycle) ",
+				m.pageData.FilteredSelectionNum+1,
+				len(m.pageData.FilteredContentIdxs),
+				keymap.KeyMap.NextFilteredRow.Help().Key,
+				keymap.KeyMap.PrevFilteredRow.Help().Key,
+			),
+		)
+	}
+}
+
+func (m *Model) scrollViewportToContentIdx(contentIdx int) {
+	m.viewport.SetSelectedContentIdx(contentIdx)
+	m.viewport.SpecialContentIdx = m.pageData.CurrentFilteredContentIdx
+	m.updateFilter()
 }
 
 func max(a, b int) int {

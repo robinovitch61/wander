@@ -164,6 +164,12 @@ var (
 			isBool:        true,
 			defaultIfBool: false,
 		},
+		"filter-with-context": {
+			cfgFileEnvVar: "wander_filter_with_context",
+			description:   `Filtering highlights and allows cycling through matches, but does not remove surrounding context`,
+			isBool:        true,
+			defaultIfBool: true,
+		},
 	}
 
 	description = `wander is a terminal application for Nomad by HashiCorp. It is used to
@@ -225,6 +231,7 @@ func init() {
 		"start-all-tasks",
 		"compact-tables",
 		"start-filtering",
+		"filter-with-context",
 	} {
 		c := rootNameToArg[cliLong]
 		if c.isBool {
