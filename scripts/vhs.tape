@@ -82,7 +82,7 @@ Sleep 1s
 Enter
 Sleep 2s
 
-# Logs for Task
+# Logs for Task, Filtering
 Enter
 Sleep 2s
 Type "/"
@@ -90,7 +90,20 @@ Sleep 1s
 Type@200ms "INFO"
 Sleep 0.5s
 Enter
+Sleep 0.5s
+Type "n"
+Sleep 0.5s
+Type "n"
+Sleep 0.5s
+Type "n"
+Sleep 0.5s
+Type "N"
+Sleep 0.5s
+Type@200ms "jj"
+Type@200ms "kk"
+Enter
 Sleep 1s
+Escape
 Escape
 
 # Save Logs
