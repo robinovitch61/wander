@@ -27,9 +27,10 @@ type TLSConfig struct {
 }
 
 type EventConfig struct {
-	Topics    nomad.Topics
-	Namespace string
-	JQQuery   *gojq.Code
+	Topics       nomad.Topics
+	Namespace    string
+	JQQuery      *gojq.Code
+	AllocJQQuery *gojq.Code
 }
 
 type LogConfig struct {
@@ -192,9 +193,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			switch m.currentPage {
-			case nomad.JobEventsPage, nomad.AllocEventsPage, nomad.AllEventsPage:
+			case nomad.JobEventsPage, nomad.AllEventsPage:
 				m.eventsStream = msg.EventsStream
 				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
+			case nomad.AllocEventsPage:
+				m.eventsStream = msg.EventsStream
+				cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.AllocJQQuery))
 			case nomad.LogsPage:
 				m.getCurrentPageModel().SetViewportSelectionToBottom()
 				if m.config.Log.Tail {
@@ -223,7 +227,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.getCurrentPageModel().ScrollViewportToBottom()
 				}
 			}
-			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, m.config.Event.JQQuery))
+			query := m.config.Event.JQQuery
+			if m.currentPage == nomad.AllocEventsPage {
+				query = m.config.Event.AllocJQQuery
+			}
+			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, query))
 		}
 
 	case nomad.LogsStreamMsg:

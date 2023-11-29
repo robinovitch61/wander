@@ -134,8 +134,13 @@ var (
 		},
 		"event-jq-query": {
 			cfgFileEnvVar: "wander_event_jq_query",
-			description:   `jq query for events. "." for entire JSON`,
+			description:   `jq query for general events. "." for entire JSON`,
 			defaultString: constants.DefaultEventJQQuery,
+		},
+		"alloc-event-jq-query": {
+			cfgFileEnvVar: "wander_alloc_event_jq_query",
+			description:   `jq query for allocation-specific events. "." for entire JSON`,
+			defaultString: constants.DefaultAllocEventJQQuery,
 		},
 		"logo-color": {
 			cfgFileEnvVar: "wander_logo_color",
@@ -227,6 +232,7 @@ func init() {
 		"event-topics",
 		"event-namespace",
 		"event-jq-query",
+		"alloc-event-jq-query",
 		"compact-header",
 		"start-all-tasks",
 		"compact-tables",

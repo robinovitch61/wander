@@ -165,22 +165,50 @@ Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and u
 # Namespace used in stream for all events. "*" for all namespaces. Default "default"
 #wander_event_namespace: "default"
 
-# The jq (https://stedolan.github.io/jq/) query used for parsing events. "." to show entire event JSON. Default is:
+# The jq (https://stedolan.github.io/jq/) query used for parsing general events. "." to show entire event JSON. Default is:
 #  .Events[] | {
-#     "1:Index": .Index,
-#     "2:Topic": .Topic,
-#     "3:Type": .Type,
-#     "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
-#     "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
+#    "1:Index": .Index,
+#    "2:Topic": .Topic,
+#    "3:Type": .Type,
+#    "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
+#    "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
 #  }
 # The numbering exists to preserve ordering, as https://github.com/itchyny/gojq does not keep the order of object keys
 #wander_event_jq_query: >
 #  .Events[] | {
-#     "1:Index": .Index,
-#     "2:Topic": .Topic,
-#     "3:Type": .Type,
-#     "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
-#     "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
+#    "1:Index": .Index,
+#    "2:Topic": .Topic,
+#    "3:Type": .Type,
+#    "4:Name": .Payload | (.Job // .Allocation // .Deployment // .Evaluation) | (.JobID // .ID),
+#    "5:ID": .Payload | (.Job.ID // (.Allocation // .Deployment // .Evaluation).ID[:8])
+#  }
+
+# The jq (https://stedolan.github.io/jq/) query used for parsing allocation-specific events. "." to show entire event JSON. Default is:
+#  .Index as $index | .Events[] | .Type as $type | .Payload.Allocation |
+#  .DeploymentStatus.Healthy as $healthy | .ClientStatus as $clientStatus | .Name as $allocName |
+#  (.TaskStates // {"":{"Events": [{}]}}) | to_entries[] | .key as $k | .value.Events[] | {
+#    "0:Index": $index,
+#    "1:AllocName": $allocName,
+#    "2:TaskName": $k,
+#    "3:Type": $type,
+#    "4:Time": ((.Time // 0) / 1000000000 | todate),
+#    "5:Msg": .DisplayMessage,
+#    "6:Healthy": $healthy,
+#    "7:ClientStatus": $clientStatus
+#  }
+# The numbering exists to preserve ordering, as https://github.com/itchyny/gojq does not keep the order of object keys
+#wander_alloc_event_jq_query: >
+#  .Index as $index | .Events[] | .Type as $type | .Payload.Allocation |
+#  .DeploymentStatus.Healthy as $healthy | .ClientStatus as $clientStatus | .Name as $allocName |
+#  (.TaskStates // {"":{"Events": [{}]}}) | to_entries[] | .key as $k | .value.Events[] | {
+#    "0:Index": $index,
+#    "1:AllocName": $allocName,
+#    "2:TaskName": $k,
+#    "3:Type": $type,
+#    "4:Time": ((.Time // 0) / 1000000000 | todate),
+#    "5:Msg": .DisplayMessage,
+#    "6:Healthy": $healthy,
+#    "7:ClientStatus": $clientStatus
 #  }
 
 # For `wander serve`. Hostname of the machine hosting the ssh server. Default "localhost"
