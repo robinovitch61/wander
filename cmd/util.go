@@ -174,6 +174,21 @@ func retrieveEventJQQuery(cmd *cobra.Command) *gojq.Code {
 	return code
 }
 
+func retrieveAllocEventJQQuery(cmd *cobra.Command) *gojq.Code {
+	query := cmd.Flags().Lookup("alloc-event-jq-query").Value.String()
+	parsed, err := gojq.Parse(query)
+	if err != nil {
+		fmt.Printf("Error parsing alloc event jq query: %s\n", err.Error())
+		os.Exit(1)
+	}
+	code, err := gojq.Compile(parsed)
+	if err != nil {
+		fmt.Printf("Error compiling alloc event jq query: %s\n", err.Error())
+		os.Exit(1)
+	}
+	return code
+}
+
 func retrieveUpdateSeconds(cmd *cobra.Command) int {
 	updateSecondsString := cmd.Flags().Lookup("update").Value.String()
 	updateSeconds, err := strconv.Atoi(updateSecondsString)
@@ -295,6 +310,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	eventTopics := retrieveEventTopics(cmd)
 	eventNamespace := retrieveEventNamespace(cmd)
 	eventJQQuery := retrieveEventJQQuery(cmd)
+	allocEventJQQuery := retrieveAllocEventJQQuery(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
 	jobColumns := retrieveJobColumns(cmd)
 	allTaskColumns := retrieveAllTaskColumns(cmd)
@@ -327,9 +343,10 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		},
 		CopySavePath: copySavePath,
 		Event: app.EventConfig{
-			Topics:    eventTopics,
-			Namespace: eventNamespace,
-			JQQuery:   eventJQQuery,
+			Topics:       eventTopics,
+			Namespace:    eventNamespace,
+			JQQuery:      eventJQQuery,
+			AllocJQQuery: allocEventJQQuery,
 		},
 		UpdateSeconds:     time.Second * time.Duration(updateSeconds),
 		JobColumns:        jobColumns,
