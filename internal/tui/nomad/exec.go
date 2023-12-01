@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/moby/term"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"github.com/robinovitch61/wander/internal/tui/nomad/signals"
 	"golang.org/x/exp/maps"
 	"io"
 	"os"
@@ -144,7 +145,7 @@ func execImpl(client *api.Client, alloc *api.Allocation, task string,
 	}
 	defer outCleanup()
 
-	sizeCleanup, err := watchTerminalSize(stdin, sizeCh)
+	sizeCleanup, err := signals.WatchTerminalSize(stdin, sizeCh)
 	if err != nil {
 		return -1, err
 	}
@@ -209,45 +210,6 @@ func setRawTerminalOutput(stream interface{}) (cleanup func(), err error) {
 	return func() {
 		term.RestoreTerminal(fd, state)
 	}, nil
-}
-
-// watchTerminalSize watches terminal size changes to propagate to remote tty.
-func watchTerminalSize(out io.Reader, resize chan<- api.TerminalSize) (func(), error) {
-	fd, _ := term.GetFdInfo(out)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	signalCh := make(chan os.Signal, 1)
-	setupWindowNotification(signalCh)
-
-	sendTerminalSize := func() {
-		s, err := term.GetWinsize(fd)
-		if err != nil {
-			return
-		}
-
-		resize <- api.TerminalSize{
-			Height: int(s.Height),
-			Width:  int(s.Width),
-		}
-	}
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-signalCh:
-				sendTerminalSize()
-			}
-		}
-	}()
-
-	sendTerminalSize()
-	return cancel, nil
-}
-
-func setupWindowNotification(ch chan<- os.Signal) {
-	signal.Notify(ch, syscall.SIGWINCH)
 }
 
 // Handler is a callback for handling an escaped char.  Reader would skip
