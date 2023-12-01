@@ -15,6 +15,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -266,17 +267,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			c := exec.Command("wander", "exec", m.alloc.ID, m.taskName, msg.Input)
+			save := &saveOutput{}
+			c.Stdout = save
 			m.getCurrentPageModel().SetDoesNeedNewInput()
 			return m, tea.ExecProcess(c, func(err error) tea.Msg {
-				output, err := c.Output()
-				if err != nil {
-					dev.Debug("LEOOOO")
-					dev.Debug(err.Error())
-					return nil
-				}
-				dev.Debug("LEO")
-				dev.Debug(string(output))
-				return TmpMsg{Output: string(output)}
+				return TmpMsg{Output: string(save.savedOutput)}
 			})
 		}
 	}
@@ -289,6 +284,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.updateKeyHelp()
 
 	return m, tea.Batch(cmds...)
+}
+
+type saveOutput struct {
+	savedOutput []byte
+}
+
+func (so *saveOutput) Write(p []byte) (n int, err error) {
+	so.savedOutput = append(so.savedOutput, p...)
+	return os.Stdout.Write(p)
 }
 
 func (m Model) View() string {

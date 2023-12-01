@@ -3,7 +3,6 @@ package nomad
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/nomad/api"
 	"github.com/moby/term"
@@ -90,10 +89,7 @@ func execImpl(client *api.Client, alloc *api.Allocation, task string,
 // Ctrl+C and other commands to forward to remote process.
 // It returns a cleanup function that restores terminal to original mode.
 func setRawTerminal(stream interface{}) (cleanup func(), err error) {
-	fd, isTerminal := term.GetFdInfo(stream)
-	if !isTerminal {
-		return nil, errors.New("not a terminal!!")
-	}
+	fd, _ := term.GetFdInfo(stream)
 
 	state, err := term.SetRawTerminal(fd)
 	if err != nil {
@@ -109,10 +105,7 @@ func setRawTerminal(stream interface{}) (cleanup func(), err error) {
 // so it disables LF -> CRLF translation.
 // It's basically a no-op on unix.
 func setRawTerminalOutput(stream interface{}) (cleanup func(), err error) {
-	fd, isTerminal := term.GetFdInfo(stream)
-	if !isTerminal {
-		return nil, errors.New("not a terminal!!!")
-	}
+	fd, _ := term.GetFdInfo(stream)
 
 	state, err := term.SetRawTerminalOutput(fd)
 	//_, err = term.SetRawTerminalOutput(fd)
@@ -127,10 +120,7 @@ func setRawTerminalOutput(stream interface{}) (cleanup func(), err error) {
 
 // watchTerminalSize watches terminal size changes to propagate to remote tty.
 func watchTerminalSize(out io.Writer, resize chan<- api.TerminalSize) (func(), error) {
-	fd, isTerminal := term.GetFdInfo(out)
-	if !isTerminal {
-		return nil, errors.New("not a terminal!")
-	}
+	fd, _ := term.GetFdInfo(out)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
