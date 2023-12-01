@@ -13,6 +13,19 @@ import (
 	"syscall"
 )
 
+type ExecCompleteMsg struct {
+	Output string
+}
+
+type StdoutProxy struct {
+	SavedOutput []byte
+}
+
+func (so *StdoutProxy) Write(p []byte) (n int, err error) {
+	so.SavedOutput = append(so.SavedOutput, p...)
+	return os.Stdout.Write(p)
+}
+
 func AllocExec(client *api.Client, allocID, task string, args []string) (int, error) {
 	alloc, _, err := client.Allocations().Info(allocID, nil)
 	if err != nil {

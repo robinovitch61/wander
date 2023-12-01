@@ -1,0 +1,15 @@
+Using config file: /Users/leo/.wander.yaml
+allocID: e48de9e2-7195-5c02-130b-808aed4c77b4, task: redis
+/ # [6nls
+[1;34malloc[m          [1;34mhome[m           [1;34mopt[m            [1;34msecrets[m        [1;34mvar[m
+[1;34mbin[m            [1;34mlib[m            [1;34mproc[m           [1;34msrv[m
+[1;34mdev[m            [1;34mlocal[m          [1;34mroot[m           [1;34msys[m
+[1;32mentrypoint.sh[m  [1;34mmedia[m          [1;34mrun[m            [1;34mtmp[m
+[1;34metc[m            [1;34mmnt[m            [1;34msbin[m           [1;34musr[m
+/ # [6nls
+[1;34malloc[m          [1;34mhome[m           [1;34mopt[m            [1;34msecrets[m        [1;34mvar[m
+[1;34mbin[m            [1;34mlib[m            [1;34mproc[m           [1;34msrv[m
+[1;34mdev[m            [1;34mlocal[m          [1;34mroot[m           [1;34msys[m
+[1;32mentrypoint.sh[m  [1;34mmedia[m          [1;34mrun[m            [1;34mtmp[m
+[1;34metc[m            [1;34mmnt[m            [1;34msbin[m           [1;34musr[m
+/ # [6n

@@ -15,16 +15,10 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
 )
-
-// TODO: move and rename
-type TmpMsg struct {
-	Output string
-}
 
 type TLSConfig struct {
 	CACert, CAPath, ClientCert, ClientKey, ServerName string
@@ -82,6 +76,8 @@ type Model struct {
 
 	updateID int
 
+	lastExecContent string
+
 	eventsStream nomad.EventsStream
 	event        string
 	meta         map[string]string
@@ -109,7 +105,7 @@ func InitialModel(c Config) Model {
 		c.LogoColor,
 		c.URL,
 		c.Version,
-		nomad.GetPageKeyHelp(firstPage, false, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
 	)
 	return Model{
 		config:      c,
@@ -260,18 +256,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.updateID = nextUpdateID()
 		}
 
-	case TmpMsg:
-		dev.Debug("LEOO")
-		dev.Debug(msg.Output)
+	case nomad.ExecCompleteMsg:
+		if m.currentPage == nomad.ExecPage {
+			m.getCurrentPageModel().SetDoesNeedNewInput()
+			m.lastExecContent = strings.TrimSpace(msg.Output)
+			m.setPage(nomad.ExecCompletePage)
+			cmds = append(cmds, m.getCurrentPageCmd())
+		}
 
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
 			c := exec.Command("wander", "exec", m.alloc.ID, m.taskName, msg.Input)
-			save := &saveOutput{}
-			c.Stdout = save
+			stdoutProxy := &nomad.StdoutProxy{}
+			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
 			return m, tea.ExecProcess(c, func(err error) tea.Msg {
-				return TmpMsg{Output: string(save.savedOutput)}
+				return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
 			})
 		}
 	}
@@ -284,15 +284,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.updateKeyHelp()
 
 	return m, tea.Batch(cmds...)
-}
-
-type saveOutput struct {
-	savedOutput []byte
-}
-
-func (so *saveOutput) Write(p []byte) (n int, err error) {
-	so.savedOutput = append(so.savedOutput, p...)
-	return os.Stdout.Write(p)
 }
 
 func (m Model) View() string {
@@ -577,7 +568,7 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 }
 
 func (m *Model) updateKeyHelp() {
-	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.logType, m.compact, m.inJobsMode)
+	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.logType, m.compact, m.inJobsMode)
 	m.header.SetKeyHelp(newKeyHelp)
 }
 
@@ -619,6 +610,15 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return func() tea.Msg {
 			// this does no real work, just moves to request the command input
 			return nomad.PageLoadedMsg{Page: nomad.ExecPage, TableHeader: []string{}, AllPageRows: []page.Row{}}
+		}
+	case nomad.ExecCompletePage:
+		return func() tea.Msg {
+			// this does no real work, just shows the output of the prior exec session
+			var allPageRows []page.Row
+			for _, row := range strings.Split(m.lastExecContent, "\r\n") {
+				allPageRows = append(allPageRows, page.Row{Row: row})
+			}
+			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Output"}, AllPageRows: allPageRows}
 		}
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
