@@ -13,6 +13,10 @@ import (
 	"syscall"
 )
 
+// TODO: code review this
+// TODO: clear screen on start of exec
+// TODO: don't print config file used on exec
+
 type ExecCompleteMsg struct {
 	Output string
 }
