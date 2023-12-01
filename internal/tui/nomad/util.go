@@ -3,12 +3,9 @@ package nomad
 import (
 	"encoding/json"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gorilla/websocket"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -48,31 +45,6 @@ func TaskInfoFromKey(key string) (TaskInfo, error) {
 		return TaskInfo{}, err
 	}
 	return TaskInfo{Alloc: alloc, TaskName: split[1], Running: running}, nil
-}
-
-func getWebSocketConnection(secure bool, host, path, token string, params map[string]string) (*websocket.Conn, error) {
-	urlParams := url.Values{}
-	for k, v := range params {
-		urlParams.Add(k, v)
-	}
-
-	scheme := "ws"
-	if secure {
-		scheme = "wss"
-	}
-
-	u := url.URL{
-		Scheme:   scheme,
-		Host:     host,
-		Path:     path,
-		RawQuery: urlParams.Encode(),
-	}
-
-	header := http.Header{}
-	header.Add("X-Nomad-Token", token)
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
-	return c, err
 }
 
 func PrettifyLine(l string, p Page) tea.Cmd {
