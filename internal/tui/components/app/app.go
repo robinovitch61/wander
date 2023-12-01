@@ -608,15 +608,19 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace, m.config.JobTaskColumns)
 	case nomad.ExecPage:
 		return func() tea.Msg {
-			// this does no real work, just moves to request the command input
+			// this does no async work, just moves to request the command input
 			return nomad.PageLoadedMsg{Page: nomad.ExecPage, TableHeader: []string{}, AllPageRows: []page.Row{}}
 		}
 	case nomad.ExecCompletePage:
 		return func() tea.Msg {
-			// this does no real work, just shows the output of the prior exec session
+			// this does no async work, just shows the output of the prior exec session
 			var allPageRows []page.Row
-			for _, row := range strings.Split(m.lastExecContent, "\r\n") {
-				allPageRows = append(allPageRows, page.Row{Row: row})
+			for _, row := range strings.Split(m.lastExecContent, "\n") {
+				row = strings.ReplaceAll(row, "\r", "")
+				if len(row) == 0 {
+					continue
+				}
+				allPageRows = append(allPageRows, page.Row{Row: formatter.StripOSCommandSequences(formatter.StripANSI(row))})
 			}
 			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Output"}, AllPageRows: allPageRows}
 		}

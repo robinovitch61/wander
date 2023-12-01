@@ -149,15 +149,6 @@ func FormatTimeNsSinceNow(t int64) string {
 	return ""
 }
 
-func JsonEncodedTokenArray(s string) (string, error) {
-	tokens := strings.Fields(s)
-	tokensJson, err := json.Marshal(tokens)
-	if err != nil {
-		return "", err
-	}
-	return string(tokensJson), nil
-}
-
 func StripANSI(str string) string {
 	return ansiRe.ReplaceAllString(str, "")
 }

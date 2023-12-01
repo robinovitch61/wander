@@ -284,7 +284,7 @@ func (p Page) Backward(inJobsMode bool) Page {
 	case ExecPage:
 		return returnToTasksPage(inJobsMode)
 	case ExecCompletePage:
-		return returnToTasksPage(inJobsMode)
+		return ExecPage
 	case AllocSpecPage:
 		return returnToTasksPage(inJobsMode)
 	case LogsPage:

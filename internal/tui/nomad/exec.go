@@ -64,7 +64,7 @@ func execImpl(client *api.Client, alloc *api.Allocation, task string,
 	}
 	defer outCleanup()
 
-	sizeCleanup, err := watchTerminalSize(stdout, sizeCh)
+	sizeCleanup, err := watchTerminalSize(stdin, sizeCh)
 	if err != nil {
 		return -1, err
 	}
@@ -132,7 +132,7 @@ func setRawTerminalOutput(stream interface{}) (cleanup func(), err error) {
 }
 
 // watchTerminalSize watches terminal size changes to propagate to remote tty.
-func watchTerminalSize(out io.Writer, resize chan<- api.TerminalSize) (func(), error) {
+func watchTerminalSize(out io.Reader, resize chan<- api.TerminalSize) (func(), error) {
 	fd, _ := term.GetFdInfo(out)
 
 	ctx, cancel := context.WithCancel(context.Background())
