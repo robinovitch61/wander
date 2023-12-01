@@ -8,7 +8,6 @@ import (
 	"github.com/moby/term"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"golang.org/x/exp/maps"
-	"golang.org/x/sys/unix"
 	"io"
 	"os"
 	"os/signal"
@@ -243,16 +242,12 @@ func watchTerminalSize(out io.Reader, resize chan<- api.TerminalSize) (func(), e
 		}
 	}()
 
-	go func() {
-		// send initial size
-		sendTerminalSize()
-	}()
-
+	sendTerminalSize()
 	return cancel, nil
 }
 
 func setupWindowNotification(ch chan<- os.Signal) {
-	signal.Notify(ch, unix.SIGWINCH)
+	signal.Notify(ch, syscall.SIGWINCH)
 }
 
 // Handler is a callback for handling an escaped char.  Reader would skip
