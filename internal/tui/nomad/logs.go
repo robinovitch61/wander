@@ -50,7 +50,7 @@ func FetchLogs(client api.Client, alloc api.Allocation, taskName string, logType
 		api.ClientConnTimeout = 1 * time.Microsecond
 
 		closeLogConn := make(chan struct{})   // never closed for now
-		logsChan, _ := client.AllocFS().Logs( // TODO LEO: deal with error channel
+		logsChan, _ := client.AllocFS().Logs( // TODO: deal with error channel
 			&alloc,
 			logTail,
 			taskName,

@@ -386,7 +386,7 @@ func changeKeyHelp(k *key.Binding, h string) {
 
 func GetPageKeyHelp(
 	currentPage Page,
-	filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool,
+	filterFocused, filterApplied, saving, enteringInput bool,
 	logType LogType,
 	compact, inJobsMode bool,
 ) string {
@@ -458,19 +458,11 @@ func GetPageKeyHelp(
 	}
 
 	if currentPage == ExecPage {
+		// TODO: could probs remove the entering input status as it always is now
 		if enteringInput {
 			changeKeyHelp(&keymap.KeyMap.Forward, "run command")
 			secondRow = append(fourthRow, keymap.KeyMap.Forward)
 			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
-		}
-		if inPty {
-			changeKeyHelp(&keymap.KeyMap.Back, "disable input")
-			return getShortHelp([]key.Binding{keymap.KeyMap.Back})
-		} else {
-			if webSocketConnected {
-				changeKeyHelp(&keymap.KeyMap.Forward, "enable input")
-				fourthRow = append(fourthRow, keymap.KeyMap.Forward)
-			}
 		}
 	}
 

@@ -269,6 +269,7 @@ func init() {
 	}
 
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(execCmd)
 }
 
 func initConfig(cmd *cobra.Command, nameToArg map[string]arg) error {

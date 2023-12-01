@@ -286,7 +286,7 @@ func customLoggingMiddleware() wish.Middleware {
 	}
 }
 
-func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOption) {
+func getConfig(cmd *cobra.Command, overrideToken string) app.Config {
 	nomadAddr := retrieveAddress(cmd)
 	nomadToken := retrieveToken(cmd)
 	if overrideToken != "" {
@@ -322,7 +322,7 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 	startFiltering := retrieveStartFiltering(cmd)
 	filterWithContext := retrieveFilterWithContext(cmd)
 
-	initialModel := app.InitialModel(app.Config{
+	return app.Config{
 		Version:   getVersion(),
 		URL:       nomadAddr,
 		Token:     nomadToken,
@@ -358,6 +358,10 @@ func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOp
 		CompactTables:     compactTables,
 		StartFiltering:    startFiltering,
 		FilterWithContext: filterWithContext,
-	})
+	}
+}
+
+func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOption) {
+	initialModel := app.InitialModel(getConfig(cmd, overrideToken))
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }
