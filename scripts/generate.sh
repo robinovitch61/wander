@@ -2,6 +2,8 @@
 
 set -e
 
+docker build . -t random-logger:local
+
 nomad namespace apply -description "My super cool namespace" my-namespace
 rm -f example.nomad.hcl
 nomad job init -short
@@ -17,7 +19,7 @@ sed -i "" -E "s/memory = 256/memory = 32/g" example.nomad.hcl
 run_job() {
     sed -i "" -E "s/job \".*\"/job \"${1:-example}\"/" example.nomad.hcl
     sed -i "" -E "s/namespace = \".*\"/namespace = \"${2:-default}\"/" example.nomad.hcl
-    sed -i "" -E "s/image          = \"redis.*\"/image          = \"chentex\/random-logger:v1.0.1\"\\nargs = ["50", "100"]/" example.nomad.hcl
+    sed -i "" -E "s/image          = \"redis.*\"/image          = \"random-logger:local\"\\nargs = ["50", "100"]/" example.nomad.hcl
     cat example.nomad.hcl
     nomad job run -detach example.nomad.hcl
 }

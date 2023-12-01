@@ -31,6 +31,7 @@ const (
 	AllEventPage
 	JobTasksPage
 	ExecPage
+	ExecCompletePage
 	AllocSpecPage
 	LogsPage
 	LoglinePage
@@ -106,6 +107,11 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    ExecPage.LoadingString(),
 			SelectionEnabled: false, WrapText: true, RequestInput: true,
 		},
+		ExecCompletePage: {
+			Width: width, Height: height,
+			LoadingString:    ExecCompletePage.LoadingString(),
+			SelectionEnabled: false, WrapText: false, RequestInput: false,
+		},
 		AllocSpecPage: {
 			Width: width, Height: height,
 			LoadingString:    AllocSpecPage.LoadingString(),
@@ -140,7 +146,7 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage}
+	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage, ExecCompletePage}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -165,17 +171,18 @@ func (p Page) CanBeFirstPage() bool {
 
 func (p Page) doesUpdate() bool {
 	noUpdatePages := []Page{
-		LoglinePage,     // doesn't load
-		ExecPage,        // doesn't reload
-		LogsPage,        // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
-		JobSpecPage,     // would require changes to make scrolling possible
-		AllocSpecPage,   // would require changes to make scrolling possible
-		JobEventsPage,   // constant connection, streams data
-		JobEventPage,    // doesn't load
-		AllocEventsPage, // constant connection, streams data
-		AllocEventPage,  // doesn't load
-		AllEventsPage,   // constant connection, streams data
-		AllEventPage,    // doesn't load
+		LoglinePage,      // doesn't load
+		ExecPage,         // doesn't reload
+		ExecCompletePage, // doesn't reload
+		LogsPage,         // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
+		JobSpecPage,      // would require changes to make scrolling possible
+		AllocSpecPage,    // would require changes to make scrolling possible
+		JobEventsPage,    // constant connection, streams data
+		JobEventPage,     // doesn't load
+		AllocEventsPage,  // constant connection, streams data
+		AllocEventPage,   // doesn't load
+		AllEventsPage,    // constant connection, streams data
+		AllEventPage,     // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -209,6 +216,8 @@ func (p Page) String() string {
 		return "tasks"
 	case ExecPage:
 		return "exec"
+	case ExecCompletePage:
+		return "exec complete"
 	case AllocSpecPage:
 		return "allocation spec"
 	case LogsPage:
@@ -274,6 +283,8 @@ func (p Page) Backward(inJobsMode bool) Page {
 		return JobsPage
 	case ExecPage:
 		return returnToTasksPage(inJobsMode)
+	case ExecCompletePage:
+		return ExecPage
 	case AllocSpecPage:
 		return returnToTasksPage(inJobsMode)
 	case LogsPage:
@@ -327,6 +338,8 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
 	case ExecPage:
 		return fmt.Sprintf("Exec for Task %s", taskFilterPrefix(taskName, allocName))
+	case ExecCompletePage:
+		return fmt.Sprintf("Exec Complete for Task %s", taskFilterPrefix(taskName, allocName))
 	case AllocSpecPage:
 		return fmt.Sprintf("Spec for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case LogsPage:
@@ -386,7 +399,7 @@ func changeKeyHelp(k *key.Binding, h string) {
 
 func GetPageKeyHelp(
 	currentPage Page,
-	filterFocused, filterApplied, saving, enteringInput, inPty, webSocketConnected bool,
+	filterFocused, filterApplied, saving bool,
 	logType LogType,
 	compact, inJobsMode bool,
 ) string {
@@ -397,7 +410,7 @@ func GetPageKeyHelp(
 		changeKeyHelp(&keymap.KeyMap.Compact, "compact")
 	}
 
-	if filterFocused || enteringInput {
+	if filterFocused || currentPage == ExecPage {
 		keymap.KeyMap.Exit.SetHelp("ctrl+c", "exit")
 	} else {
 		keymap.KeyMap.Exit.SetHelp("q/ctrl+c", "exit")
@@ -458,20 +471,9 @@ func GetPageKeyHelp(
 	}
 
 	if currentPage == ExecPage {
-		if enteringInput {
-			changeKeyHelp(&keymap.KeyMap.Forward, "run command")
-			secondRow = append(fourthRow, keymap.KeyMap.Forward)
-			return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
-		}
-		if inPty {
-			changeKeyHelp(&keymap.KeyMap.Back, "disable input")
-			return getShortHelp([]key.Binding{keymap.KeyMap.Back})
-		} else {
-			if webSocketConnected {
-				changeKeyHelp(&keymap.KeyMap.Forward, "enable input")
-				fourthRow = append(fourthRow, keymap.KeyMap.Forward)
-			}
-		}
+		changeKeyHelp(&keymap.KeyMap.Forward, "run command")
+		secondRow = append(fourthRow, keymap.KeyMap.Forward)
+		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
 	}
 
 	if saving {

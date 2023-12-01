@@ -44,7 +44,7 @@ Output "../img/wander.gif"
 
 Set Padding 10
 Set FontSize 13
-Set Width 900
+Set Width 1100
 Set Height 450
 Set Framerate 15
 
@@ -55,8 +55,10 @@ Sleep 200ms
 Show
 
 # All Jobs
-Type@1s "jj"
-Sleep 2s
+Sleep 1s
+Type@500ms "jj"
+Type@500ms "k"
+Sleep 1s
 
 # All Events
 Type "V"
@@ -72,7 +74,26 @@ Sleep 1s
 
 # All Tasks
 Type "A"
+Sleep 1s
+Type@500ms "jj"
+Type@500ms "k"
+Sleep 1s
+
+# Exec for Task
+Type "e"
+Sleep 1s
+Backspace 10
+Type@200ms "bash"
+Sleep 500ms
+Enter
+Type@150ms "ls -la"
+Sleep 300ms
+Enter
 Sleep 2s
+Ctrl+d
+Sleep 2s
+Escape@300ms 2
+Sleep 500ms
 
 # Back to All Jobs
 Type "J"
@@ -90,21 +111,11 @@ Sleep 1s
 Type@200ms "INFO"
 Sleep 0.5s
 Enter
-Sleep 0.5s
-Type "n"
-Sleep 0.5s
-Type "n"
-Sleep 0.5s
-Type "n"
-Sleep 0.5s
-Type "N"
-Sleep 0.5s
-Type@200ms "jj"
-Type@200ms "kk"
+Type@0.5s "nnnN"
+Type@300ms "jjkk"
 Enter
 Sleep 1s
-Escape
-Escape
+Escape@200ms 2
 
 # Save Logs
 Ctrl+S
@@ -124,17 +135,3 @@ Sleep 2s
 # Back to Tasks for Job
 Escape
 Sleep 1s
-
-# Exec for Task
-Type "e"
-Sleep 1s
-Backspace 10
-Type@200ms "sh"
-Sleep 500ms
-Enter
-Type@150ms "ls -la"
-Sleep 500ms
-Enter
-Sleep 2s
-Escape 2
-Sleep 2s

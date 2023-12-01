@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gorilla/websocket"
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/dev"
@@ -16,7 +15,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -77,18 +76,14 @@ type Model struct {
 
 	updateID int
 
+	lastExecContent string
+
 	eventsStream nomad.EventsStream
 	event        string
 	meta         map[string]string
 
 	logsStream      nomad.LogsStream
 	lastLogFinished bool
-
-	execWebSocket       *websocket.Conn
-	execPty             *os.File
-	inPty               bool
-	webSocketConnected  bool
-	lastCommandFinished struct{ stdOut, stdErr bool }
 
 	width, height int
 	initialized   bool
@@ -110,7 +105,7 @@ func InitialModel(c Config) Model {
 		c.LogoColor,
 		c.URL,
 		c.Version,
-		nomad.GetPageKeyHelp(firstPage, false, false, false, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
 	)
 	return Model{
 		config:      c,
@@ -163,10 +158,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.getCurrentPageCmd())
 		} else {
 			m.setPageWindowSize()
-			if m.currentPage == nomad.ExecPage {
-				viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1 // hardcoded as known today, has to change if footer expands
-				cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, viewportHeightWithoutFooter))
-			}
 		}
 
 	case nomad.PageLoadedMsg:
@@ -265,43 +256,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.updateID = nextUpdateID()
 		}
 
+	case nomad.ExecCompleteMsg:
+		if m.currentPage == nomad.ExecPage {
+			m.getCurrentPageModel().SetDoesNeedNewInput()
+			m.lastExecContent = strings.TrimSpace(msg.Output)
+			m.setPage(nomad.ExecCompletePage)
+			cmds = append(cmds, m.getCurrentPageCmd())
+		}
+
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
-			m.getCurrentPageModel().SetLoading(true)
-			return m, nomad.InitiateWebSocket(m.config.URL, m.config.Token, m.alloc.ID, m.taskName, msg.Input)
-		}
-
-	case nomad.ExecWebSocketConnectedMsg:
-		m.execWebSocket = msg.WebSocketConnection
-		m.webSocketConnected = true
-		m.getCurrentPageModel().SetLoading(false)
-		m.setInPty(true)
-		viewportHeightWithoutFooter := m.getCurrentPageModel().ViewportHeight() - 1 // hardcoded as known today, has to change if footer expands
-		cmds = append(cmds, nomad.ResizeTty(m.execWebSocket, m.width, viewportHeightWithoutFooter))
-		cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
-		cmds = append(cmds, nomad.SendHeartbeatWithDelay())
-
-	case nomad.ExecWebSocketHeartbeatMsg:
-		if m.currentPage == nomad.ExecPage && m.webSocketConnected {
-			cmds = append(cmds, nomad.SendHeartbeat(m.execWebSocket))
-			cmds = append(cmds, nomad.SendHeartbeatWithDelay())
-			return m, tea.Batch(cmds...)
-		}
-		return m, nil
-
-	case nomad.ExecWebSocketResponseMsg:
-		if m.currentPage == nomad.ExecPage {
-			if msg.Close {
-				m.webSocketConnected = false
-				m.setInPty(false)
-				m.getCurrentPageModel().AppendToViewport([]page.Row{{Row: constants.ExecWebSocketClosed}}, true)
-				m.getCurrentPageModel().ScrollViewportToBottom()
-			} else {
-				m.appendToViewport(msg.StdOut, m.lastCommandFinished.stdOut)
-				m.appendToViewport(msg.StdErr, m.lastCommandFinished.stdErr)
-				m.updateLastCommandFinished(msg.StdOut, msg.StdErr)
-				cmds = append(cmds, nomad.ReadExecWebSocketNextMessage(m.execWebSocket))
-			}
+			c := exec.Command("wander", "exec", m.alloc.ID, "--task", m.taskName, msg.Input)
+			stdoutProxy := &nomad.StdoutProxy{}
+			c.Stdout = stdoutProxy
+			m.getCurrentPageModel().SetDoesNeedNewInput()
+			return m, tea.ExecProcess(c, func(err error) tea.Msg {
+				return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
+			})
 		}
 	}
 
@@ -328,7 +299,7 @@ func (m Model) View() string {
 }
 
 func (m *Model) initialize() error {
-	client, err := m.config.client()
+	client, err := m.config.Client()
 	if err != nil {
 		return err
 	}
@@ -355,9 +326,6 @@ func (m *Model) initialize() error {
 
 func (m *Model) cleanupCmd() tea.Cmd {
 	return func() tea.Msg {
-		if m.execWebSocket != nil {
-			nomad.CloseWebSocket(m.execWebSocket)()
-		}
 		return message.CleanupCompleteMsg{}
 	}
 }
@@ -377,25 +345,9 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		addingQToFilter := m.currentPageFilterFocused()
 		saving := m.currentPageViewportSaving()
 		enteringInput := currentPageModel != nil && currentPageModel.EnteringInput()
-		typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput || m.inPty)
-		ctrlCInPty := m.inPty && msg.String() == "ctrl+c"
-		if (!ctrlCInPty && !typingQLegitimately) || m.err != nil {
+		typingQLegitimately := msg.String() == "q" && (addingQToFilter || saving || enteringInput)
+		if !typingQLegitimately || m.err != nil {
 			return m.cleanupCmd()
-		}
-	}
-
-	if m.currentPage == nomad.ExecPage {
-		var keypress string
-		if m.inPty {
-			if key.Matches(msg, keymap.KeyMap.Back) {
-				m.setInPty(false)
-				return nil
-			} else {
-				keypress = nomad.GetKeypress(msg)
-				return nomad.SendWebSocketMessage(m.execWebSocket, keypress)
-			}
-		} else if key.Matches(msg, keymap.KeyMap.Forward) && m.webSocketConnected && !m.currentPageViewportSaving() {
-			m.setInPty(true)
 		}
 	}
 
@@ -436,9 +388,6 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			if !m.currentPageFilterApplied() {
 				switch m.currentPage {
 				case nomad.ExecPage:
-					if !m.getCurrentPageModel().EnteringInput() {
-						cmds = append(cmds, nomad.CloseWebSocket(m.execWebSocket))
-					}
 					m.getCurrentPageModel().SetDoesNeedNewInput()
 				}
 
@@ -618,32 +567,8 @@ func (m *Model) appendToViewport(content string, startOnNewLine bool) {
 	m.getCurrentPageModel().ScrollViewportToBottom()
 }
 
-// updateLastCommandFinished updates lastCommandFinished, which is necessary
-// because some data gets received in chunks in which a trailing \n indicates
-// finished content, otherwise more content is expected (e.g. the exec
-// websocket behaves this way when returning long content)
-func (m *Model) updateLastCommandFinished(stdOut, stdErr string) {
-	m.lastCommandFinished.stdOut = false
-	m.lastCommandFinished.stdErr = false
-	if strings.HasSuffix(stdOut, "\n") {
-		m.lastCommandFinished.stdOut = true
-	}
-	if strings.HasSuffix(stdErr, "\n") {
-		m.lastCommandFinished.stdErr = true
-	}
-}
-
-func (m *Model) setInPty(inPty bool) {
-	m.inPty = inPty
-	m.getCurrentPageModel().SetViewportPromptVisible(inPty)
-	if inPty {
-		m.getCurrentPageModel().ScrollViewportToBottom()
-	}
-	m.updateKeyHelp()
-}
-
 func (m *Model) updateKeyHelp() {
-	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.getCurrentPageModel().EnteringInput(), m.inPty, m.webSocketConnected, m.logType, m.compact, m.inJobsMode)
+	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.logType, m.compact, m.inJobsMode)
 	m.header.SetKeyHelp(newKeyHelp)
 }
 
@@ -682,7 +607,23 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.JobTasksPage:
 		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace, m.config.JobTaskColumns)
 	case nomad.ExecPage:
-		return nomad.LoadExecPage()
+		return func() tea.Msg {
+			// this does no async work, just moves to request the command input
+			return nomad.PageLoadedMsg{Page: nomad.ExecPage, TableHeader: []string{}, AllPageRows: []page.Row{}}
+		}
+	case nomad.ExecCompletePage:
+		return func() tea.Msg {
+			// this does no async work, just shows the output of the prior exec session
+			var allPageRows []page.Row
+			for _, row := range strings.Split(m.lastExecContent, "\n") {
+				row = strings.ReplaceAll(row, "\r", "")
+				if len(row) == 0 {
+					continue
+				}
+				allPageRows = append(allPageRows, page.Row{Row: formatter.StripOSCommandSequences(formatter.StripANSI(row))})
+			}
+			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Exec Session Output"}, AllPageRows: allPageRows}
+		}
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:

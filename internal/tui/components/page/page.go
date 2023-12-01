@@ -40,7 +40,6 @@ type Model struct {
 
 	doesRequestInput bool
 	textinput        textinput.Model
-	needsNewInput    bool
 	inputPrefix      string
 	initialized      bool
 
@@ -59,14 +58,12 @@ func New(c Config, copySavePath, startFiltering, filterWithContext bool) Model {
 	pageViewport.SetWrapText(c.WrapText)
 	pageViewport.ConditionalStyle = c.ViewportConditionalStyle
 
-	needsNewInput := false
 	var pageTextInput textinput.Model
 	if c.RequestInput {
 		pageTextInput = textinput.New()
 		pageTextInput.Focus()
 		pageTextInput.Prompt = ""
 		pageTextInput.SetValue(constants.DefaultPageInput)
-		needsNewInput = true
 	}
 
 	model := Model{
@@ -79,7 +76,6 @@ func New(c Config, copySavePath, startFiltering, filterWithContext bool) Model {
 		copySavePath:      copySavePath,
 		doesRequestInput:  c.RequestInput,
 		textinput:         pageTextInput,
-		needsNewInput:     needsNewInput,
 		FilterWithContext: filterWithContext,
 	}
 	return model
@@ -100,7 +96,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch msg := msg.(type) {
 			case tea.KeyMsg:
 				if msg.String() == "enter" && len(m.textinput.Value()) > 0 {
-					m.needsNewInput = false
 					return m, func() tea.Msg { return message.PageInputReceivedMsg{Input: m.textinput.Value()} }
 				}
 			}
@@ -279,7 +274,6 @@ func (m *Model) SetDoesNeedNewInput() {
 		return
 	}
 	m.initialized = false
-	m.needsNewInput = true
 }
 
 func (m *Model) SetViewportPromptVisible(v bool) {
@@ -336,7 +330,7 @@ func (m Model) ViewportSelectionAtBottom() bool {
 }
 
 func (m Model) EnteringInput() bool {
-	return m.doesRequestInput && m.needsNewInput
+	return m.doesRequestInput
 }
 
 func (m Model) FilterFocused() bool {

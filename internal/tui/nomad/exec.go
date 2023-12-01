@@ -1,245 +1,374 @@
 package nomad
 
 import (
-	b64 "encoding/base64"
-	"encoding/json"
+	"bufio"
+	"context"
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gorilla/websocket"
-	"github.com/robinovitch61/wander/internal/tui/components/page"
-	"github.com/robinovitch61/wander/internal/tui/constants"
+	"github.com/hashicorp/nomad/api"
+	"github.com/moby/term"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/message"
-	"strings"
-	"time"
+	"github.com/robinovitch61/wander/internal/tui/nomad/signals"
+	"golang.org/x/exp/maps"
+	"io"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-type ExecWebSocketConnectedMsg struct {
-	WebSocketConnection *websocket.Conn
+type ExecCompleteMsg struct {
+	Output string
 }
 
-type ExecWebSocketResponseMsg struct {
-	StdOut, StdErr string
-	Close          bool
+type StdoutProxy struct {
+	SavedOutput []byte
 }
 
-type ExecWebSocketHeartbeatMsg struct{}
+func (so *StdoutProxy) Write(p []byte) (n int, err error) {
+	so.SavedOutput = append(so.SavedOutput, p...)
+	return os.Stdout.Write(p)
+}
 
-func LoadExecPage() tea.Cmd {
-	return func() tea.Msg {
-		// this does no real work as the command input is requested before the exec websocket connects
-		return PageLoadedMsg{Page: ExecPage, TableHeader: []string{}, AllPageRows: []page.Row{}}
+func findAllocsForJobPrefix(client api.Client, jobName string) map[string][]*api.AllocationListStub {
+	allocs := make(map[string][]*api.AllocationListStub)
+	jobs, _, err := client.Jobs().PrefixList(jobName)
+	if err != nil || len(jobs) == 0 {
+		return allocs
 	}
-}
-
-func InitiateWebSocket(host, token, allocID, taskName, command string) tea.Cmd {
-	return func() tea.Msg {
-		jsonCommand, err := formatter.JsonEncodedTokenArray(command)
-		if err != nil {
-			return message.ErrMsg{Err: err}
+	for _, job := range jobs {
+		jobAllocs, _, err := client.Jobs().Allocations(job.ID, true, &api.QueryOptions{Namespace: job.Namespace})
+		if err != nil || len(jobAllocs) == 0 {
+			continue
 		}
-
-		secure := false
-		if strings.Contains(host, "https://") {
-			secure = true
-		}
-
-		host = strings.Split(host, "://")[1]
-
-		path := fmt.Sprintf("/v1/client/allocation/%s/exec", allocID)
-		params := map[string]string{
-			"command": jsonCommand,
-			"task":    taskName,
-			"tty":     "true",
-		}
-
-		ws, err := getWebSocketConnection(secure, host, path, token, params)
-		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-
-		return ExecWebSocketConnectedMsg{WebSocketConnection: ws}
+		allocs[job.ID] = jobAllocs
 	}
+	return allocs
 }
 
-func ReadExecWebSocketNextMessage(ws *websocket.Conn) tea.Cmd {
-	return func() tea.Msg {
-		nextMsg := readNext(ws)
-		if nextMsg.Err != nil {
-			return message.ErrMsg{Err: nextMsg.Err}
-		}
-		return ExecWebSocketResponseMsg{StdOut: nextMsg.StdOut, StdErr: nextMsg.StdErr, Close: nextMsg.Close}
-	}
-}
-
-func SendWebSocketMessage(ws *websocket.Conn, keyPress string) tea.Cmd {
-	return func() tea.Msg {
-		var err error
-		err = sendStdInData(ws, keyPress)
-		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-		return nil
-	}
-}
-
-func ResizeTty(ws *websocket.Conn, width, height int) tea.Cmd {
-	return func() tea.Msg {
-		var err error
-		err = sendTtyResize(ws, width, height)
-		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-		return nil
-	}
-}
-
-func SendHeartbeatWithDelay() tea.Cmd {
-	return tea.Tick(constants.ExecWebSocketHeartbeatDuration, func(t time.Time) tea.Msg { return ExecWebSocketHeartbeatMsg{} })
-}
-
-func SendHeartbeat(ws *websocket.Conn) tea.Cmd {
-	return func() tea.Msg {
-		var err error
-		err = ws.WriteMessage(1, []byte("{}"))
-		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-		return SendHeartbeatWithDelay()
-	}
-}
-
-func CloseWebSocket(ws *websocket.Conn) tea.Cmd {
-	return func() tea.Msg {
-		var err error
-		err = sendStdInData(ws, string(rune(4)))
-		if err != nil {
-			if !strings.Contains(err.Error(), "write: broken pipe") {
-				return message.ErrMsg{Err: err}
+func AllocExec(client *api.Client, allocID, task string, args []string) (int, error) {
+	alloc, _, err := client.Allocations().Info(allocID, nil)
+	if err != nil {
+		// maybe allocID is actually a job name
+		foundAllocs := findAllocsForJobPrefix(*client, allocID)
+		if len(foundAllocs) > 0 {
+			if len(foundAllocs) == 1 && len(maps.Values(foundAllocs)[0]) == 1 && maps.Values(foundAllocs)[0][0] != nil {
+				// only one job with one allocation found, use that
+				alloc, _, err = client.Allocations().Info(maps.Values(foundAllocs)[0][0].ID, nil)
+			} else {
+				// multiple jobs and/or allocations found, print them and exit
+				for job, jobAllocs := range foundAllocs {
+					fmt.Printf("allocations for job %s:\n", job)
+					for _, alloc := range jobAllocs {
+						fmt.Printf("  %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+					}
+				}
+				return 1, nil
 			}
-		}
-		return nil
-	}
-}
-
-func GetKeypress(msg tea.KeyMsg) (keypress string) {
-	switch msg.Type {
-	case tea.KeyEnter:
-		keypress = "\n"
-	case tea.KeySpace:
-		keypress = " "
-	case tea.KeyBackspace:
-		if msg.Alt {
-			keypress = string(rune(23))
 		} else {
-			keypress = string(rune(127))
-		}
-	case tea.KeyCtrlD:
-		keypress = string(rune(4))
-	case tea.KeyCtrlC:
-		keypress = string(rune(3))
-	case tea.KeyTab:
-		keypress = string(rune(9))
-	case tea.KeyUp:
-		keypress = string(rune(27)) + "[A"
-	case tea.KeyDown:
-		keypress = string(rune(27)) + "[B"
-	default:
-		keypress = string(msg.Runes)
-	}
-	return keypress
-}
-
-type exitJSON struct {
-	ExitCode int `json:"exit_code"`
-}
-
-type execResponseDataJSON struct {
-	Data   string   `json:"data"`
-	Close  bool     `json:"close"`
-	Result exitJSON `json:"result"`
-}
-
-type execResponseJSON struct {
-	StdOut execResponseDataJSON `json:"stdout"`
-	StdErr execResponseDataJSON `json:"stderr"`
-	Exited bool                 `json:"exited"`
-}
-
-func sendStdInData(ws *websocket.Conn, r string) error {
-	encoded := b64.StdEncoding.EncodeToString([]byte(r))
-	toSend := fmt.Sprintf(`{"stdin":{"data":"%s"}}`, encoded)
-	return ws.WriteMessage(1, []byte(toSend))
-}
-
-func sendTtyResize(ws *websocket.Conn, width, height int) error {
-	toSend := fmt.Sprintf(`{"tty_size": {"height": %d, "width": %d}}`, height, width)
-	return ws.WriteMessage(1, []byte(toSend))
-}
-
-func readNext(ws *websocket.Conn) parsedWebSocketMessage {
-	msgType, content, err := ws.ReadMessage()
-	if err != nil {
-		closedConnUsed := strings.Contains(err.Error(), "use of closed network connection")
-		abnormalClosure := strings.Contains(err.Error(), "close 1006")
-		if closedConnUsed || abnormalClosure {
-			return parsedWebSocketMessage{Close: true}
-		}
-		return parsedWebSocketMessage{Err: err}
-	}
-	return parseWebSocketMessage(msgType, content)
-}
-
-type parsedWebSocketMessage struct {
-	StdOut, StdErr string
-	Close          bool
-	Err            error
-}
-
-func parseWebSocketMessage(msgType int, content []byte) parsedWebSocketMessage {
-	var err error
-
-	response := execResponseJSON{}
-	err = json.Unmarshal(content, &response)
-	if err != nil {
-		return parsedWebSocketMessage{Err: err}
-	}
-
-	var stdout, stderr string
-	switch {
-	case response.StdOut != execResponseDataJSON{}:
-		if stdOutData := response.StdOut.Data; stdOutData != "" {
-			decoded, err := b64.StdEncoding.DecodeString(stdOutData)
+			// maybe allocID is short form of id
+			shortIDAllocs, _, err := client.Allocations().List(&api.QueryOptions{Prefix: allocID})
 			if err != nil {
-				return parsedWebSocketMessage{Err: err}
+				return 1, fmt.Errorf("no jobs or allocation id for %s found: %v", allocID, err)
 			}
-			stdout += string(decoded)
-		}
-
-	case response.StdErr != execResponseDataJSON{}:
-		if stdErrData := response.StdErr.Data; stdErrData != "" {
-			decoded, err := b64.StdEncoding.DecodeString(stdErrData)
-			if err != nil {
-				return parsedWebSocketMessage{Err: err}
+			if len(shortIDAllocs) > 1 {
+				// rare but possible that uuid prefixes match
+				fmt.Printf("prefix %s matched multiple allocations:\n", allocID)
+				for _, alloc := range shortIDAllocs {
+					fmt.Printf("  %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+				}
+				return 1, err
+			} else if len(shortIDAllocs) == 1 {
+				alloc, _, err = client.Allocations().Info(shortIDAllocs[0].ID, nil)
+			} else {
+				return 1, fmt.Errorf("no allocations found for alloc id %s", allocID)
 			}
-			stderr += string(decoded)
-		} else if stdErrClose := response.StdErr.Close; stdErrClose {
-			return parsedWebSocketMessage{Close: true}
 		}
-
-	case response.Exited:
-		return parsedWebSocketMessage{Close: true}
-
-	default:
-		return parsedWebSocketMessage{Err: fmt.Errorf("unhandled websocket response: %s (msgType %d)", content, msgType)}
 	}
 
-	return parsedWebSocketMessage{
-		StdOut: normalizeLineEndings(stdout),
-		StdErr: normalizeLineEndings(stderr),
+	// if task is blank, user has assumed that there is only one task in the allocation and wants to
+	// use that
+	if task == "" {
+		if len(alloc.TaskStates) == 1 {
+			for taskName := range alloc.TaskStates {
+				task = taskName
+			}
+		} else {
+			fmt.Printf("multiple tasks found in allocation %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+			for taskName := range alloc.TaskStates {
+				fmt.Printf("  %s\n", taskName)
+			}
+		}
+	}
+
+	code, err := execImpl(client, alloc, task, args, "~", os.Stdin, os.Stdout, os.Stderr)
+	if err != nil {
+		return 1, err
+	}
+	return code, nil
+}
+
+// execImpl invokes the Alloc Exec api call, it also prepares and restores terminal states as necessary.
+func execImpl(client *api.Client, alloc *api.Allocation, task string,
+	command []string, escapeChar string, stdin io.Reader, stdout, stderr io.WriteCloser) (int, error) {
+
+	// attempt to clear screen
+	os.Stdout.Write([]byte("\033c"))
+	fmt.Println(fmt.Sprintf("Exec session for %s (%s), task %s", alloc.Name, formatter.ShortAllocID(alloc.ID), task))
+
+	sizeCh := make(chan api.TerminalSize, 1)
+
+	ctx, cancelFn := context.WithCancel(context.Background())
+	actuallyCancel := func() {
+		cancelFn()
+	}
+	defer actuallyCancel()
+
+	inCleanup, err := setRawTerminal(stdin)
+	if err != nil {
+		return -1, err
+	}
+	defer inCleanup()
+
+	outCleanup, err := setRawTerminalOutput(stdout)
+	if err != nil {
+		return -1, err
+	}
+	defer outCleanup()
+
+	sizeCleanup, err := signals.WatchTerminalSize(stdin, sizeCh)
+	if err != nil {
+		return -1, err
+	}
+	defer sizeCleanup()
+
+	stdin = NewReader(stdin, escapeChar[0], func(c byte) bool {
+		switch c {
+		case '.':
+			// need to restore tty state so error reporting here
+			// gets emitted at beginning of line
+			outCleanup()
+			inCleanup()
+
+			stderr.Write([]byte("\nConnection closed\n"))
+			cancelFn()
+			return true
+		default:
+			return false
+		}
+	})
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		for range signalCh {
+			cancelFn()
+		}
+	}()
+
+	return client.Allocations().Exec(ctx,
+		alloc, task, true, command, stdin, stdout, stderr, sizeCh, nil)
+}
+
+// setRawTerminal sets the stream terminal in raw mode, so process captures
+// Ctrl+C and other commands to forward to remote process.
+// It returns a cleanup function that restores terminal to original mode.
+func setRawTerminal(stream interface{}) (cleanup func(), err error) {
+	fd, _ := term.GetFdInfo(stream)
+
+	state, err := term.SetRawTerminal(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return func() {
+		term.RestoreTerminal(fd, state)
+	}, nil
+}
+
+// setRawTerminalOutput sets the output stream in Windows to raw mode,
+// so it disables LF -> CRLF translation.
+// It's basically a no-op on unix.
+func setRawTerminalOutput(stream interface{}) (cleanup func(), err error) {
+	fd, _ := term.GetFdInfo(stream)
+
+	state, err := term.SetRawTerminalOutput(fd)
+	//_, err = term.SetRawTerminalOutput(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return func() {
+		term.RestoreTerminal(fd, state)
+	}, nil
+}
+
+// Handler is a callback for handling an escaped char.  Reader would skip
+// the escape char and passed char if returns true; otherwise, it preserves them
+// in output
+type Handler func(c byte) bool
+
+// NewReader returns a reader that escapes the c character (following new lines),
+// in the same manner OpenSSH handling, which defaults to `~`.
+//
+// For illustrative purposes, we use `~` in documentation as a shorthand for escaping character.
+//
+// If following a new line, reader sees:
+//   - `~~`, only one is emitted
+//   - `~.` (or any character), the handler is invoked with the character.
+//     If handler returns true, `~.` will be skipped; otherwise, it's propagated.
+//   - `~` and it's the last character in stream, it's propagated
+//
+// Appearances of `~` when not preceded by a new line are propagated unmodified.
+func NewReader(r io.Reader, c byte, h Handler) io.Reader {
+	pr, pw := io.Pipe()
+	reader := &reader{
+		impl:       r, // stdin
+		escapeChar: c,
+		handler:    h,
+		pr:         pr,
+		pw:         pw,
+	}
+	go reader.pipe()
+	return reader
+}
+
+// lookState represents the state of reader for what character of `\n~.` sequence
+// reader is looking for
+type lookState int
+
+const (
+	// sLookNewLine indicates that reader is looking for new line
+	sLookNewLine lookState = iota
+
+	// sLookEscapeChar indicates that reader is looking for ~
+	sLookEscapeChar
+
+	// sLookChar indicates that reader just read `~` is waiting for next character
+	// before acting
+	sLookChar
+)
+
+// to ease comments, i'll assume escape character to be `~`
+type reader struct {
+	impl       io.Reader
+	escapeChar uint8
+	handler    Handler
+
+	// buffers
+	pw *io.PipeWriter
+	pr *io.PipeReader
+}
+
+func (r *reader) Read(buf []byte) (int, error) {
+	return r.pr.Read(buf)
+}
+
+func (r *reader) pipe() {
+	rb := make([]byte, 4096)
+	bw := bufio.NewWriter(r.pw)
+
+	state := sLookEscapeChar
+
+	for {
+		n, err := r.impl.Read(rb)
+
+		if n > 0 {
+			state = r.processBuf(bw, rb, n, state)
+			bw.Flush()
+			if state == sLookChar {
+				// terminated with ~ - let's read one more character
+				n, err = r.impl.Read(rb[:1])
+				if n == 1 {
+					state = sLookNewLine
+					if rb[0] == r.escapeChar {
+						// only emit escape character once
+						bw.WriteByte(rb[0])
+						bw.Flush()
+					} else if r.handler(rb[0]) {
+						// skip if handled
+					} else {
+						bw.WriteByte(r.escapeChar)
+						bw.WriteByte(rb[0])
+						bw.Flush()
+						if rb[0] == '\n' || rb[0] == '\r' {
+							state = sLookEscapeChar
+						}
+					}
+				}
+			}
+		}
+
+		if err != nil {
+			// write ~ if it's the last thing
+			if state == sLookChar {
+				bw.WriteByte(r.escapeChar)
+			}
+			bw.Flush()
+			r.pw.CloseWithError(err)
+			break
+		}
 	}
 }
 
-func normalizeLineEndings(s string) string {
-	return strings.ReplaceAll(s, "\r\n", "\n")
+// processBuf process buffer and emits all output to writer
+// if the last part of buffer is a new line followed by sequnce, it writes
+// all output until the new line and returns sLookChar
+func (r *reader) processBuf(bw io.Writer, buf []byte, n int, s lookState) lookState {
+	i := 0
+
+	wi := 0
+
+START:
+	if s == sLookEscapeChar && buf[i] == r.escapeChar {
+		if i+1 >= n {
+			// buf terminates with ~ - write all before
+			bw.Write(buf[wi:i])
+			return sLookChar
+		}
+
+		nc := buf[i+1]
+		if nc == r.escapeChar {
+			// skip one escape char
+			bw.Write(buf[wi:i])
+			i++
+			wi = i
+		} else if r.handler(nc) {
+			// skip both characters
+			bw.Write(buf[wi:i])
+			i = i + 2
+			wi = i
+		} else if nc == '\n' || nc == '\r' {
+			i = i + 2
+			s = sLookEscapeChar
+			goto START
+		} else {
+			i = i + 2
+			// need to write everything keep going
+		}
+	}
+
+	// search until we get \n~, or buf terminates
+	for {
+		if i >= n {
+			// got to end without new line, write and return
+			bw.Write(buf[wi:n])
+			return sLookNewLine
+		}
+
+		if buf[i] == '\n' || buf[i] == '\r' {
+			// buf terminated at new line
+			if i+1 >= n {
+				bw.Write(buf[wi:n])
+				return sLookEscapeChar
+			}
+
+			// peek to see escape character go back to START if so
+			if buf[i+1] == r.escapeChar {
+				s = sLookEscapeChar
+				i++
+				goto START
+			}
+		}
+
+		i++
+	}
 }

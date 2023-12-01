@@ -18,7 +18,7 @@ func nextUpdateID() int {
 	return updateID
 }
 
-func (c Config) client() (*api.Client, error) {
+func (c Config) Client() (*api.Client, error) {
 	config := &api.Config{
 		Address:   c.URL,
 		SecretID:  c.Token,

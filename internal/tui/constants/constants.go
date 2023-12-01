@@ -16,10 +16,6 @@ const ToastDuration = time.Second * 5
 
 const SaveDialogPlaceholder = "Output file name (path optional)"
 
-const ExecWebSocketClosed = "> connection closed <"
-
-const ExecWebSocketHeartbeatDuration = time.Second * 10
-
 const TableSeparator = "|【=◈︿◈=】|"
 
 const TablePadding = "   "
