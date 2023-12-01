@@ -266,7 +266,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
-			c := exec.Command("wander", "exec", m.alloc.ID, m.taskName, msg.Input)
+			c := exec.Command("wander", "exec", m.alloc.ID, "--task", m.taskName, msg.Input)
 			stdoutProxy := &nomad.StdoutProxy{}
 			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
@@ -622,7 +622,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				}
 				allPageRows = append(allPageRows, page.Row{Row: formatter.StripOSCommandSequences(formatter.StripANSI(row))})
 			}
-			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Output"}, AllPageRows: allPageRows}
+			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Exec Session Output"}, AllPageRows: allPageRows}
 		}
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)

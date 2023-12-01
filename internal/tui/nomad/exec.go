@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/moby/term"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"golang.org/x/exp/maps"
 	"golang.org/x/sys/unix"
 	"io"
 	"os"
@@ -15,14 +16,15 @@ import (
 )
 
 // TODO:
-// - [ ] code review this
+// - [x] try with bash
+// - [x] improve help text on wander exec
 // - [x] clear screen on start of exec
 // - [x] don't print config file used on exec
+// - [x] warning message that "you're in wander"
+// - [x] cmd human friendly (not full 36char id)
+// - [x] code review this
 // - [ ] update gif
-// - [ ] cmd human friendly (not full 36char id)
-// - [ ] warning message that "you're in wander"
-// - [ ] try with bash
-// - [ ] improve help text on wander exec
+// - [ ] fix wander serve exec
 
 type ExecCompleteMsg struct {
 	Output string
@@ -37,15 +39,79 @@ func (so *StdoutProxy) Write(p []byte) (n int, err error) {
 	return os.Stdout.Write(p)
 }
 
+func findAllocsForJobPrefix(client api.Client, jobName string) map[string][]*api.AllocationListStub {
+	allocs := make(map[string][]*api.AllocationListStub)
+	jobs, _, err := client.Jobs().PrefixList(jobName)
+	if err != nil || len(jobs) == 0 {
+		return allocs
+	}
+	for _, job := range jobs {
+		jobAllocs, _, err := client.Jobs().Allocations(job.ID, true, &api.QueryOptions{Namespace: job.Namespace})
+		if err != nil || len(jobAllocs) == 0 {
+			continue
+		}
+		allocs[job.ID] = jobAllocs
+	}
+	return allocs
+}
+
 func AllocExec(client *api.Client, allocID, task string, args []string) (int, error) {
 	alloc, _, err := client.Allocations().Info(allocID, nil)
 	if err != nil {
-		return 1, fmt.Errorf("error querying allocation: %s", err)
+		// maybe allocID is actually a job name
+		foundAllocs := findAllocsForJobPrefix(*client, allocID)
+		if len(foundAllocs) > 0 {
+			if len(foundAllocs) == 1 && len(maps.Values(foundAllocs)[0]) == 1 && maps.Values(foundAllocs)[0][0] != nil {
+				// only one job with one allocation found, use that
+				alloc, _, err = client.Allocations().Info(maps.Values(foundAllocs)[0][0].ID, nil)
+			} else {
+				// multiple jobs and/or allocations found, print them and exit
+				for job, jobAllocs := range foundAllocs {
+					fmt.Printf("allocations for job %s:\n", job)
+					for _, alloc := range jobAllocs {
+						fmt.Printf("  %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+					}
+				}
+				return 1, nil
+			}
+		} else {
+			// maybe allocID is short form of id
+			shortIDAllocs, _, err := client.Allocations().List(&api.QueryOptions{Prefix: allocID})
+			if err != nil {
+				return 1, fmt.Errorf("no jobs or allocation id for %s found: %v", allocID, err)
+			}
+			if len(shortIDAllocs) > 1 {
+				// rare but possible that uuid prefixes match
+				fmt.Printf("prefix %s matched multiple allocations:\n", allocID)
+				for _, alloc := range shortIDAllocs {
+					fmt.Printf("  %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+				}
+				return 1, err
+			} else if len(shortIDAllocs) == 1 {
+				alloc, _, err = client.Allocations().Info(shortIDAllocs[0].ID, nil)
+			} else {
+				return 1, fmt.Errorf("no allocations found for alloc id %s", allocID)
+			}
+		}
+	}
+
+	// if task is blank, user has assumed that there is only one task in the allocation and wants to
+	// use that
+	if task == "" {
+		if len(alloc.TaskStates) == 1 {
+			for taskName := range alloc.TaskStates {
+				task = taskName
+			}
+		} else {
+			fmt.Printf("multiple tasks found in allocation %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+			for taskName := range alloc.TaskStates {
+				fmt.Printf("  %s\n", taskName)
+			}
+		}
 	}
 
 	code, err := execImpl(client, alloc, task, args, "~", os.Stdin, os.Stdout, os.Stderr)
 	if err != nil {
-		fmt.Printf("failed to exec into task: %v", err)
 		return 1, err
 	}
 	return code, nil

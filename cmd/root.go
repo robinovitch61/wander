@@ -268,6 +268,9 @@ func init() {
 		viper.BindPFlag(cliLong, serveCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
 	}
 
+	// exec
+	execCmd.PersistentFlags().StringP("task", "", "", "Sets the task to exec command in")
+
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(execCmd)
 }
