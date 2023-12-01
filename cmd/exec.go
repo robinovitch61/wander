@@ -9,10 +9,11 @@ import (
 
 var (
 	execCmd = &cobra.Command{
-		Use:   "exec",
-		Short: "Exec into a running task",
-		Long:  `Exec into a running nomad task`,
-		Run:   execEntrypoint,
+		Use:               "exec",
+		Short:             "Exec into a running task",
+		Long:              `Exec into a running nomad task`,
+		Run:               execEntrypoint,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return nil },
 	}
 )
 
@@ -25,7 +26,6 @@ func execEntrypoint(cmd *cobra.Command, args []string) {
 	allocID := args[0]
 	task := args[1]
 	execArgs := args[2:]
-	fmt.Println(fmt.Sprintf("allocID: %s, task: %s", allocID, task))
 	_, err = nomad.AllocExec(client, allocID, task, execArgs)
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not exec into task: %v", err))

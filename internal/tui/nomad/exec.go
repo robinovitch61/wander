@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/nomad/api"
 	"github.com/moby/term"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"golang.org/x/sys/unix"
 	"io"
 	"os"
@@ -13,9 +14,15 @@ import (
 	"syscall"
 )
 
-// TODO: code review this
-// TODO: clear screen on start of exec
-// TODO: don't print config file used on exec
+// TODO:
+// - [ ] code review this
+// - [x] clear screen on start of exec
+// - [x] don't print config file used on exec
+// - [ ] update gif
+// - [ ] cmd human friendly (not full 36char id)
+// - [ ] warning message that "you're in wander"
+// - [ ] try with bash
+// - [ ] improve help text on wander exec
 
 type ExecCompleteMsg struct {
 	Output string
@@ -47,6 +54,10 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 // execImpl invokes the Alloc Exec api call, it also prepares and restores terminal states as necessary.
 func execImpl(client *api.Client, alloc *api.Allocation, task string,
 	command []string, escapeChar string, stdin io.Reader, stdout, stderr io.WriteCloser) (int, error) {
+
+	// attempt to clear screen
+	os.Stdout.Write([]byte("\033c"))
+	fmt.Println(fmt.Sprintf("Exec session for %s (%s), task %s", alloc.Name, formatter.ShortAllocID(alloc.ID), task))
 
 	sizeCh := make(chan api.TerminalSize, 1)
 
