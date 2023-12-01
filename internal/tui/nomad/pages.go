@@ -410,7 +410,7 @@ func GetPageKeyHelp(
 		changeKeyHelp(&keymap.KeyMap.Compact, "compact")
 	}
 
-	if filterFocused {
+	if filterFocused || currentPage == ExecPage {
 		keymap.KeyMap.Exit.SetHelp("ctrl+c", "exit")
 	} else {
 		keymap.KeyMap.Exit.SetHelp("q/ctrl+c", "exit")
