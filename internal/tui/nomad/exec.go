@@ -15,17 +15,6 @@ import (
 	"syscall"
 )
 
-// TODO:
-// - [x] try with bash
-// - [x] improve help text on wander exec
-// - [x] clear screen on start of exec
-// - [x] don't print config file used on exec
-// - [x] warning message that "you're in wander"
-// - [x] cmd human friendly (not full 36char id)
-// - [x] code review this
-// - [ ] update gif
-// - [ ] fix wander serve exec
-
 type ExecCompleteMsg struct {
 	Output string
 }
