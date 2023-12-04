@@ -1,5 +1,5 @@
 {
-  description = "Wander";
+  description = "wander: a terminal app/TUI for HashiCorp Nomad";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
