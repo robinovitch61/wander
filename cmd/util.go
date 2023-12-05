@@ -380,7 +380,7 @@ func getRootOpts(cmd *cobra.Command) []string {
 	return opts
 }
 
-func setup(cmd *cobra.Command, rootOpts []string, overrideToken string) (app.Model, []tea.ProgramOption) {
-	initialModel := app.InitialModel(getConfig(cmd, rootOpts, overrideToken))
+func setup(cmd *cobra.Command, rootOpts []string, overrideToken string, session ssh.Session) (app.Model, []tea.ProgramOption) {
+	initialModel := app.InitialModel(getConfig(cmd, rootOpts, overrideToken), session)
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }

@@ -343,7 +343,7 @@ func bindFlags(cmd *cobra.Command, nameToArg map[string]arg) {
 func mainEntrypoint(cmd *cobra.Command, args []string) {
 	dev.Debug("~STARTING UP~")
 	rootOpts := getRootOpts(cmd)
-	initialModel, options := setup(cmd, rootOpts, "")
+	initialModel, options := setup(cmd, rootOpts, "", nil)
 	program := tea.NewProgram(initialModel, options...)
 
 	if _, err := program.Run(); err != nil {

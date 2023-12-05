@@ -112,6 +112,6 @@ func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.
 		if sshCommands := s.Command(); len(sshCommands) == 1 {
 			overrideToken = strings.TrimSpace(sshCommands[0])
 		}
-		return setup(cmd, changedOpts, overrideToken)
+		return setup(cmd, changedOpts, overrideToken, s)
 	}
 }

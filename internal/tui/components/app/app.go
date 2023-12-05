@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/ssh"
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/dev"
@@ -64,6 +65,8 @@ type Model struct {
 	config Config
 	client api.Client
 
+	session ssh.Session
+
 	header      header.Model
 	compact     bool
 	currentPage nomad.Page
@@ -101,7 +104,7 @@ func getFirstPage(c Config) nomad.Page {
 	return firstPage
 }
 
-func InitialModel(c Config) Model {
+func InitialModel(c Config, session ssh.Session) Model {
 	firstPage := getFirstPage(c)
 	initialHeader := header.New(
 		constants.LogoString,
@@ -112,6 +115,7 @@ func InitialModel(c Config) Model {
 	)
 	return Model{
 		config:      c,
+		session:     session,
 		header:      initialHeader,
 		currentPage: firstPage,
 		updateID:    nextUpdateID(),
@@ -292,6 +296,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			stdoutProxy := &nomad.StdoutProxy{}
 			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
+			if m.session != nil {
+				//pty, _, _ := m.session.Pty()
+				c := exec.Command("vim", "tmp.txt")
+				return m, tea.ExecProcess(c, func(err error) tea.Msg {
+					return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
+				})
+			}
 			return m, tea.ExecProcess(c, func(err error) tea.Msg {
 				return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
 			})
