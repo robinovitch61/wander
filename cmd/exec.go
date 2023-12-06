@@ -33,10 +33,8 @@ var (
 
 func execEntrypoint(cmd *cobra.Command, args []string) {
 	task := cmd.Flags().Lookup("task").Value.String()
-
 	// can ignore storing rootOpts here as exec just needs a client
 	config := getConfig(cmd, []string{}, "")
-
 	client, err := config.Client()
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not get client: %v", err))
