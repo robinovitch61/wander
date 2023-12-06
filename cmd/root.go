@@ -341,10 +341,11 @@ func bindFlags(cmd *cobra.Command, nameToArg map[string]arg) {
 }
 
 func mainEntrypoint(cmd *cobra.Command, args []string) {
-	initialModel, options := setup(cmd, "")
+	dev.Debug("~STARTING UP~")
+	rootOpts := getRootOpts(cmd)
+	initialModel, options := setup(cmd, rootOpts, "")
 	program := tea.NewProgram(initialModel, options...)
 
-	dev.Debug("~STARTING UP~")
 	if _, err := program.Run(); err != nil {
 		fmt.Printf("Error on wander startup: %v", err)
 		os.Exit(1)

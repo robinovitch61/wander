@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type ExecCompleteMsg struct {
@@ -111,7 +112,9 @@ func execImpl(client *api.Client, alloc *api.Allocation, task string,
 	command []string, escapeChar string, stdin io.Reader, stdout, stderr io.WriteCloser) (int, error) {
 
 	// attempt to clear screen
+	time.Sleep(10 * time.Millisecond)
 	os.Stdout.Write([]byte("\033c"))
+
 	fmt.Println(fmt.Sprintf("Exec session for %s (%s), task %s", alloc.Name, formatter.ShortAllocID(alloc.ID), task))
 
 	sizeCh := make(chan api.TerminalSize, 1)

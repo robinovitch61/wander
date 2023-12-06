@@ -12,6 +12,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/components/app"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"log"
 	"os"
@@ -286,7 +287,7 @@ func customLoggingMiddleware() wish.Middleware {
 	}
 }
 
-func getConfig(cmd *cobra.Command, overrideToken string) app.Config {
+func getConfig(cmd *cobra.Command, rootOpts []string, overrideToken string) app.Config {
 	nomadAddr := retrieveAddress(cmd)
 	nomadToken := retrieveToken(cmd)
 	if overrideToken != "" {
@@ -323,6 +324,7 @@ func getConfig(cmd *cobra.Command, overrideToken string) app.Config {
 	filterWithContext := retrieveFilterWithContext(cmd)
 
 	return app.Config{
+		RootOpts:  rootOpts,
 		Version:   getVersion(),
 		URL:       nomadAddr,
 		Token:     nomadToken,
@@ -361,7 +363,24 @@ func getConfig(cmd *cobra.Command, overrideToken string) app.Config {
 	}
 }
 
-func setup(cmd *cobra.Command, overrideToken string) (app.Model, []tea.ProgramOption) {
-	initialModel := app.InitialModel(getConfig(cmd, overrideToken))
+func getRootOpts(cmd *cobra.Command) []string {
+	if cmd.Name() != "wander" {
+		panic("getRootOpts should only be called on the root wander command, for which both serve and exec are subcommands")
+	}
+	var opts []string
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if f.Changed {
+			if f.Name != "" {
+				opts = append(opts, fmt.Sprintf("--%s=%s", f.Name, f.Value))
+			} else if f.Shorthand != "" {
+				opts = append(opts, fmt.Sprintf("-%s=%s", f.Shorthand, f.Value))
+			}
+		}
+	})
+	return opts
+}
+
+func setup(cmd *cobra.Command, rootOpts []string, overrideToken string) (app.Model, []tea.ProgramOption) {
+	initialModel := app.InitialModel(getConfig(cmd, rootOpts, overrideToken))
 	return initialModel, []tea.ProgramOption{tea.WithAltScreen()}
 }
