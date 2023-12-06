@@ -15,7 +15,9 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
+	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 )
@@ -38,6 +40,7 @@ type LogConfig struct {
 }
 
 type Config struct {
+	RootOpts                      []string
 	Version                       string
 	URL, Token, Region, Namespace string
 	HTTPAuth                      string
@@ -266,7 +269,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case message.PageInputReceivedMsg:
 		if m.currentPage == nomad.ExecPage {
-			c := exec.Command("wander", "exec", m.alloc.ID, "--task", m.taskName, msg.Input)
+			// run the same wander executable even if there is a different one in the path
+			ex, err := os.Executable()
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+			dir := path.Dir(ex)
+
+			args := []string{"exec"}
+			// pass the same cli opts to wander exec as passed into the current wander root command
+			args = append(args, m.config.RootOpts...)
+			args = append(args, []string{
+				m.alloc.ID,
+				"--task",
+				m.taskName,
+				msg.Input,
+			}...)
+			c := exec.Command(fmt.Sprintf("%s/wander", dir), args...)
+			c.Env = os.Environ()
+
 			stdoutProxy := &nomad.StdoutProxy{}
 			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
