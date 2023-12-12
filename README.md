@@ -36,6 +36,14 @@ brew install robinovitch61/tap/wander
 brew update && brew upgrade wander
 ```
 
+### > Run with Nix `flakes`
+
+Ensure [flake support is enabled](https://nixos.wiki/wiki/Flakes#Enable_flakes_temporarily)
+
+``` shell
+nix run "github:robinovitch61/wander"
+```
+
 ### > Install from NUR
 
 Ensure [NUR is accessible](https://github.com/nix-community/NUR), then run (for example):
