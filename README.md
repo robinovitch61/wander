@@ -27,7 +27,7 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 
 ## Installation
 
-### > Using homebrew
+### > Using Homebrew
 
 ```shell
 brew install robinovitch61/tap/wander
@@ -36,20 +36,24 @@ brew install robinovitch61/tap/wander
 brew update && brew upgrade wander
 ```
 
-### > Run with Nix `flakes`
+### > Using Nix
 
-Ensure [flake support is enabled](https://nixos.wiki/wiki/Flakes#Enable_flakes_temporarily)
+#### > nix-shell
 
-``` shell
-nix run "github:robinovitch61/wander"
-```
-
-### > Install from NUR
-
-Ensure [NUR is accessible](https://github.com/nix-community/NUR), then run (for example):
+Ensure [NUR is accessible](https://github.com/nix-community/NUR), then run:
 
 ```shell
 nix-shell -p nur.repos.robinovitch61.wander
+...
+[nix-shell:~]$ wander
+```
+
+#### > nix flakes
+
+Ensure [flake support is enabled](https://nixos.wiki/wiki/Flakes#Enable_flakes_temporarily), then run:
+
+``` shell
+nix run github:robinovitch61/nur-packages#wander
 ```
 
 ### > Install from AUR
