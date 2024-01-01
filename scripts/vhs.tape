@@ -51,17 +51,21 @@ Set Framerate 15
 Hide
 Type "wander"
 Enter
-Sleep 200ms
+Sleep 500ms
 Show
 
 # All Jobs
 Sleep 1s
 Type@500ms "jj"
 Type@500ms "k"
+Sleep 101ms
+Screenshot ../img/screenshots/All_Jobs.png
 Sleep 1s
 
 # All Events
 Type "V"
+Sleep 100ms
+Screenshot ../img/screenshots/Global_Events.png
 Sleep 2s
 Type@300ms "j"
 Enter
@@ -74,6 +78,8 @@ Sleep 1s
 
 # All Tasks
 Type "A"
+Sleep 100ms
+Screenshot ../img/screenshots/All_Tasks.png
 Sleep 1s
 Type@500ms "jj"
 Type@500ms "k"
@@ -89,6 +95,8 @@ Enter
 Type@150ms "ls -la"
 Sleep 300ms
 Enter
+Sleep 100ms
+Screenshot ../img/screenshots/Exec.png
 Sleep 2s
 Ctrl+d
 Sleep 2s
@@ -101,10 +109,14 @@ Sleep 1s
 
 # Tasks for Job
 Enter
+Sleep 100ms
+Screenshot ../img/screenshots/Tasks_for_Job.png
 Sleep 2s
 
 # Logs for Task, Filtering
 Enter
+Sleep 100ms
+Screenshot ../img/screenshots/Task_Logs.png
 Sleep 2s
 Type "/"
 Sleep 1s
@@ -119,10 +131,12 @@ Escape@200ms 2
 
 # Save Logs
 Ctrl+S
-Type@100ms "my_logs.txt"
+Type@100ms "/tmp/my_logs.txt"
 Sleep 500ms
 Enter
-Sleep 3s
+Sleep 500ms
+Screenshot ../img/screenshots/Save_Any_View_to_Local_File.png
+Sleep 2.5s
 
 # Back to Tasks for Job
 Escape
@@ -130,8 +144,11 @@ Sleep 1s
 
 # Stats for Allocation
 Type "s"
+Sleep 100ms
+Screenshot ../img/screenshots/Allocation_Statistics.png
 Sleep 2s
 
-# Back to Tasks for Job
-Escape
+# Exit
+Hide
+Ctrl+c
 Sleep 1s

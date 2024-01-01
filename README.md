@@ -17,13 +17,18 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 - See full job or allocation specs
 - Save any content to a local file
 
-![](./img/wander.gif)
-
-![](./img/wander_flow.drawio.png)
-
 `wander` is written with tools from [Charm](https://charm.sh/).
 
-[Feature requests and bug reports for wander are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
+[Feature requests and bug reports are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
+
+## Demo
+
+![](./img/wander.gif)
+
+[Screenshots](./img/screenshots#readme)
+
+## Flow Diagram
+![](./img/wander_flow.drawio.png)
 
 ## Installation
 
@@ -50,16 +55,10 @@ yay -S wander-bin
 
 # with go (https://go.dev/doc/install)
 go install github.com/robinovitch61/wander@latest
-
-# build from source
-git clone git@github.com:robinovitch61/wander.git
-cd wander
-go build
-mv ./wander /usr/local/bin  # or somewhere else in your PATH
-
-# alternatively download prebuilt release from https://github.com/robinovitch61/wander/releases
-# and move the unpacked executable to somewhere in your PATH, e.g. /usr/local/bin
 ```
+
+You can also download [prebuilt releases](https://github.com/robinovitch61/wander/releases) and move the unpacked
+executable to somewhere in your `PATH`, e.g. `/usr/local/bin`.
 
 ## Usage
 
@@ -219,6 +218,26 @@ Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and u
 #wander_logo_color: "#DBBD70"
 ```
 
+## Exec Command
+
+`wander` ships with an `exec` command similar to the [`nomad alloc exec`](https://developer.hashicorp.com/nomad/docs/commands/alloc/exec)
+utility. Example usage:
+
+```shell
+# specify job and task, assuming single allocation
+wander exec alright_stop --task redis echo "hi"
+
+# specify allocation, assuming single task
+wander exec 3dca0982 echo "hi"
+
+# use prefixes of jobs or allocation ids
+wander exec al echo "hi"  # prefix of job "alright_stop"
+wander exec 3d echo "hi"  # prefix of alloc ID "3dca0982"
+
+# specify flags for the exec command with --
+wander exec alright_stop --task redis -- echo -n "hi"
+```
+
 ## SSH App
 
 `wander` can be served via ssh application. For example, you could host an internal ssh application for your company
@@ -232,8 +251,7 @@ Serve the ssh app with `wander serve`.
 
 ## Trying It Out
 
-You can try `wander` out by running a local nomad cluster in dev mode
-following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):
+You can try `wander` out by running a local development nomad cluster following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):
 
 ```sh
 # in first terminal session, start and leave nomad running in dev mode
@@ -261,9 +279,14 @@ In this case, you're responsible for ensuring the specified version is in sync w
 
 ## Development
 
-The `scripts/dev.sh` script watches the source code and rebuilds the app on changes
-using [entr](https://github.com/eradman/entr). Install the latest release of `nomad`.
+To manually build:
 
-`wander` runs the built app. You must rerun it on rebuild.
+```shell
+git clone git@github.com:robinovitch61/wander.git
+cd wander
+go build  # outputs ./wander executable
+```
+
+The [scripts](/scripts) directory contains various development helper scripts.
 
 If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `wander.log`.
