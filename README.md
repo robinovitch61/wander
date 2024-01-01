@@ -57,7 +57,7 @@ cd wander
 go build
 mv ./wander /usr/local/bin  # or somewhere else in your PATH
 
-# alternatively download prebuilt release from https://github.com/robinovitch61/wander/releases
+# OR download prebuilt release from https://github.com/robinovitch61/wander/releases
 # and move the unpacked executable to somewhere in your PATH, e.g. /usr/local/bin
 ```
 
