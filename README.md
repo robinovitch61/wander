@@ -19,7 +19,7 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 
 ![](./img/home.png)
 
-[More Screenshots](./img/screenshots)
+[More Screenshots](./img/screenshots#readme)
 
 ![](./img/wander_flow.drawio.png)
 
