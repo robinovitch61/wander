@@ -17,7 +17,9 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 - See full job or allocation specs
 - Save any content to a local file
 
-![](./img/wander.gif)
+![](./img/screenshots/home.png)
+
+[More Screenshots](./img/screenshots)
 
 ![](./img/wander_flow.drawio.png)
 

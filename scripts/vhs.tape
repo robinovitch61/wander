@@ -20,8 +20,8 @@
 # Sleep:
 #   Sleep <time>                    Sleep for a set amount of <time> in seconds
 #
-# Type:
-#   Type[@<time>] "<characters>"    Type <characters> into the terminal with a
+# Type@1ms:
+#   Type@1ms[@<time>] "<characters>"    Type@1ms <characters> into the terminal with a
 #                                   <time> delay between each character
 #
 # Keys:
@@ -40,7 +40,8 @@
 #   Hide                            Hide the subsequent commands from the output
 #   Show                            Show the subsequent commands in the output
 
-Output "../img/wander.gif"
+Output "ignore.gif"
+Require wander
 
 Set Padding 10
 Set FontSize 13
@@ -48,90 +49,69 @@ Set Width 1100
 Set Height 450
 Set Framerate 15
 
-Hide
-Type "wander"
+Type@1ms "wander"
 Enter
-Sleep 200ms
-Show
 
 # All Jobs
-Sleep 1s
-Type@500ms "jj"
-Type@500ms "k"
-Sleep 1s
+Type@1ms "j"
+Sleep 200ms
+Screenshot ../img/screenshots/home.png
+Sleep 200ms
 
 # All Events
 Type "V"
-Sleep 2s
-Type@300ms "j"
-Enter
-Sleep 1s
-Type@500ms "dd"
+Sleep 200ms
+Screenshot ../img/screenshots/global_events.png
+Sleep 200ms
 
-# Back to All Jobs
-Escape@1s 2
-Sleep 1s
+# Job Events
+Escape 2
+Type@1ms "v"
+Sleep 200ms
+Screenshot ../img/screenshots/job_events.png
+Sleep 200ms
 
 # All Tasks
-Type "A"
-Sleep 1s
-Type@500ms "jj"
-Type@500ms "k"
-Sleep 1s
+Type@1ms "A"
+Type@1ms "jj"
+Type@1ms "k"
 
 # Exec for Task
-Type "e"
-Sleep 1s
+Type@1ms "e"
 Backspace 10
-Type@200ms "bash"
-Sleep 500ms
+Type@1ms "bash"
 Enter
-Type@150ms "ls -la"
-Sleep 300ms
+Type@1ms "ls -la"
 Enter
-Sleep 2s
 Ctrl+d
-Sleep 2s
-Escape@300ms 2
-Sleep 500ms
+Escape 2
 
 # Back to All Jobs
-Type "J"
-Sleep 1s
+Type@1ms "J"
 
 # Tasks for Job
 Enter
-Sleep 2s
 
 # Logs for Task, Filtering
 Enter
-Sleep 2s
-Type "/"
-Sleep 1s
-Type@200ms "INFO"
-Sleep 0.5s
+Type@1ms "/"
+Type@1ms "INFO"
 Enter
-Type@0.5s "nnnN"
-Type@300ms "jjkk"
+Type@1ms "nnnN"
+Type@1ms "jjkk"
 Enter
-Sleep 1s
-Escape@200ms 2
+Escape 2
 
 # Save Logs
 Ctrl+S
-Type@100ms "my_logs.txt"
-Sleep 500ms
+Type@1ms "my_logs.txt"
 Enter
-Sleep 3s
 
 # Back to Tasks for Job
 Escape
-Sleep 1s
 
 # Stats for Allocation
-Type "s"
-Sleep 2s
+Type@1ms "s"
 
 # Back to Tasks for Job
 Escape
-Sleep 1s
