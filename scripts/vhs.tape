@@ -55,20 +55,20 @@ Enter
 # All Jobs
 Type@1ms "j"
 Sleep 200ms
-Screenshot ../img/screenshots/home.png
+Screenshot ../img/home.png
 Sleep 200ms
 
 # All Events
 Type "V"
 Sleep 200ms
-Screenshot ../img/screenshots/global_events.png
+Screenshot ../img/screenshots/Global_Events.png
 Sleep 200ms
 
 # Job Events
 Escape 2
 Type@1ms "v"
 Sleep 200ms
-Screenshot ../img/screenshots/job_events.png
+Screenshot ../img/screenshots/Job_Events.png
 Sleep 200ms
 
 # All Tasks
