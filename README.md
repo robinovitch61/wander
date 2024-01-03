@@ -27,59 +27,39 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 
 ## Installation
 
-### > Using Homebrew
+The following options are available depending on your platform and tooling:
 
 ```shell
+# homebrew
 brew install robinovitch61/tap/wander
 
-# to upgrade
+# upgrade using homebrew
 brew update && brew upgrade wander
-```
 
-### > Using Nix
-
-#### > nix-shell
-
-Ensure [NUR is accessible](https://github.com/nix-community/NUR), then run:
-
-```shell
+# nix-shell
+# ensure NUR is accessible (https://github.com/nix-community/NUR)
 nix-shell -p nur.repos.robinovitch61.wander
-...
-[nix-shell:~]$ wander
-```
 
-#### > nix flakes
-
-Ensure [flake support is enabled](https://nixos.wiki/wiki/Flakes#Enable_flakes_temporarily), then run:
-
-``` shell
+# nix flakes
+# ensure flake support is enabled (https://nixos.wiki/wiki/Flakes#Enable_flakes_temporarily)
 nix run github:robinovitch61/nur-packages#wander
-```
 
-### > Install from AUR
-
-Use your favorite AUR helper:
-
-```shell
+# arch linux
+# PKGBUILD available at https://aur.archlinux.org/packages/wander
 yay -S wander-bin
-```
 
-### > Download from GitHub
-
-Download the relevant binary for your operating system (macOS = Darwin) from
-the [latest Github release](https://github.com/robinovitch61/wander/releases). Unpack it, then move the binary to
-somewhere accessible in your `PATH`, e.g. `mv ./wander /usr/local/bin`.
-
-### > Using [go installed on your machine](https://go.dev/doc/install)
-
-```shell
+# with go (https://go.dev/doc/install)
 go install github.com/robinovitch61/wander@latest
+
+# build from source
+git clone git@github.com:robinovitch61/wander.git
+cd wander
+go build
+mv ./wander /usr/local/bin  # or somewhere else in your PATH
+
+# alternatively download prebuilt release from https://github.com/robinovitch61/wander/releases
+# and move the unpacked executable to somewhere in your PATH, e.g. /usr/local/bin
 ```
-
-### > Build from source
-
-Clone this repo, build from source with `cd <cloned_repo> && go build`, then move the binary to somewhere accessible in
-your `PATH`, e.g. `mv ./wander /usr/local/bin`.
 
 ## Usage
 
