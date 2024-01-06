@@ -58,7 +58,7 @@ Show
 Sleep 1s
 Type@500ms "jj"
 Type@500ms "k"
-Sleep 100ms
+Sleep 101ms
 Screenshot ../img/screenshots/All_Jobs.png
 Sleep 1s
 
