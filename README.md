@@ -21,16 +21,6 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 
 [Feature requests and bug reports are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
 
-* [Demo](#demo)
-* [Flow Diagram](#flow-diagram)
-* [Installation](#installation)
-* [Usage](#usage)
-* [Configuration](#configuration)
-* [SSH App](#ssh-app)
-* [Trying It Out](#trying-it-out)
-* [Manually Specifying the wander Version](#manually-specifying-the-wander-version)
-* [Development](#development)
-
 ## Demo
 
 ![](./img/wander.gif)
