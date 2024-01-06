@@ -14,7 +14,8 @@ open ../img/wander.gif
 mv ~/.wander.{yaml.tmp,yaml}
 rm -f my_logs.txt
 rm -f ../img/screenshots/README.md
-for file in ../img/screenshots/*.png; do
+# for files in ../img/screenshots/*.png sorted by modification time
+for file in $(ls -t ../img/screenshots/*.png); do
   filename=$(basename -- "$file")
   filename="${filename%.*}"
   echo "# ${filename//_/ }" >> ../img/screenshots/README.md
