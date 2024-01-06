@@ -218,6 +218,26 @@ Example yaml file showing all options (copy this into `$HOME/.wander.yaml` and u
 #wander_logo_color: "#DBBD70"
 ```
 
+## Exec Command
+
+`wander` ships with an `exec` command similar to the [`nomad alloc exec`](https://developer.hashicorp.com/nomad/docs/commands/alloc/exec)
+utility. Example usage:
+
+```shell
+# specify job and task, assuming single allocation
+wander exec alright_stop --task redis echo "hi"
+
+# specify allocation, assuming single task
+wander exec 3dca0982 echo "hi"
+
+# use prefixes of jobs or allocation ids
+wander exec al echo "hi"  # prefix of job "alright_stop"
+wander exec 3d echo "hi"  # prefix of alloc ID "3dca0982"
+
+# specify flags for the exec command with --
+wander exec alright_stop --task redis -- echo -n "hi"
+```
+
 ## SSH App
 
 `wander` can be served via ssh application. For example, you could host an internal ssh application for your company
