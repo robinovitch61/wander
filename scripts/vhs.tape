@@ -20,8 +20,8 @@
 # Sleep:
 #   Sleep <time>                    Sleep for a set amount of <time> in seconds
 #
-# Type@1ms:
-#   Type@1ms[@<time>] "<characters>"    Type@1ms <characters> into the terminal with a
+# Type:
+#   Type[@<time>] "<characters>"    Type <characters> into the terminal with a
 #                                   <time> delay between each character
 #
 # Keys:
@@ -40,8 +40,7 @@
 #   Hide                            Hide the subsequent commands from the output
 #   Show                            Show the subsequent commands in the output
 
-Output "ignore.gif"
-Require wander
+Output "../img/wander.gif"
 
 Set Padding 10
 Set FontSize 13
@@ -49,69 +48,99 @@ Set Width 1100
 Set Height 450
 Set Framerate 15
 
-Type@1ms "wander"
+Hide
+Type "wander"
 Enter
+Sleep 500ms
+Show
 
 # All Jobs
-Type@1ms "j"
-Sleep 200ms
-Screenshot ../img/home.png
-Sleep 200ms
+Sleep 1s
+Type@500ms "jj"
+Type@500ms "k"
+Screenshot ../img/screenshots/All_Jobs.png
+Sleep 1s
 
 # All Events
 Type "V"
-Sleep 200ms
+Sleep 2s
 Screenshot ../img/screenshots/Global_Events.png
-Sleep 200ms
-
-# Job Events
-Escape 2
-Type@1ms "v"
-Sleep 200ms
-Screenshot ../img/screenshots/Job_Events.png
-Sleep 200ms
-
-# All Tasks
-Type@1ms "A"
-Type@1ms "jj"
-Type@1ms "k"
-
-# Exec for Task
-Type@1ms "e"
-Backspace 10
-Type@1ms "bash"
+Type@300ms "j"
 Enter
-Type@1ms "ls -la"
-Enter
-Ctrl+d
-Escape 2
+Sleep 1s
+Type@500ms "dd"
 
 # Back to All Jobs
-Type@1ms "J"
+Escape@1s 2
+Sleep 1s
+
+# All Tasks
+Type "A"
+Sleep 1s
+Screenshot ../img/screenshots/All_Tasks.png
+Type@500ms "jj"
+Type@500ms "k"
+Sleep 1s
+
+# Exec for Task
+Type "e"
+Sleep 1s
+Backspace 10
+Type@200ms "bash"
+Sleep 500ms
+Enter
+Type@150ms "ls -la"
+Sleep 300ms
+Enter
+Sleep 2s
+Screenshot ../img/screenshots/Exec.png
+Ctrl+d
+Sleep 2s
+Escape@300ms 2
+Sleep 500ms
+
+# Back to All Jobs
+Type "J"
+Sleep 1s
 
 # Tasks for Job
 Enter
+Screenshot ../img/screenshots/Tasks_for_Job.png
+Sleep 2s
 
 # Logs for Task, Filtering
 Enter
-Type@1ms "/"
-Type@1ms "INFO"
+Sleep 2s
+Screenshot ../img/screenshots/Task_Logs.png
+Type "/"
+Sleep 1s
+Type@200ms "INFO"
+Sleep 0.5s
 Enter
-Type@1ms "nnnN"
-Type@1ms "jjkk"
+Type@0.5s "nnnN"
+Type@300ms "jjkk"
 Enter
-Escape 2
+Sleep 1s
+Escape@200ms 2
 
 # Save Logs
 Ctrl+S
-Type@1ms "my_logs.txt"
+Type@100ms "/tmp/my_logs.txt"
+Sleep 500ms
+Screenshot ../img/screenshots/Save_Any_View_to_Local_File.png
 Enter
+Sleep 3s
 
 # Back to Tasks for Job
 Escape
+Sleep 1s
 
 # Stats for Allocation
-Type@1ms "s"
+Type "s"
+Screenshot ../img/screenshots/Allocation_Statistics.png
+Sleep 2s
 
-# Back to Tasks for Job
-Escape
+# Exit
+Hide
+Ctrl+c
+Sleep 1s

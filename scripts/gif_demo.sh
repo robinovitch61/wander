@@ -4,11 +4,13 @@
 # expects nomad to already be running locally
 # should be run from scripts directory
 
-# get the latest tag on this branch
+rm -f /tmp/my_logs.txt
 latest_tag=$(git describe --tags --abbrev=0)
-./rebuild.sh "$latest_tag"
+tag=${1:-$latest_tag}
+./rebuild.sh "$tag"
 mv ~/.wander.{yaml,yaml.tmp}
 vhs vhs.tape
+open ../img/wander.gif
 mv ~/.wander.{yaml.tmp,yaml}
 rm -f my_logs.txt
 rm -f ../img/screenshots/README.md

@@ -17,15 +17,28 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 - See full job or allocation specs
 - Save any content to a local file
 
-![](./img/home.png)
-
-[More Screenshots](./img/screenshots#readme)
-
-![](./img/wander_flow.drawio.png)
-
 `wander` is written with tools from [Charm](https://charm.sh/).
 
-[Feature requests and bug reports for wander are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
+[Feature requests and bug reports are welcome](https://github.com/robinovitch61/wander/issues/new/choose).
+
+* [Demo](#demo)
+* [Flow Diagram](#flow-diagram)
+* [Installation](#installation)
+* [Usage](#usage)
+* [Configuration](#configuration)
+* [SSH App](#ssh-app)
+* [Trying It Out](#trying-it-out)
+* [Manually Specifying the wander Version](#manually-specifying-the-wander-version)
+* [Development](#development)
+
+## Demo
+
+![](./img/wander.gif)
+
+[Screenshots](./img/screenshots#readme)
+
+## Flow Diagram
+![](./img/wander_flow.drawio.png)
 
 ## Installation
 
@@ -52,16 +65,10 @@ yay -S wander-bin
 
 # with go (https://go.dev/doc/install)
 go install github.com/robinovitch61/wander@latest
-
-# build from source
-git clone git@github.com:robinovitch61/wander.git
-cd wander
-go build
-mv ./wander /usr/local/bin  # or somewhere else in your PATH
-
-# OR download prebuilt release from https://github.com/robinovitch61/wander/releases
-# and move the unpacked executable to somewhere in your PATH, e.g. /usr/local/bin
 ```
+
+You can also download [prebuilt releases](https://github.com/robinovitch61/wander/releases) and move the unpacked
+executable to somewhere in your `PATH`, e.g. `/usr/local/bin`.
 
 ## Usage
 
@@ -234,8 +241,7 @@ Serve the ssh app with `wander serve`.
 
 ## Trying It Out
 
-You can try `wander` out by running a local nomad cluster in dev mode
-following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):
+You can try `wander` out by running a local development nomad cluster following [these instructions](https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started):
 
 ```sh
 # in first terminal session, start and leave nomad running in dev mode
@@ -263,9 +269,14 @@ In this case, you're responsible for ensuring the specified version is in sync w
 
 ## Development
 
-The `scripts/dev.sh` script watches the source code and rebuilds the app on changes
-using [entr](https://github.com/eradman/entr). Install the latest release of `nomad`.
+To manually build:
 
-`wander` runs the built app. You must rerun it on rebuild.
+```shell
+git clone git@github.com:robinovitch61/wander.git
+cd wander
+go build  # outputs ./wander executable
+```
+
+The [scripts](/scripts) directory contains various development helper scripts.
 
 If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `wander.log`.
