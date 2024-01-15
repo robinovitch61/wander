@@ -10,9 +10,13 @@ on:
   create:
     tags:
       - v*
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+env:
+  CHOCOLATEY_VERSION: 2.2.2
 
 jobs:
   goreleaser:
@@ -24,6 +28,20 @@ jobs:
           fetch-depth: 0
       - name: Install Nix
         uses: cachix/install-nix-action@v23
+      - name: Install Snapcraft & Chocolatey
+        # from https://github.com/twpayne/chezmoi/blob/5293b40b48e678c461d68d06b635010173cac970/.github/workflows/main.yml#L154C1-L167C38
+        run: |
+          sudo apt-get --quiet update
+          sudo apt-get --no-install-suggests --no-install-recommends --quiet --yes install musl-tools snapcraft
+          # https://github.com/goreleaser/goreleaser/issues/1715
+          # https://bugs.launchpad.net/snapcraft/+bug/1889741
+          mkdir -p "${HOME}/.cache/snapcraft/download"
+          mkdir -p "${HOME}/.cache/snapcraft/stage-packages"
+          mkdir -p /opt/chocolatey
+          wget -q -O - "https://github.com/chocolatey/choco/releases/download/${CHOCOLATEY_VERSION}/chocolatey.v${CHOCOLATEY_VERSION}.tar.gz" | tar -xz -C "/opt/chocolatey"
+          echo '#!/bin/bash' >> /usr/local/bin/choco
+          echo 'mono /opt/chocolatey/choco.exe $@' >> /usr/local/bin/choco
+          chmod +x /usr/local/bin/choco
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -39,3 +57,4 @@ jobs:
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           AUR_KEY: ${{ secrets.AUR_KEY }}
           NUR_PACKAGES_GITHUB_TOKEN: ${{ secrets.NUR_PACKAGES_GITHUB_TOKEN }}
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}

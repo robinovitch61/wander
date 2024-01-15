@@ -21,7 +21,10 @@ builds:
       - windows
 
 archives:
-  - name_template: >-
+  - format_overrides:
+      - goos: windows
+        format: zip
+    name_template: >-
       {{ .ProjectName }}_{{ .Version }}_
       {{- if eq .Os "darwin" }}Darwin
       {{- else if eq .Os "linux" }}Linux
@@ -97,6 +100,60 @@ nix:
       name: nur-packages
       branch: main
       token: "{{ .Env.NUR_PACKAGES_GITHUB_TOKEN }}"
+
+winget:
+  - name: wander
+    publisher: robinovitch61
+    license: MIT
+    copyright: "Leo Robinovitch"
+    homepage: https://github.com/robinovitch61/wander
+    short_description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
+    package_identifier: "robinovitch61.wander"
+    repository:
+      owner: "robinovitch61"
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      name: winget-pkgs
+      branch: "{{.ProjectName}}-{{.Version}}"
+      pull_request:
+        enabled: true
+        draft: false
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
+
+scoops:
+  - repository:
+      owner: "robinovitch61"
+      name: scoop-bucket
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@theleo.zone
+    homepage: https://github.com/robinovitch61/wander
+    description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
+    license: MIT
+
+chocolateys:
+  - owners: "Leo Robinovitch"
+    authors: "Leo Robinovitch"
+    project_url: https://github.com/robinovitch61/wander
+    url_template: "https://github.com/robinovitch61/wander/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    license_url: https://github.com/robinovitch61/wander/blob/main/LICENSE
+    require_license_acceptance: false
+    project_source_url: https://github.com/robinovitch61/wander
+    docs_url: https://github.com/robinovitch61/wander/blob/main/README.md
+    bug_tracker_url: https://github.com/robinovitch61/wander/issues
+    tags: "wander nomad hashicorp tui"
+    summary: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
+    description: |
+      # An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster.
+
+      https://github.com/robinovitch61/wander for installation, configuration, and usage instructions.
+    release_notes: "https://github.com/robinovitch61/wander/releases/tag/v{{ .Version }}"
+    api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
+    source_repo: "https://push.chocolatey.org/"
+    skip_publish: false
 
 gomod:
   proxy: true

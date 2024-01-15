@@ -3,6 +3,7 @@ name: build
 on:
   pull_request:
   push:
+  workflow_dispatch:
 
 jobs:
   goreleaser:
@@ -29,3 +30,4 @@ jobs:
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           AUR_KEY: ${{ secrets.AUR_KEY }}
           NUR_PACKAGES_GITHUB_TOKEN: ${{ secrets.NUR_PACKAGES_GITHUB_TOKEN }}
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
