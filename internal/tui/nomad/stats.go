@@ -113,7 +113,7 @@ func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
 			}
 		}
 
-		table := formatter.GetRenderedTableAsString([]string{"Entity", "CPU", "Memory"}, tableRows)
+		table := formatter.GetRenderedTableAsString([]string{"Entity", "Memory", "CPU"}, tableRows)
 		var pageRows []page.Row
 		for _, row := range table.ContentRows {
 			pageRows = append(pageRows, page.Row{Key: "", Row: row})
