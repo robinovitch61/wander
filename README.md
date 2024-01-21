@@ -55,6 +55,13 @@ yay -S wander-bin
 
 # with go (https://go.dev/doc/install)
 go install github.com/robinovitch61/wander@latest
+
+# windows with winget
+winget install robinovitch61.wander
+
+# windows with scoop
+scoop bucket add robinovitch61 https://github.com/robinovitch61/scoop-bucket
+scoop install wander
 ```
 
 You can also download [prebuilt releases](https://github.com/robinovitch61/wander/releases) and move the unpacked
