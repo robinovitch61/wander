@@ -5,6 +5,7 @@ import (
 )
 
 type keyMap struct {
+	Yes             key.Binding
 	Back            key.Binding
 	Exec            key.Binding
 	Exit            key.Binding
@@ -25,9 +26,14 @@ type keyMap struct {
 	StdErr          key.Binding
 	Spec            key.Binding
 	Wrap            key.Binding
+	RestartTask     key.Binding
+	AdminMenu       key.Binding
 }
 
 var KeyMap = keyMap{
+	Yes: key.NewBinding(
+		key.WithKeys("y"),
+	),
 	Back: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back"),
@@ -107,5 +113,13 @@ var KeyMap = keyMap{
 	Wrap: key.NewBinding(
 		key.WithKeys("ctrl+w"),
 		key.WithHelp("ctrl+w", "toggle wrap"),
+	),
+	RestartTask: key.NewBinding(
+		key.WithKeys("t"),
+		key.WithHelp("t", "Restart task"),
+	),
+	AdminMenu: key.NewBinding(
+		key.WithKeys("X"),
+		key.WithHelp("X", "Open Admin Menu"),
 	),
 }

@@ -2,6 +2,12 @@ package app
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path"
+	"strings"
+	"time"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
@@ -15,11 +21,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 	"github.com/robinovitch61/wander/internal/tui/nomad"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"os"
-	"os/exec"
-	"path"
-	"strings"
-	"time"
 )
 
 type TLSConfig struct {
@@ -61,13 +62,15 @@ type Config struct {
 }
 
 type Model struct {
-	config Config
-	client api.Client
+	confirmed bool
+	config  Config
+	client  api.Client
 
-	header      header.Model
-	compact     bool
-	currentPage nomad.Page
-	pageModels  map[nomad.Page]*page.Model
+	header       header.Model
+	compact      bool
+	currentPage  nomad.Page
+	previousPage nomad.Page
+	pageModels   map[nomad.Page]*page.Model
 
 	inJobsMode   bool
 	jobID        string
@@ -228,6 +231,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, query))
 		}
 
+	case nomad.TaskRestartedMsg:
+		// Reset confirmation
+		m.confirmed = false
+		dev.MyDebug("🔴 reset confirmation when task restarted")
+		m.setPage(nomad.JobTasksPage)
+		cmds = append(cmds, m.getCurrentPageCmd())
+
+	case nomad.AdminMenuMsg:
+		m.setPage(nomad.AdminMenu)
+
 	case nomad.LogsStreamMsg:
 		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
 			logLines := strings.Split(msg.Value, "\n")
@@ -375,6 +388,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 	if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
 		switch {
+
 		case key.Matches(msg, keymap.KeyMap.Compact):
 			m.toggleCompact()
 			return nil
@@ -426,6 +440,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				m.getCurrentPageModel().SetLoading(true)
 				return m.getCurrentPageCmd()
 			}
+
 		}
 
 		if key.Matches(msg, keymap.KeyMap.Exec) {
@@ -534,6 +549,57 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			return m.getCurrentPageCmd()
 		}
 
+		if key.Matches(msg, keymap.KeyMap.Yes) && m.currentPage == nomad.ConfirmPage {
+			m.confirmed = true
+			m.setPage(m.previousPage)
+			return m.getCurrentPageCmd()
+		}
+
+		// Open Admin Menu
+		if key.Matches(msg, keymap.KeyMap.AdminMenu) && m.currentPage.ShowsTasks() {
+			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
+
+				// Get task info from the currently selected row
+				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
+				if err != nil {
+					m.err = err
+					return nil
+				}
+				if taskInfo.Running {
+					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
+					m.setPage(nomad.AdminMenu)
+					return m.getCurrentPageCmd()
+				}
+			}
+		}
+
+		// Restart a task
+		if key.Matches(msg, keymap.KeyMap.RestartTask) && m.currentPage.IsAdmin() {
+			// Get the currently selected row
+			if selectedPageRow, err := m.pageModels[nomad.JobTasksPage].GetSelectedPageRow(); err == nil {
+				// Get task info from the currently selected row
+				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
+				if err != nil {
+					m.err = err
+					return nil
+				}
+
+				if taskInfo.Running {
+					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
+					if m.confirmed {
+						m.setPage(nomad.RestartTaskPage)
+						return m.getCurrentPageCmd()
+					} else {
+						m.previousPage = nomad.RestartTaskPage
+						m.setPage(nomad.ConfirmPage)
+						return nil
+					}
+				}
+			} else {
+				dev.Debug("🔴 error getting selected page row")
+			}
+		}
+
 		if m.currentPage == nomad.LogsPage {
 			switch {
 			case key.Matches(msg, keymap.KeyMap.StdOut):
@@ -563,6 +629,7 @@ func (m *Model) setPage(page nomad.Page) {
 	m.getCurrentPageModel().HideToast()
 	m.currentPage = page
 	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(page))
+
 	if page.DoesLoad() {
 		m.getCurrentPageModel().SetLoading(true)
 	} else {
@@ -644,18 +711,34 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				}
 				allPageRows = append(allPageRows, page.Row{Row: formatter.StripOSCommandSequences(formatter.StripANSI(row))})
 			}
-			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Exec Session Output"}, AllPageRows: allPageRows}
+			return nomad.PageLoadedMsg{
+				Page:        nomad.ExecCompletePage,
+				TableHeader: []string{"Exec Session Output"},
+				AllPageRows: allPageRows,
+			}
 		}
+
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
+
+	case nomad.RestartTaskPage:
+		return nomad.RestartTask(m.client, m.alloc.ID, m.taskName)
+
+	case nomad.AdminMenu:
+		return nomad.ShowAdminMenu(m.client, m.alloc.ID, m.taskName)
+
 	case nomad.LogsPage:
-		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
+		return nomad.FetchLogs(
+			m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
+
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
+
 	case nomad.StatsPage:
 		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name)
+
 	default:
-		panic("page load command not found")
+		panic(fmt.Sprintf("Load command for page:%s not found", m.currentPage))
 	}
 }
 
@@ -680,5 +763,13 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.config.Namespace, m.jobID, m.taskName, m.alloc.Name, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
+	return page.GetFilterPrefix(
+		m.config.Namespace,
+		m.jobID,
+		m.taskName,
+		m.alloc.Name,
+		m.alloc.ID,
+		m.config.Event.Topics,
+		m.config.Event.Namespace,
+	)
 }

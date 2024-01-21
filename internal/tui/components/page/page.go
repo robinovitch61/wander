@@ -2,6 +2,8 @@ package page
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -14,7 +16,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
-	"strings"
 )
 
 type Config struct {
@@ -394,10 +395,12 @@ func (m *Model) updateFilter() {
 		m.filter.SetSuffix(" (no matches) ")
 	} else if m.filter.Focused() {
 		m.filter.SetSuffix(
-			fmt.Sprintf(" (%d/%d, %s to apply) ",
+			fmt.Sprintf(
+				" (%d/%d, %s to apply) ",
 				m.pageData.FilteredSelectionNum+1,
 				len(m.pageData.FilteredContentIdxs),
-				keymap.KeyMap.Forward.Help().Key),
+				keymap.KeyMap.Forward.Help().Key,
+			),
 		)
 	} else {
 		m.filter.SetSuffix(

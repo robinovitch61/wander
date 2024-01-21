@@ -18,28 +18,36 @@ import (
 type Page int8
 
 const (
-	Unset Page = iota
-	JobsPage
-	AllTasksPage
-	JobSpecPage
-	JobEventsPage
-	JobEventPage
-	JobMetaPage
-	AllocEventsPage
-	AllocEventPage
-	AllEventsPage
+	AdminMenu Page = iota
 	AllEventPage
-	JobTasksPage
-	ExecPage
-	ExecCompletePage
+	AllEventsPage
+	AllTasksPage
+	AllocEventPage
+	AllocEventsPage
 	AllocSpecPage
-	LogsPage
+	ConfirmPage
+	ExecCompletePage
+	ExecPage
+	JobEventPage
+	JobEventsPage
+	JobMetaPage
+	JobSpecPage
+	JobTasksPage
+	JobsPage
 	LoglinePage
+	LogsPage
+	RestartTaskPage
 	StatsPage
+	Unset
 )
 
 func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
 	return map[Page]page.Config{
+		AdminMenu: {
+			Width: width, Height: height,
+			LoadingString:    AdminMenu.LoadingString(),
+			SelectionEnabled: false, WrapText: false, RequestInput: false,
+		},
 		JobsPage: {
 			Width: width, Height: height,
 			LoadingString:    JobsPage.LoadingString(),
@@ -101,6 +109,16 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.TasksTableStatusStyles,
+		},
+		RestartTaskPage: {
+			Width: width, Height: height,
+			LoadingString:    RestartTaskPage.LoadingString(),
+			SelectionEnabled: false, WrapText: false, RequestInput: false,
+		},
+		ConfirmPage: {
+			Width: width, Height: height,
+			LoadingString:    ConfirmPage.LoadingString(),
+			SelectionEnabled: false, WrapText: false, RequestInput: false,
 		},
 		ExecPage: {
 			Width: width, Height: height,
@@ -165,6 +183,10 @@ func (p Page) ShowsTasks() bool {
 	return false
 }
 
+func (p Page) IsAdmin() bool {
+	return p == AdminMenu
+}
+
 func (p Page) CanBeFirstPage() bool {
 	return p == JobsPage || p == AllTasksPage
 }
@@ -194,6 +216,8 @@ func (p Page) doesUpdate() bool {
 
 func (p Page) String() string {
 	switch p {
+	case AdminMenu:
+		return "admin"
 	case Unset:
 		return "undefined"
 	case JobsPage:
@@ -214,6 +238,10 @@ func (p Page) String() string {
 		return "event"
 	case JobTasksPage:
 		return "tasks"
+	case RestartTaskPage:
+		return "Restarting task..."
+	case ConfirmPage:
+		return "Confirm?"
 	case ExecPage:
 		return "exec"
 	case ExecCompletePage:
@@ -230,8 +258,27 @@ func (p Page) String() string {
 	return "unknown"
 }
 
+func adminString(p Page) string {
+	return "t. Restart Task\n"
+}
+
+func confirmString(p Page) string {
+	return fmt.Sprintf(
+		"%s\n%s",
+		style.Red.Render("y. yes"),
+		style.Green.Render("esc. cancel"),
+	)
+}
+
 func (p Page) LoadingString() string {
-	return fmt.Sprintf("Loading %s...", p.String())
+	switch p {
+	case ConfirmPage:
+		return confirmString(p)
+	case AdminMenu:
+		return adminString(p)
+	default:
+		return fmt.Sprintf("Loading %s...", p.String())
+	}
 }
 
 func (p Page) Forward() Page {
@@ -263,6 +310,10 @@ func returnToTasksPage(inJobsMode bool) Page {
 
 func (p Page) Backward(inJobsMode bool) Page {
 	switch p {
+	case AdminMenu:
+		return returnToTasksPage(inJobsMode)
+	case ConfirmPage:
+		return AdminMenu
 	case JobSpecPage:
 		return JobsPage
 	case JobEventsPage:
@@ -281,6 +332,8 @@ func (p Page) Backward(inJobsMode bool) Page {
 		return AllEventsPage
 	case JobTasksPage:
 		return JobsPage
+	case RestartTaskPage:
+		return returnToTasksPage(inJobsMode)
 	case ExecPage:
 		return returnToTasksPage(inJobsMode)
 	case ExecCompletePage:
@@ -314,6 +367,12 @@ func namespaceFilterPrefix(namespace string) string {
 
 func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID string, eventTopics Topics, eventNamespace string) string {
 	switch p {
+	case ConfirmPage:
+		return "🔴 Are you sure?"
+
+	case AdminMenu:
+		return fmt.Sprintf("Admin Menu for %s", taskFilterPrefix(taskName, allocName))
+
 	case JobsPage:
 		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace))
 	case AllTasksPage:
@@ -336,6 +395,8 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Event")
 	case JobTasksPage:
 		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
+	case RestartTaskPage:
+		return fmt.Sprintf("filter: Restarting task %s", taskFilterPrefix(taskName, allocName))
 	case ExecPage:
 		return fmt.Sprintf("Exec for Task %s", taskFilterPrefix(taskName, allocName))
 	case ExecCompletePage:
@@ -349,7 +410,7 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case StatsPage:
 		return fmt.Sprintf("Stats for Allocation %s", allocName)
 	default:
-		panic("page not found")
+		panic(fmt.Sprintf("GetFilterPrefix: %+v page not found", p))
 	}
 }
 
@@ -375,6 +436,12 @@ type PageLoadedMsg struct {
 type UpdatePageDataMsg struct {
 	ID   int
 	Page Page
+}
+
+type AdminMenuMsg struct {
+	JobID string
+	TaskName string
+	AllocID string
 }
 
 func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
