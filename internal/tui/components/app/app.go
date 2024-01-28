@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"os"
 	"os/exec"
 	"path"
@@ -63,8 +64,8 @@ type Config struct {
 
 type Model struct {
 	confirmed bool
-	config  Config
-	client  api.Client
+	config    Config
+	client    api.Client
 
 	header       header.Model
 	compact      bool
@@ -90,6 +91,9 @@ type Model struct {
 
 	logsStream      nomad.LogsStream
 	lastLogFinished bool
+
+	// adminAction is a key of TaskAdminActions (or JobAdminActions, when it exists)
+	adminAction nomad.AdminAction
 
 	width, height int
 	initialized   bool
@@ -167,6 +171,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.PageLoadedMsg:
+		dev.Debug(fmt.Sprintf("page loaded: %v", msg.Page))
 		if msg.Page == m.currentPage {
 			m.getCurrentPageModel().SetHeader(msg.TableHeader)
 			m.getCurrentPageModel().SetAllPageRows(msg.AllPageRows)
@@ -230,16 +235,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			cmds = append(cmds, nomad.ReadEventsStreamNextMessage(m.eventsStream, query))
 		}
-
-	case nomad.TaskRestartedMsg:
-		// Reset confirmation
-		m.confirmed = false
-		dev.MyDebug("🔴 reset confirmation when task restarted")
-		m.setPage(nomad.JobTasksPage)
-		cmds = append(cmds, m.getCurrentPageCmd())
-
-	case nomad.AdminMenuMsg:
-		m.setPage(nomad.AdminMenu)
 
 	case nomad.LogsStreamMsg:
 		if m.currentPage == nomad.LogsPage && m.logType == msg.Type {
@@ -309,6 +304,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
 			})
 		}
+
+	case nomad.TaskAdminActionCompleteMsg:
+		m.getCurrentPageModel().SetToast(
+			toast.New(
+				fmt.Sprintf("%s completed successfully", nomad.GetTaskAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID)),
+			),
+			style.SuccessToast,
+		)
 	}
 
 	currentPageModel = m.getCurrentPageModel()
@@ -402,6 +405,17 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.event = selectedPageRow.Key
 				case nomad.LogsPage:
 					m.logline = selectedPageRow.Row
+				case nomad.TaskAdminPage:
+					m.adminAction = nomad.KeyToAdminAction(selectedPageRow.Key)
+				case nomad.TaskAdminConfirmPage:
+					if selectedPageRow.Key == constants.ConfirmationKey {
+						cmds = append(cmds, nomad.GetCmdForTaskAdminAction(m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID))
+					} else {
+						backPage := m.currentPage.Backward(m.inJobsMode)
+						m.setPage(backPage)
+						cmds = append(cmds, m.getCurrentPageCmd())
+						return tea.Batch(cmds...)
+					}
 				default:
 					if m.currentPage.ShowsTasks() {
 						taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
@@ -413,10 +427,11 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					}
 				}
 
-				nextPage := m.currentPage.Forward()
+				nextPage := m.currentPage.Forward(m.inJobsMode)
 				if nextPage != m.currentPage {
 					m.setPage(nextPage)
-					return m.getCurrentPageCmd()
+					cmds = append(cmds, m.getCurrentPageCmd())
+					return tea.Batch(cmds...)
 				}
 			}
 
@@ -549,16 +564,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			return m.getCurrentPageCmd()
 		}
 
-		if key.Matches(msg, keymap.KeyMap.Yes) && m.currentPage == nomad.ConfirmPage {
-			m.confirmed = true
-			m.setPage(m.previousPage)
-			return m.getCurrentPageCmd()
-		}
-
-		// Open Admin Menu
-		if key.Matches(msg, keymap.KeyMap.AdminMenu) && m.currentPage.ShowsTasks() {
+		if key.Matches(msg, keymap.KeyMap.AdminMenu) && m.currentPage.HasAdminMenu() {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
-
 				// Get task info from the currently selected row
 				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 				if err != nil {
@@ -567,36 +574,9 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				}
 				if taskInfo.Running {
 					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
-					m.setPage(nomad.AdminMenu)
+					m.setPage(nomad.TaskAdminPage)
 					return m.getCurrentPageCmd()
 				}
-			}
-		}
-
-		// Restart a task
-		if key.Matches(msg, keymap.KeyMap.RestartTask) && m.currentPage.IsAdmin() {
-			// Get the currently selected row
-			if selectedPageRow, err := m.pageModels[nomad.JobTasksPage].GetSelectedPageRow(); err == nil {
-				// Get task info from the currently selected row
-				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
-				if err != nil {
-					m.err = err
-					return nil
-				}
-
-				if taskInfo.Running {
-					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
-					if m.confirmed {
-						m.setPage(nomad.RestartTaskPage)
-						return m.getCurrentPageCmd()
-					} else {
-						m.previousPage = nomad.RestartTaskPage
-						m.setPage(nomad.ConfirmPage)
-						return nil
-					}
-				}
-			} else {
-				dev.Debug("🔴 error getting selected page row")
 			}
 		}
 
@@ -717,26 +697,45 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				AllPageRows: allPageRows,
 			}
 		}
-
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
-
-	case nomad.RestartTaskPage:
-		return nomad.RestartTask(m.client, m.alloc.ID, m.taskName)
-
-	case nomad.AdminMenu:
-		return nomad.ShowAdminMenu(m.client, m.alloc.ID, m.taskName)
-
 	case nomad.LogsPage:
 		return nomad.FetchLogs(
 			m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
-
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
-
 	case nomad.StatsPage:
 		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name)
-
+	case nomad.TaskAdminPage:
+		return func() tea.Msg {
+			// this does no async work, just constructs the task admin menu
+			var rows []page.Row
+			for action := range nomad.TaskAdminActions {
+				rows = append(rows, page.Row{
+					Key: nomad.AdminActionToKey(action),
+					Row: nomad.GetTaskAdminText(action, m.taskName, m.alloc.Name, m.alloc.ID),
+				})
+			}
+			return nomad.PageLoadedMsg{
+				Page:        nomad.TaskAdminPage,
+				TableHeader: []string{"Available Admin Actions"},
+				AllPageRows: rows,
+			}
+		}
+	case nomad.TaskAdminConfirmPage:
+		return func() tea.Msg {
+			// this does no async work, just constructs the confirmation page
+			confirmationText := nomad.GetTaskAdminText(m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID)
+			confirmationText = strings.ToLower(confirmationText[:1]) + confirmationText[1:]
+			return nomad.PageLoadedMsg{
+				Page:        nomad.TaskAdminConfirmPage,
+				TableHeader: []string{"Are you sure?"},
+				AllPageRows: []page.Row{
+					{Key: "Cancel", Row: "Cancel"},
+					{Key: constants.ConfirmationKey, Row: fmt.Sprintf("Yes, %s", confirmationText)},
+				},
+			}
+		}
 	default:
 		panic(fmt.Sprintf("Load command for page:%s not found", m.currentPage))
 	}

@@ -109,35 +109,3 @@ func jobTasksAsTable(jobTaskRowEntries []taskRowEntry, columns []string) ([]stri
 
 	return table.HeaderRows, rows
 }
-
-type TaskRestartedMsg struct {
-	AllocID  string
-	TaskName string
-}
-
-/*
-Restarts a task given an allocation ID and task name
-*/
-func RestartTask(client api.Client, allocID, taskName string) tea.Cmd {
-	return func() tea.Msg {
-		// Get the allocation
-		alloc, _, err := client.Allocations().Info(allocID, nil)
-		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-
-		// Restart the task
-		err = client.Allocations().Restart(alloc, taskName, nil)
-		if err != nil {
-			return message.ErrMsg{Err: err}
-		}
-
-		return TaskRestartedMsg{AllocID: allocID, TaskName: taskName}
-	}
-}
-
-func ShowAdminMenu(client api.Client, allocID, taskName string) tea.Cmd {
-	return func() tea.Msg {
-		return AdminMenuMsg{AllocID: allocID, TaskName: taskName}
-	}
-}
