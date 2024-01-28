@@ -246,6 +246,10 @@ func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
 }
 
+func (m *Model) SetToast(toast toast.Model, style lipgloss.Style) {
+	m.viewport.SetToast(toast, style)
+}
+
 func (m *Model) HideToast() {
 	m.viewport.HideToast()
 }
