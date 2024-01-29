@@ -251,7 +251,7 @@ func (p Page) String() string {
 	case TaskAdminPage:
 		return "task admin menu"
 	case TaskAdminConfirmPage:
-		return "confirm task admin action"
+		return "confirm"
 	}
 	return "unknown"
 }
@@ -415,6 +415,7 @@ type UpdatePageDataMsg struct {
 	Page Page
 }
 
+// Update page data with a delay. This is useful for pages that update.
 func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 	if p.doesUpdate() && d > 0 {
 		return tea.Tick(d, func(t time.Time) tea.Msg { return UpdatePageDataMsg{id, p} })
@@ -465,6 +466,11 @@ func GetPageKeyHelp(
 
 	viewportKeyMap := viewport.GetKeyMap()
 	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
+
+	if currentPage.HasAdminMenu() {
+		secondRow = append(secondRow, keymap.KeyMap.AdminMenu)
+	}
+
 	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}
 
 	var fourthRow []key.Binding

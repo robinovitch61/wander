@@ -23,6 +23,7 @@ const (
 	StopJobAction
 )
 
+// AdminActionToKey and KeyToAdminAction are used to render the TaskAdminPage
 func AdminActionToKey(adminAction AdminAction) string {
 	switch adminAction {
 	case RestartTaskAction:

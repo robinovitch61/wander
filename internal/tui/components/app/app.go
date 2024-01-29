@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"os"
 	"os/exec"
 	"path"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/constants"
@@ -63,14 +63,12 @@ type Config struct {
 }
 
 type Model struct {
-	confirmed bool
 	config    Config
 	client    api.Client
 
 	header       header.Model
 	compact      bool
 	currentPage  nomad.Page
-	previousPage nomad.Page
 	pageModels   map[nomad.Page]*page.Model
 
 	inJobsMode   bool
@@ -171,7 +169,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case nomad.PageLoadedMsg:
-		dev.Debug(fmt.Sprintf("page loaded: %v", msg.Page))
 		if msg.Page == m.currentPage {
 			m.getCurrentPageModel().SetHeader(msg.TableHeader)
 			m.getCurrentPageModel().SetAllPageRows(msg.AllPageRows)
@@ -188,8 +185,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// but returns empty results when one provides an empty token
 				m.getCurrentPageModel().SetHeader([]string{"Error"})
 				m.getCurrentPageModel().SetAllPageRows([]page.Row{
-					{"", "No results. Is the cluster empty or was no nomad token provided?"},
-					{"", "Press q or ctrl+c to quit."},
+					{Key: "", Row: "No results. Is the cluster empty or was no nomad token provided?"},
+					{Key: "", Row: "Press q or ctrl+c to quit."},
 				})
 				m.getCurrentPageModel().SetViewportSelectionEnabled(false)
 			}
@@ -308,10 +305,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.TaskAdminActionCompleteMsg:
 		m.getCurrentPageModel().SetToast(
 			toast.New(
-				fmt.Sprintf("%s completed successfully", nomad.GetTaskAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID)),
-			),
+				fmt.Sprintf(
+					"%s completed successfully",
+					nomad.GetTaskAdminText(
+						m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID))),
 			style.SuccessToast,
 		)
+
+	case nomad.TaskAdminActionFailedMsg:
+		m.getCurrentPageModel().SetToast(
+			toast.New(
+				fmt.Sprintf(
+					"%s failed with error: %s",
+					nomad.GetTaskAdminText(
+						m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
+					msg.Error())),
+			style.ErrorToast,
+		)
+
 	}
 
 	currentPageModel = m.getCurrentPageModel()
@@ -409,7 +420,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.adminAction = nomad.KeyToAdminAction(selectedPageRow.Key)
 				case nomad.TaskAdminConfirmPage:
 					if selectedPageRow.Key == constants.ConfirmationKey {
-						cmds = append(cmds, nomad.GetCmdForTaskAdminAction(m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID))
+						cmds = append(cmds, nomad.GetCmdForTaskAdminAction(
+							m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID))
 					} else {
 						backPage := m.currentPage.Backward(m.inJobsMode)
 						m.setPage(backPage)
@@ -609,7 +621,6 @@ func (m *Model) setPage(page nomad.Page) {
 	m.getCurrentPageModel().HideToast()
 	m.currentPage = page
 	m.getCurrentPageModel().SetFilterPrefix(m.getFilterPrefix(page))
-
 	if page.DoesLoad() {
 		m.getCurrentPageModel().SetLoading(true)
 	} else {
@@ -691,17 +702,12 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				}
 				allPageRows = append(allPageRows, page.Row{Row: formatter.StripOSCommandSequences(formatter.StripANSI(row))})
 			}
-			return nomad.PageLoadedMsg{
-				Page:        nomad.ExecCompletePage,
-				TableHeader: []string{"Exec Session Output"},
-				AllPageRows: allPageRows,
-			}
+			return nomad.PageLoadedMsg{Page: nomad.ExecCompletePage, TableHeader: []string{"Exec Session Output"}, AllPageRows: allPageRows}
 		}
 	case nomad.AllocSpecPage:
 		return nomad.FetchAllocSpec(m.client, m.alloc.ID)
 	case nomad.LogsPage:
-		return nomad.FetchLogs(
-			m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
+		return nomad.FetchLogs(m.client, m.alloc, m.taskName, m.logType, m.config.Log.Offset, m.config.Log.Tail)
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	case nomad.StatsPage:
@@ -722,6 +728,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				AllPageRows: rows,
 			}
 		}
+
 	case nomad.TaskAdminConfirmPage:
 		return func() tea.Msg {
 			// this does no async work, just constructs the confirmation page
@@ -736,6 +743,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				},
 			}
 		}
+
 	default:
 		panic(fmt.Sprintf("Load command for page:%s not found", m.currentPage))
 	}
@@ -762,13 +770,5 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(
-		m.config.Namespace,
-		m.jobID,
-		m.taskName,
-		m.alloc.Name,
-		m.alloc.ID,
-		m.config.Event.Topics,
-		m.config.Event.Namespace,
-	)
+	return page.GetFilterPrefix(m.config.Namespace, m.jobID, m.taskName, m.alloc.Name, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
 }

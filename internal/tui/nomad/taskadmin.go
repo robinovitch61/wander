@@ -1,3 +1,6 @@
+/* Admin Actions for tasks
+Restart, Stop, etc.
+*/
 package nomad
 
 import (
@@ -5,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/message"
 )
 
 var (
@@ -20,11 +22,28 @@ type TaskAdminActionCompleteMsg struct {
 	TaskName, AllocName, AllocID string
 }
 
-func GetTaskAdminText(adminAction AdminAction, taskName, allocName, allocID string) string {
-	return fmt.Sprintf("%s task %s in %s (%s)", TaskAdminActions[adminAction], taskName, allocName, formatter.ShortAllocID(allocID))
+type TaskAdminActionFailedMsg struct {
+	Err error
+	TaskName, AllocName, AllocID string
 }
 
-func GetCmdForTaskAdminAction(client api.Client, adminAction AdminAction, taskName, allocName, allocID string) tea.Cmd {
+func (e TaskAdminActionFailedMsg) Error() string { return e.Err.Error() }
+
+func GetTaskAdminText(
+	adminAction AdminAction, taskName, allocName, allocID string) string {
+	return fmt.Sprintf(
+		"%s task %s in %s (%s)",
+		TaskAdminActions[adminAction],
+		taskName, allocName, formatter.ShortAllocID(allocID))
+}
+
+func GetCmdForTaskAdminAction(
+	client api.Client,
+	adminAction AdminAction,
+	taskName,
+	allocName,
+	allocID string,
+) tea.Cmd {
 	switch adminAction {
 	case RestartTaskAction:
 		return RestartTask(client, taskName, allocName, allocID)
@@ -38,17 +57,21 @@ func GetCmdForTaskAdminAction(client api.Client, adminAction AdminAction, taskNa
 func RestartTask(client api.Client, taskName, allocName, allocID string) tea.Cmd {
 	return func() tea.Msg {
 		alloc, _, err := client.Allocations().Info(allocID, nil)
+
 		if err != nil {
-			// TODO LEO: we could return a TaskAdminActionFailedMsg here and display it in the toast
-			return message.ErrMsg{Err: err}
+			return TaskAdminActionFailedMsg{
+				Err: err,
+				TaskName: taskName, AllocName: allocName, AllocID: allocID}
 		}
 
 		err = client.Allocations().Restart(alloc, taskName, nil)
 		if err != nil {
-			// TODO LEO: we could return a TaskAdminActionFailedMsg here and display it in the toast
-			return message.ErrMsg{Err: err}
+			return TaskAdminActionFailedMsg{
+				Err: err,
+				TaskName: taskName, AllocName: allocName, AllocID: allocID}
 		}
 
-		return TaskAdminActionCompleteMsg{TaskName: taskName, AllocName: allocName, AllocID: allocID}
+		return TaskAdminActionCompleteMsg{
+			TaskName: taskName, AllocName: allocName, AllocID: allocID}
 	}
 }

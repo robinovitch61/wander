@@ -26,4 +26,3 @@ func createDebug(path string) func(string) {
 }
 
 var Debug = createDebug("wander.log")
-var MyDebug = createDebug("/tmp/mydebug.log")

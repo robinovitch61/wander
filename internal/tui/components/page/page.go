@@ -399,12 +399,10 @@ func (m *Model) updateFilter() {
 		m.filter.SetSuffix(" (no matches) ")
 	} else if m.filter.Focused() {
 		m.filter.SetSuffix(
-			fmt.Sprintf(
-				" (%d/%d, %s to apply) ",
+			fmt.Sprintf(" (%d/%d, %s to apply) ",
 				m.pageData.FilteredSelectionNum+1,
 				len(m.pageData.FilteredContentIdxs),
-				keymap.KeyMap.Forward.Help().Key,
-			),
+				keymap.KeyMap.Forward.Help().Key),
 		)
 	} else {
 		m.filter.SetSuffix(

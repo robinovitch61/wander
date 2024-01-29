@@ -43,6 +43,4 @@ var (
 	StdErr                        = Regular.Copy().Foreground(red)
 	SuccessToast                  = Bold.Copy().PaddingLeft(1).Foreground(black).Background(darkgreen)
 	ErrorToast                    = Bold.Copy().PaddingLeft(1).Foreground(black).Background(darkred)
-	Red                          = Regular.Copy().Foreground(red)
-	Green                        = Regular.Copy().Foreground(darkgreen)
 )
