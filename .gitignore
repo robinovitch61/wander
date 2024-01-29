@@ -10,3 +10,6 @@ vendor
 ignore.gif
 **/*/my_logs.txt
 opt
+.vscode
+__debug_bin*
+

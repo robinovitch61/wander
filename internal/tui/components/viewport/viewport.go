@@ -354,6 +354,11 @@ func (m *Model) ToggleWrapText() {
 	m.updateForWrapText()
 }
 
+func (m *Model) SetToast(toast toast.Model, style lipgloss.Style) {
+	m.toast = toast
+	m.toast.MessageStyle = style.Copy().Width(m.width)
+}
+
 func (m *Model) HideToast() {
 	m.toast.Visible = false
 }

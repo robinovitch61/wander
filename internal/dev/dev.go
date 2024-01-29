@@ -9,15 +9,20 @@ import (
 
 var debugSet = os.Getenv("WANDER_DEBUG")
 
-// dev
-func Debug(msg string) {
-	if debugSet != "" {
-		f, err := tea.LogToFile("wander.log", "")
-		if err != nil {
-			fmt.Println("fatal:", err)
-			os.Exit(1)
+// Returns a function that prints a message to the log file if the WANDER_DEBUG
+// environment variable is set.
+func createDebug(path string) func(string) {
+	return func (msg string) {
+		if debugSet != "" {
+			f, err := tea.LogToFile(path, "")
+			if err != nil {
+				fmt.Println("fatal:", err)
+				os.Exit(1)
+			}
+			log.Printf("%q", msg)
+			defer f.Close()
 		}
-		log.Printf("%q", msg)
-		defer f.Close()
 	}
 }
+
+var Debug = createDebug("wander.log")

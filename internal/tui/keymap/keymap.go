@@ -25,6 +25,7 @@ type keyMap struct {
 	StdErr          key.Binding
 	Spec            key.Binding
 	Wrap            key.Binding
+	AdminMenu       key.Binding
 }
 
 var KeyMap = keyMap{
@@ -107,5 +108,9 @@ var KeyMap = keyMap{
 	Wrap: key.NewBinding(
 		key.WithKeys("ctrl+w"),
 		key.WithHelp("ctrl+w", "toggle wrap"),
+	),
+	AdminMenu: key.NewBinding(
+		key.WithKeys("X"),
+		key.WithHelp("X", "admin"),
 	),
 }

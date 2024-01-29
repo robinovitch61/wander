@@ -36,6 +36,8 @@ const (
 	LogsPage
 	LoglinePage
 	StatsPage
+	TaskAdminPage
+	TaskAdminConfirmPage
 )
 
 func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
@@ -132,6 +134,16 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    StatsPage.LoadingString(),
 			SelectionEnabled: false, WrapText: false, RequestInput: false,
 		},
+		TaskAdminPage: {
+			Width: width, Height: height,
+			LoadingString:    TaskAdminPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		TaskAdminConfirmPage: {
+			Width: width, Height: height,
+			LoadingString:    TaskAdminConfirmPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
 	}
 }
 
@@ -159,6 +171,16 @@ func (p Page) ShowsTasks() bool {
 	taskPages := []Page{AllTasksPage, JobTasksPage}
 	for _, taskPage := range taskPages {
 		if taskPage == p {
+			return true
+		}
+	}
+	return false
+}
+
+func (p Page) HasAdminMenu() bool {
+	adminMenuPages := []Page{AllTasksPage, JobTasksPage}
+	for _, adminMenuPage := range adminMenuPages {
+		if adminMenuPage == p {
 			return true
 		}
 	}
@@ -226,6 +248,10 @@ func (p Page) String() string {
 		return "log"
 	case StatsPage:
 		return "stats"
+	case TaskAdminPage:
+		return "task admin menu"
+	case TaskAdminConfirmPage:
+		return "confirm"
 	}
 	return "unknown"
 }
@@ -234,7 +260,7 @@ func (p Page) LoadingString() string {
 	return fmt.Sprintf("Loading %s...", p.String())
 }
 
-func (p Page) Forward() Page {
+func (p Page) Forward(inJobsMode bool) Page {
 	switch p {
 	case JobsPage:
 		return JobTasksPage
@@ -250,6 +276,10 @@ func (p Page) Forward() Page {
 		return LogsPage
 	case LogsPage:
 		return LoglinePage
+	case TaskAdminPage:
+		return TaskAdminConfirmPage
+	case TaskAdminConfirmPage:
+		return returnToTasksPage(inJobsMode)
 	}
 	return p
 }
@@ -293,6 +323,10 @@ func (p Page) Backward(inJobsMode bool) Page {
 		return LogsPage
 	case StatsPage:
 		return returnToTasksPage(inJobsMode)
+	case TaskAdminPage:
+		return returnToTasksPage(inJobsMode)
+	case TaskAdminConfirmPage:
+		return TaskAdminPage
 	}
 	return p
 }
@@ -348,6 +382,10 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
 	case StatsPage:
 		return fmt.Sprintf("Stats for Allocation %s", allocName)
+	case TaskAdminPage:
+		return fmt.Sprintf("Admin Actions for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortAllocID(allocID))
+	case TaskAdminConfirmPage:
+		return fmt.Sprintf("Confirm Admin Action for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortAllocID(allocID))
 	default:
 		panic("page not found")
 	}
@@ -377,6 +415,7 @@ type UpdatePageDataMsg struct {
 	Page Page
 }
 
+// Update page data with a delay. This is useful for pages that update.
 func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 	if p.doesUpdate() && d > 0 {
 		return tea.Tick(d, func(t time.Time) tea.Msg { return UpdatePageDataMsg{id, p} })
@@ -427,11 +466,16 @@ func GetPageKeyHelp(
 
 	viewportKeyMap := viewport.GetKeyMap()
 	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
+
+	if currentPage.HasAdminMenu() {
+		secondRow = append(secondRow, keymap.KeyMap.AdminMenu)
+	}
+
 	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}
 
 	var fourthRow []key.Binding
-	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
+	if nextPage := currentPage.Forward(inJobsMode); nextPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward(inJobsMode).String())
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 

@@ -2,6 +2,8 @@ package page
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -14,7 +16,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
-	"strings"
 )
 
 type Config struct {
@@ -243,6 +244,10 @@ func (m *Model) ScrollViewportToBottom() {
 
 func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
+}
+
+func (m *Model) SetToast(toast toast.Model, style lipgloss.Style) {
+	m.viewport.SetToast(toast, style)
 }
 
 func (m *Model) HideToast() {

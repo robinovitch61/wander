@@ -13,6 +13,47 @@ import (
 
 const keySeparator = "|【=◈︿◈=】|"
 
+type AdminAction int8
+
+// all admin actions, task or job
+const (
+	RestartTaskAction AdminAction = iota
+	StopTaskAction
+	RestartJobAction
+	StopJobAction
+)
+
+// AdminActionToKey and KeyToAdminAction are used to render the TaskAdminPage
+func AdminActionToKey(adminAction AdminAction) string {
+	switch adminAction {
+	case RestartTaskAction:
+		return "restart-task"
+	case StopTaskAction:
+		return "stop-task"
+	case RestartJobAction:
+		return "restart-job"
+	case StopJobAction:
+		return "stop-job"
+	default:
+		return ""
+	}
+}
+
+func KeyToAdminAction(adminAction string) AdminAction {
+	switch adminAction {
+	case "restart-task":
+		return RestartTaskAction
+	case "stop-task":
+		return StopTaskAction
+	case "restart-job":
+		return RestartJobAction
+	case "stop-job":
+		return StopJobAction
+	default:
+		return -1
+	}
+}
+
 type taskRowEntry struct {
 	FullAllocationAsJSON                                string
 	NodeID, JobID, ID, TaskGroup, Name, TaskName, State string
