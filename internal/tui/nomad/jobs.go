@@ -10,7 +10,87 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"fmt"
 )
+
+// FetchAllocs fetches allocs for a given job
+func FetchAllocs(client api.Client, jobID, namespace string, columns []string) tea.Cmd {
+	return func() tea.Msg {
+
+		queryOpts := &api.QueryOptions{Namespace: namespace}
+
+		allocResults, _, err := client.Jobs().Allocations(jobID, true, queryOpts)
+
+		if len(allocResults) == 0 {
+			allocResults, _, _ := client.Jobs().Allocations(jobID, false, nil)
+			fmt.Println("allocResults", allocResults)
+			return message.ErrMsg{Err: errors.New("no allocs found")}
+		}
+
+		if err != nil {
+			if strings.Contains(err.Error(), "UUID must be 36 characters") {
+				return message.ErrMsg{Err: errors.New("token must be 36 characters")}
+			} else if strings.Contains(err.Error(), "ACL token not found") {
+				return message.ErrMsg{Err: errors.New("token not authorized to list allocs")}
+			}
+			return message.ErrMsg{Err: err}
+		}
+
+		sort.Slice(allocResults, func(x, y int) bool {
+			firstAlloc := allocResults[x]
+			secondAlloc := allocResults[y]
+			if firstAlloc.Name == secondAlloc.Name {
+				return firstAlloc.ID < secondAlloc.ID
+			}
+			return firstAlloc.Name < secondAlloc.Name
+		})
+
+		tableHeader, allPageData := allocResponsesAsTable(allocResults, columns)
+		return PageLoadedMsg{
+			Page: AllocsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+	}
+}
+
+func getAllocRowFromColumns(row *api.AllocationListStub, columns []string) []string {
+	knownColMap := map[string]string{
+		"Alloc":      row.ID,
+		"Count":      "10",
+		"Created":    getUptime("running", row.CreateTime),
+		"Modified":   formatter.FormatTimeNs(row.ModifyTime),
+		"Namespace":  row.Namespace,
+	}
+
+	var rowEntries []string
+	for _, col := range columns {
+		if v, exists := knownColMap[col]; exists {
+			rowEntries = append(rowEntries, v)
+		} else {
+			rowEntries = append(rowEntries, "-")
+		}
+	}
+	return rowEntries
+}
+
+func toAllocsKey(allocResponseEntry *api.AllocationListStub) string {
+	return allocResponseEntry.ID + " " + allocResponseEntry.Namespace
+}
+
+func allocResponsesAsTable(allocResponse []*api.AllocationListStub, columns []string) ([]string, []page.Row) {
+	var allocResponseRows [][]string
+	var keys []string
+	for _, row := range allocResponse {
+		allocResponseRows = append(allocResponseRows, getAllocRowFromColumns(row, columns))
+		keys = append(keys, toAllocsKey(row))
+	}
+	table := formatter.GetRenderedTableAsString(columns, allocResponseRows)
+
+	var rows []page.Row
+	for idx, row := range table.ContentRows {
+		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+	}
+
+	return table.HeaderRows, rows
+}
 
 func FetchJobs(client api.Client, columns []string) tea.Cmd {
 	return func() tea.Msg {

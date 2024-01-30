@@ -20,6 +20,7 @@ type Page int8
 const (
 	Unset Page = iota
 	JobsPage
+	AllocsPage
 	AllTasksPage
 	JobSpecPage
 	JobEventsPage
@@ -45,6 +46,13 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 		JobsPage: {
 			Width: width, Height: height,
 			LoadingString:    JobsPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+			CompactTableContent:      compactTables,
+			ViewportConditionalStyle: constants.JobsTableStatusStyles,
+		},
+		AllocsPage: {
+			Width: width, Height: height,
+			LoadingString:    AllocsPage.LoadingString(),
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
 			ViewportConditionalStyle: constants.JobsTableStatusStyles,
@@ -198,6 +206,7 @@ func (p Page) doesUpdate() bool {
 		ExecCompletePage, // doesn't reload
 		LogsPage,         // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
 		JobSpecPage,      // would require changes to make scrolling possible
+		AllocsPage,    // would require changes to make scrolling possible
 		AllocSpecPage,    // would require changes to make scrolling possible
 		JobEventsPage,    // constant connection, streams data
 		JobEventPage,     // doesn't load
@@ -220,6 +229,8 @@ func (p Page) String() string {
 		return "undefined"
 	case JobsPage:
 		return "jobs"
+	case AllocsPage:
+		return "allocs"
 	case AllTasksPage:
 		return "all tasks"
 	case JobSpecPage:
@@ -263,7 +274,9 @@ func (p Page) LoadingString() string {
 func (p Page) Forward(inJobsMode bool) Page {
 	switch p {
 	case JobsPage:
-		return JobTasksPage
+		return AllocsPage
+	case AllocsPage:
+		return AllTasksPage
 	case AllTasksPage:
 		return LogsPage
 	case JobEventsPage:
@@ -300,6 +313,8 @@ func (p Page) Backward(inJobsMode bool) Page {
 	case JobEventPage:
 		return JobEventsPage
 	case JobMetaPage:
+		return JobsPage
+	case AllocsPage:
 		return JobsPage
 	case AllocEventsPage:
 		return returnToTasksPage(inJobsMode)
@@ -350,6 +365,10 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	switch p {
 	case JobsPage:
 		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace))
+
+	case AllocsPage:
+		return fmt.Sprintf("Allocs for Job %s (%s)", style.Bold.Render(jobID))
+
 	case AllTasksPage:
 		return fmt.Sprintf("All Tasks in %s", namespaceFilterPrefix(namespace))
 	case JobSpecPage:
@@ -506,6 +525,12 @@ func GetPageKeyHelp(
 		fourthRow = append(fourthRow, keymap.KeyMap.JobEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.AllEvents)
 		fourthRow = append(fourthRow, keymap.KeyMap.JobMeta)
+	}
+
+	if currentPage == AllocsPage {
+		fourthRow = append(fourthRow, keymap.KeyMap.AllocEvents)
+		fourthRow = append(fourthRow, keymap.KeyMap.Stats)
+		fourthRow = append(fourthRow, keymap.KeyMap.Exec)
 	}
 
 	if currentPage.ShowsTasks() {

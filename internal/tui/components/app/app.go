@@ -52,6 +52,7 @@ type Config struct {
 	CopySavePath                  bool
 	UpdateSeconds                 time.Duration
 	JobColumns                    []string
+	AllocColumns                  []string
 	AllTaskColumns                []string
 	JobTaskColumns                []string
 	LogoColor                     string
@@ -666,6 +667,11 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	switch m.currentPage {
 	case nomad.JobsPage:
 		return nomad.FetchJobs(m.client, m.config.JobColumns)
+
+	case nomad.AllocsPage:
+		namespace := "default"
+		return nomad.FetchAllocs(m.client, m.jobID, namespace, m.config.AllocColumns)
+
 	case nomad.AllTasksPage:
 		return nomad.FetchAllTasks(m.client, m.config.AllTaskColumns)
 	case nomad.JobSpecPage:
@@ -712,6 +718,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	case nomad.StatsPage:
 		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name)
+
 	case nomad.TaskAdminPage:
 		return func() tea.Msg {
 			// this does no async work, just constructs the task admin menu

@@ -200,6 +200,23 @@ func retrieveUpdateSeconds(cmd *cobra.Command) int {
 	return updateSeconds
 }
 
+func retrieveAllocColumns(cmd *cobra.Command) []string {
+
+	a := cmd.Flags().Lookup("alloc-columns")
+	fmt.Printf("a: %v\n", a)
+	b := cmd.Flags().Lookup("alloc-columns").Value
+	fmt.Printf("b: %v\n", b)
+
+	columnsString := cmd.Flags().Lookup("alloc-columns").Value.String()
+
+	split := strings.Split(columnsString, ",")
+	var trimmed []string
+	for _, s := range split {
+		trimmed = append(trimmed, strings.TrimSpace(s))
+	}
+	return trimmed
+}
+
 func retrieveJobColumns(cmd *cobra.Command) []string {
 	columnsString := cmd.Flags().Lookup("job-columns").Value.String()
 	split := strings.Split(columnsString, ",")
@@ -313,6 +330,12 @@ func getConfig(cmd *cobra.Command, rootOpts []string, overrideToken string) app.
 	eventJQQuery := retrieveEventJQQuery(cmd)
 	allocEventJQQuery := retrieveAllocEventJQQuery(cmd)
 	updateSeconds := retrieveUpdateSeconds(cmd)
+
+	fmt.Printf("rootOpts: %v\n", rootOpts)
+	fmt.Printf("cmd: %v\n", cmd)
+
+	allocColumns := retrieveAllocColumns(cmd)
+
 	jobColumns := retrieveJobColumns(cmd)
 	allTaskColumns := retrieveAllTaskColumns(cmd)
 	jobTaskColumns := retrieveJobTaskColumns(cmd)
@@ -352,6 +375,7 @@ func getConfig(cmd *cobra.Command, rootOpts []string, overrideToken string) app.
 		},
 		UpdateSeconds:     time.Second * time.Duration(updateSeconds),
 		JobColumns:        jobColumns,
+		AllocColumns:      allocColumns,
 		AllTaskColumns:    allTaskColumns,
 		JobTaskColumns:    jobTaskColumns,
 		LogoColor:         logoColor,

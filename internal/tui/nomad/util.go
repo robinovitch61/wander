@@ -19,6 +19,8 @@ type AdminAction int8
 const (
 	RestartTaskAction AdminAction = iota
 	StopTaskAction
+	RestartAllocAction
+	StopAllocAction
 	RestartJobAction
 	StopJobAction
 )
@@ -30,6 +32,10 @@ func AdminActionToKey(adminAction AdminAction) string {
 		return "restart-task"
 	case StopTaskAction:
 		return "stop-task"
+	case RestartAllocAction:
+		return "restart-alloc"
+	case StopAllocAction:
+		return "stop-alloc"
 	case RestartJobAction:
 		return "restart-job"
 	case StopJobAction:
@@ -45,6 +51,10 @@ func KeyToAdminAction(adminAction string) AdminAction {
 		return RestartTaskAction
 	case "stop-task":
 		return StopTaskAction
+	case "restart-alloc":
+		return RestartAllocAction
+	case "stop-alloc":
+		return StopAllocAction
 	case "restart-job":
 		return RestartJobAction
 	case "stop-job":

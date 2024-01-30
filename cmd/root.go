@@ -91,6 +91,11 @@ var (
 			description:   `Columns to display for Jobs view - can reference Meta keys`,
 			defaultString: "Job,Type,Namespace,Status,Count,Submitted,Since Submit",
 		},
+		"alloc-columns": {
+			cfgFileEnvVar: "wander_alloc_columns",
+			description:   `Columns to display for Alloc view`,
+			defaultString: "Alloc,Count,Created,Modified,Namespace",
+		},
 		"all-tasks-columns": {
 			cfgFileEnvVar: "wander_all_tasks_columns",
 			description:   `Columns to display for All Tasks view`,
@@ -224,6 +229,7 @@ func init() {
 		"skip-verify",
 		"update",
 		"job-columns",
+		"alloc-columns",
 		"all-tasks-columns",
 		"tasks-for-job-columns",
 		"log-offset",
