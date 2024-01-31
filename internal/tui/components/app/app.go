@@ -91,7 +91,7 @@ type Model struct {
 	logsStream      nomad.LogsStream
 	lastLogFinished bool
 
-	// adminAction is a key of TaskAdminActions (or JobAdminActions, when it exists)
+	// adminAction is a key of AllocAdminActions (or JobAdminActions, when it exists)
 	adminAction nomad.AdminAction
 
 	width, height int
@@ -208,7 +208,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
-			case nomad.TaskAdminConfirmPage:
+			case nomad.AllocAdminConfirmPage:
 				// always make user go down one to confirm
 				m.getCurrentPageModel().SetViewportSelectionToTop()
 			}
@@ -310,28 +310,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		toastMsg := msg.SuccessMessage
 		toastStyle := style.SuccessToast
 		if msg.Err != "" {
-			toastStyle = style.ErrorToast
 			toastMsg = fmt.Sprintf("Error: %s", msg.Err)
+			toastStyle = style.ErrorToast
 		}
 		newToast := toast.New(toastMsg)
 		m.getCurrentPageModel().SetToast(newToast, toastStyle)
 		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 
-	case nomad.TaskAdminActionCompleteMsg:
-		newToast := toast.New(fmt.Sprintf(
+	case nomad.AllocAdminActionCompleteMsg:
+		toastMsg := fmt.Sprintf(
 			"%s completed successfully",
-			nomad.GetTaskAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
-		))
-		m.getCurrentPageModel().SetToast(newToast, style.SuccessToast)
-		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
-
-	case nomad.TaskAdminActionFailedMsg:
-		newToast := toast.New(fmt.Sprintf(
-			"%s failed with error: %s",
-			nomad.GetTaskAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
-			msg.Error(),
-		))
-		m.getCurrentPageModel().SetToast(newToast, style.ErrorToast)
+			nomad.GetAllocAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
+		)
+		toastStyle := style.SuccessToast
+		if msg.Err != nil {
+			toastMsg = fmt.Sprintf(
+				"%s failed with error: %s",
+				nomad.GetAllocAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
+				msg.Err.Error(),
+			)
+			toastStyle = style.ErrorToast
+		}
+		newToast := toast.New(toastMsg)
+		m.getCurrentPageModel().SetToast(newToast, toastStyle)
 		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 	}
 
@@ -426,13 +427,13 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.event = selectedPageRow.Key
 				case nomad.LogsPage:
 					m.logline = selectedPageRow.Row
-				case nomad.TaskAdminPage:
+				case nomad.AllocAdminPage:
 					m.adminAction = nomad.KeyToAdminAction(selectedPageRow.Key)
-				case nomad.TaskAdminConfirmPage:
+				case nomad.AllocAdminConfirmPage:
 					if selectedPageRow.Key == constants.ConfirmationKey {
 						cmds = append(
 							cmds,
-							nomad.GetCmdForTaskAdminAction(m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID),
+							nomad.GetCmdForAllocAdminAction(m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID),
 						)
 					} else {
 						backPage := m.currentPage.Backward(m.inJobsMode)
@@ -598,7 +599,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				}
 				if taskInfo.Running {
 					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
-					m.setPage(nomad.TaskAdminPage)
+					m.setPage(nomad.AllocAdminPage)
 					return m.getCurrentPageCmd()
 				}
 			}
@@ -724,29 +725,29 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	case nomad.StatsPage:
 		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name)
-	case nomad.TaskAdminPage:
+	case nomad.AllocAdminPage:
 		return func() tea.Msg {
 			// this does no async work, just constructs the task admin menu
 			var rows []page.Row
-			for action := range nomad.TaskAdminActions {
+			for action := range nomad.AllocAdminActions {
 				rows = append(rows, page.Row{
 					Key: nomad.AdminActionToKey(action),
-					Row: nomad.GetTaskAdminText(action, m.taskName, m.alloc.Name, m.alloc.ID),
+					Row: nomad.GetAllocAdminText(action, m.taskName, m.alloc.Name, m.alloc.ID),
 				})
 			}
 			return nomad.PageLoadedMsg{
-				Page:        nomad.TaskAdminPage,
+				Page:        nomad.AllocAdminPage,
 				TableHeader: []string{"Available Admin Actions"},
 				AllPageRows: rows,
 			}
 		}
-	case nomad.TaskAdminConfirmPage:
+	case nomad.AllocAdminConfirmPage:
 		return func() tea.Msg {
 			// this does no async work, just constructs the confirmation page
-			confirmationText := nomad.GetTaskAdminText(m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID)
+			confirmationText := nomad.GetAllocAdminText(m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID)
 			confirmationText = strings.ToLower(confirmationText[:1]) + confirmationText[1:]
 			return nomad.PageLoadedMsg{
-				Page:        nomad.TaskAdminConfirmPage,
+				Page:        nomad.AllocAdminConfirmPage,
 				TableHeader: []string{"Are you sure?"},
 				AllPageRows: []page.Row{
 					{Key: "Cancel", Row: "Cancel"},

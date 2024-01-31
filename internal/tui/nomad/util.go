@@ -18,17 +18,17 @@ type AdminAction int8
 // all admin actions, task or job
 const (
 	RestartTaskAction AdminAction = iota
-	StopTaskAction
+	StopAllocAction
 	RestartJobAction
 	StopJobAction
 )
 
-// AdminActionToKey and KeyToAdminAction are used to render the TaskAdminPage
+// AdminActionToKey and KeyToAdminAction are used to render the AllocAdminPage
 func AdminActionToKey(adminAction AdminAction) string {
 	switch adminAction {
 	case RestartTaskAction:
 		return "restart-task"
-	case StopTaskAction:
+	case StopAllocAction:
 		return "stop-task"
 	case RestartJobAction:
 		return "restart-job"
@@ -44,7 +44,7 @@ func KeyToAdminAction(adminAction string) AdminAction {
 	case "restart-task":
 		return RestartTaskAction
 	case "stop-task":
-		return StopTaskAction
+		return StopAllocAction
 	case "restart-job":
 		return RestartJobAction
 	case "stop-job":
