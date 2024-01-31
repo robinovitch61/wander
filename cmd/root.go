@@ -94,7 +94,7 @@ var (
 		"alloc-columns": {
 			cfgFileEnvVar: "wander_alloc_columns",
 			description:   `Columns to display for Alloc view`,
-			defaultString: "Alloc,Task Group,Version,Created,Modified,Node Name,Node ID,Namespace",
+			defaultString: "Node ID,Node Name,Alloc,Task Group,Version,Created,Modified,Status,Namespace",
 		},
 		"all-tasks-columns": {
 			cfgFileEnvVar: "wander_all_tasks_columns",

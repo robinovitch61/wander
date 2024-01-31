@@ -31,6 +31,7 @@ const (
 	AllocEventPage
 	AllEventsPage
 	AllEventPage
+	AllocTasksPage
 	JobTasksPage
 	ExecPage
 	ExecCompletePage
@@ -106,6 +107,13 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    AllEventPage.LoadingString(),
 			SelectionEnabled: false, WrapText: true, RequestInput: false,
 		},
+		AllocTasksPage: {
+			Width: width, Height: height,
+			LoadingString:    AllocTasksPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+			CompactTableContent:      compactTables,
+			ViewportConditionalStyle: constants.TasksTableStatusStyles,
+		},
 		JobTasksPage: {
 			Width: width, Height: height,
 			LoadingString:    JobTasksPage.LoadingString(),
@@ -177,7 +185,7 @@ func (p Page) DoesReload() bool {
 }
 
 func (p Page) ShowsTasks() bool {
-	taskPages := []Page{AllTasksPage, JobTasksPage}
+	taskPages := []Page{AllTasksPage, JobTasksPage, AllocTasksPage}
 	for _, taskPage := range taskPages {
 		if taskPage == p {
 			return true
@@ -187,7 +195,7 @@ func (p Page) ShowsTasks() bool {
 }
 
 func (p Page) HasAdminMenu() bool {
-	adminMenuPages := []Page{AllTasksPage, JobTasksPage}
+	adminMenuPages := []Page{AllTasksPage, JobTasksPage, AllocTasksPage}
 	for _, adminMenuPage := range adminMenuPages {
 		if adminMenuPage == p {
 			return true
@@ -248,6 +256,8 @@ func (p Page) String() string {
 		return "event"
 	case JobTasksPage:
 		return "tasks"
+	case AllocTasksPage:
+		return "tasks"
 	case ExecPage:
 		return "exec"
 	case ExecCompletePage:
@@ -277,7 +287,7 @@ func (p Page) Forward(inJobsMode bool) Page {
 	case JobsPage:
 		return AllocsPage
 	case AllocsPage:
-		return JobTasksPage
+		return AllocTasksPage
 	case AllTasksPage:
 		return LogsPage
 	case JobEventsPage:
@@ -287,6 +297,8 @@ func (p Page) Forward(inJobsMode bool) Page {
 	case AllEventsPage:
 		return AllEventPage
 	case JobTasksPage:
+		return LogsPage
+	case AllocTasksPage:
 		return LogsPage
 	case LogsPage:
 		return LoglinePage
@@ -300,7 +312,8 @@ func (p Page) Forward(inJobsMode bool) Page {
 
 func returnToTasksPage(inJobsMode bool) Page {
 	if inJobsMode {
-		return JobTasksPage
+		return AllocTasksPage
+		//return JobTasksPage
 	}
 	return AllTasksPage
 }
@@ -326,6 +339,8 @@ func (p Page) Backward(inJobsMode bool) Page {
 	case AllEventPage:
 		return AllEventsPage
 	case JobTasksPage:
+		return AllocsPage
+	case AllocTasksPage:
 		return AllocsPage
 	case ExecPage:
 		return returnToTasksPage(inJobsMode)
@@ -388,6 +403,8 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("All Events in Namespace %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
 		return fmt.Sprintf("Event")
+	case AllocTasksPage:
+		return fmt.Sprintf("Tasks for Alloc %s", style.Bold.Render(allocName))
 	case JobTasksPage:
 		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
 	case ExecPage:

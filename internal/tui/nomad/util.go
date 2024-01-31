@@ -84,6 +84,12 @@ type TaskInfo struct {
 	Running  bool
 }
 
+func AllocFromID(client api.Client, key string) (api.Allocation, error) {
+	allocID := strings.Split(key, " ")[0]
+	alloc, _, err := client.Allocations().Info(allocID, nil)
+	return *alloc, err
+}
+
 func TaskInfoFromKey(key string) (TaskInfo, error) {
 	split := strings.Split(key, keySeparator)
 	running, err := strconv.ParseBool(split[2])

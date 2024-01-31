@@ -429,6 +429,12 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						cmds = append(cmds, m.getCurrentPageCmd())
 						return tea.Batch(cmds...)
 					}
+				case nomad.AllocsPage:
+					m.alloc, err = nomad.AllocFromID(m.client, selectedPageRow.Key)
+					if err != nil {
+						m.err = err
+						return nil
+					}
 				default:
 					if m.currentPage.ShowsTasks() {
 						taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
@@ -690,8 +696,11 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchEventsStream(m.client, m.config.Event.Topics, m.config.Event.Namespace, nomad.AllEventsPage)
 	case nomad.AllEventPage:
 		return nomad.PrettifyLine(m.event, nomad.AllEventPage)
+	case nomad.AllocTasksPage:
+		return nomad.FetchTasksForAlloc(m.client, m.jobID, m.alloc.ID, m.jobNamespace, m.config.JobTaskColumns)
 	case nomad.JobTasksPage:
 		return nomad.FetchTasksForJob(m.client, m.jobID, m.jobNamespace, m.config.JobTaskColumns)
+		//return nomad.FetchTasksForAlloc(m.client, m.jobID, m.alloc.ID, m.jobNamespace, m.config.JobTaskColumns)
 	case nomad.ExecPage:
 		return func() tea.Msg {
 			// this does no async work, just moves to request the command input

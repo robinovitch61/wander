@@ -15,6 +15,64 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/message"
 )
 
+func FetchTasksForAlloc(client api.Client, jobID, AllocID, jobNamespace string, columns []string) tea.Cmd {
+	return func() tea.Msg {
+		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})
+		if err != nil {
+			return message.ErrMsg{Err: err}
+		}
+
+		var jobTaskRowEntries []taskRowEntry
+		for _, alloc := range allocationsForJob {
+
+			if alloc.ID != AllocID {
+				continue
+			}
+
+			allocAsJSON, err := json.Marshal(alloc)
+			if err != nil {
+				return message.ErrMsg{Err: err}
+			}
+
+			for taskName, task := range alloc.TaskStates {
+				jobTaskRowEntries = append(jobTaskRowEntries, taskRowEntry{
+					NodeID:               alloc.NodeID,
+					JobID:                alloc.JobID,
+					FullAllocationAsJSON: string(allocAsJSON),
+					ID:                   alloc.ID,
+					TaskGroup:            alloc.TaskGroup,
+					Name:                 alloc.Name,
+					TaskName:             taskName,
+					State:                task.State,
+					StartedAt:            task.StartedAt.UTC(),
+					FinishedAt:           task.FinishedAt.UTC(),
+				})
+			}
+		}
+
+		sort.Slice(jobTaskRowEntries, func(x, y int) bool {
+			firstTask := jobTaskRowEntries[x]
+			secondTask := jobTaskRowEntries[y]
+			if firstTask.TaskName == secondTask.TaskName {
+				if firstTask.Name == secondTask.Name {
+					if firstTask.State == secondTask.State {
+						if firstTask.StartedAt.Equal(secondTask.StartedAt) {
+							return firstTask.ID > secondTask.ID
+						}
+						return firstTask.StartedAt.After(secondTask.StartedAt)
+					}
+					return firstTask.State > secondTask.State
+				}
+				return firstTask.Name < secondTask.Name
+			}
+			return firstTask.TaskName < secondTask.TaskName
+		})
+
+		tableHeader, allPageData := jobTasksAsTable(jobTaskRowEntries, columns)
+		return PageLoadedMsg{Page: AllocTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
+	}
+}
+
 func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []string) tea.Cmd {
 	return func() tea.Msg {
 		allocationsForJob, _, err := client.Jobs().Allocations(jobID, true, &api.QueryOptions{Namespace: jobNamespace})

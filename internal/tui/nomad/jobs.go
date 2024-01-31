@@ -52,6 +52,13 @@ func FetchAllocs(client api.Client, jobID, namespace string, columns []string) t
 	}
 }
 
+func boolToString(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
+
 func getAllocRowFromColumns(row *api.AllocationListStub, columns []string) []string {
 	knownColMap := map[string]string{
 		"Alloc":      formatter.ShortID(row.ID),
@@ -62,6 +69,7 @@ func getAllocRowFromColumns(row *api.AllocationListStub, columns []string) []str
 		"Node Name":  row.NodeName,
 		"Node ID":    formatter.ShortID(row.NodeID),
 		"Namespace":  row.Namespace,
+		"Status":     row.ClientStatus,
 	}
 
 	var rowEntries []string
