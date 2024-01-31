@@ -300,4 +300,4 @@ go build  # outputs ./wander executable
 
 The [scripts](/scripts) directory contains various development helper scripts.
 
-If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `wander.log`.
+If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `WANDER_DEBUG_PATH` (defaults to `wander.log`).
