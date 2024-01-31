@@ -14,6 +14,7 @@ const (
 	yellow    = lipgloss.Color("#DBBD70")
 )
 
+// TODO LEO: rewrite this as a struct and assign it to model.styles, constructing it with the renderer
 var (
 	Regular                       = lipgloss.NewStyle()
 	Bold                          = Regular.Copy().Bold(true)
