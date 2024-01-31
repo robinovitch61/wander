@@ -4,16 +4,17 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/hashicorp/nomad/api"
-	"github.com/moby/term"
-	"github.com/robinovitch61/wander/internal/tui/formatter"
-	"github.com/robinovitch61/wander/internal/tui/nomad/signals"
-	"golang.org/x/exp/maps"
 	"io"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/hashicorp/nomad/api"
+	"github.com/moby/term"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
+	"github.com/robinovitch61/wander/internal/tui/nomad/signals"
+	"golang.org/x/exp/maps"
 )
 
 type ExecCompleteMsg struct {
@@ -59,7 +60,7 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 				for job, jobAllocs := range foundAllocs {
 					fmt.Printf("allocations for job %s:\n", job)
 					for _, alloc := range jobAllocs {
-						fmt.Printf("  %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+						fmt.Printf("  %s (%s in %s)\n", formatter.ShortID(alloc.ID), alloc.Name, alloc.Namespace)
 					}
 				}
 				return 1, nil
@@ -74,7 +75,7 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 				// rare but possible that uuid prefixes match
 				fmt.Printf("prefix %s matched multiple allocations:\n", allocID)
 				for _, alloc := range shortIDAllocs {
-					fmt.Printf("  %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+					fmt.Printf("  %s (%s in %s)\n", formatter.ShortID(alloc.ID), alloc.Name, alloc.Namespace)
 				}
 				return 1, err
 			} else if len(shortIDAllocs) == 1 {
@@ -93,7 +94,7 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 				task = taskName
 			}
 		} else {
-			fmt.Printf("multiple tasks found in allocation %s (%s in %s)\n", formatter.ShortAllocID(alloc.ID), alloc.Name, alloc.Namespace)
+			fmt.Printf("multiple tasks found in allocation %s (%s in %s)\n", formatter.ShortID(alloc.ID), alloc.Name, alloc.Namespace)
 			for taskName := range alloc.TaskStates {
 				fmt.Printf("  %s\n", taskName)
 			}
@@ -115,7 +116,7 @@ func execImpl(client *api.Client, alloc *api.Allocation, task string,
 	time.Sleep(10 * time.Millisecond)
 	os.Stdout.Write([]byte("\033c"))
 
-	fmt.Println(fmt.Sprintf("Exec session for %s (%s), task %s", alloc.Name, formatter.ShortAllocID(alloc.ID), task))
+	fmt.Println(fmt.Sprintf("Exec session for %s (%s), task %s", alloc.Name, formatter.ShortID(alloc.ID), task))
 
 	sizeCh := make(chan api.TerminalSize, 1)
 

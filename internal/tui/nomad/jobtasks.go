@@ -6,12 +6,13 @@ package nomad
 
 import (
 	"encoding/json"
+	"sort"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
-	"sort"
 )
 
 func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []string) tea.Cmd {
@@ -69,9 +70,9 @@ func FetchTasksForJob(client api.Client, jobID, jobNamespace string, columns []s
 
 func getJobTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 	knownColMap := map[string]string{
-		"Node ID":    formatter.ShortAllocID(row.NodeID),
+		"Node ID":    formatter.ShortID(row.NodeID),
 		"Job":        row.JobID,
-		"Alloc ID":   formatter.ShortAllocID(row.ID),
+		"Alloc ID":   formatter.ShortID(row.ID),
 		"Task Group": row.TaskGroup,
 		"Alloc Name": row.Name,
 		"Task Name":  row.TaskName,

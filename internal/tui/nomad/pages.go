@@ -2,6 +2,9 @@ package nomad
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
@@ -11,8 +14,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"strings"
-	"time"
 )
 
 type Page int8
@@ -206,7 +207,7 @@ func (p Page) doesUpdate() bool {
 		ExecCompletePage, // doesn't reload
 		LogsPage,         // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
 		JobSpecPage,      // would require changes to make scrolling possible
-		AllocsPage,    // would require changes to make scrolling possible
+		AllocsPage,       // would require changes to make scrolling possible
 		AllocSpecPage,    // would require changes to make scrolling possible
 		JobEventsPage,    // constant connection, streams data
 		JobEventPage,     // doesn't load
@@ -276,7 +277,7 @@ func (p Page) Forward(inJobsMode bool) Page {
 	case JobsPage:
 		return AllocsPage
 	case AllocsPage:
-		return AllTasksPage
+		return JobTasksPage
 	case AllTasksPage:
 		return LogsPage
 	case JobEventsPage:
@@ -325,7 +326,7 @@ func (p Page) Backward(inJobsMode bool) Page {
 	case AllEventPage:
 		return AllEventsPage
 	case JobTasksPage:
-		return JobsPage
+		return AllocsPage
 	case ExecPage:
 		return returnToTasksPage(inJobsMode)
 	case ExecCompletePage:
@@ -347,7 +348,7 @@ func (p Page) Backward(inJobsMode bool) Page {
 }
 
 func allocEventFilterPrefix(allocName, allocID string) string {
-	return fmt.Sprintf("%s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+	return fmt.Sprintf("%s %s", style.Bold.Render(allocName), formatter.ShortID(allocID))
 }
 
 func taskFilterPrefix(taskName, allocName string) string {
@@ -367,7 +368,7 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace))
 
 	case AllocsPage:
-		return fmt.Sprintf("Allocs for Job %s (%s)", style.Bold.Render(jobID))
+		return fmt.Sprintf("Allocs for Job %s", style.Bold.Render(jobID))
 
 	case AllTasksPage:
 		return fmt.Sprintf("All Tasks in %s", namespaceFilterPrefix(namespace))
@@ -394,7 +395,7 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case ExecCompletePage:
 		return fmt.Sprintf("Exec Complete for Task %s", taskFilterPrefix(taskName, allocName))
 	case AllocSpecPage:
-		return fmt.Sprintf("Spec for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Spec for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortID(allocID))
 	case LogsPage:
 		return fmt.Sprintf("Logs for Task %s", taskFilterPrefix(taskName, allocName))
 	case LoglinePage:
@@ -402,9 +403,9 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case StatsPage:
 		return fmt.Sprintf("Stats for Allocation %s", allocName)
 	case TaskAdminPage:
-		return fmt.Sprintf("Admin Actions for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Admin Actions for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortID(allocID))
 	case TaskAdminConfirmPage:
-		return fmt.Sprintf("Confirm Admin Action for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Confirm Admin Action for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortID(allocID))
 	default:
 		panic("page not found")
 	}

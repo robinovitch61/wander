@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
-	"github.com/robinovitch61/wander/internal/tui/constants"
 	"math"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/olekukonko/tablewriter"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 )
 
 const (
@@ -86,7 +87,7 @@ func GetRenderedTableAsString(columns []string, data [][]string) Table {
 	return Table{headerRows, contentRows}
 }
 
-func ShortAllocID(allocID string) string {
+func ShortID(allocID string) string {
 	firstN := 8
 	if len(allocID) < firstN {
 		return ""

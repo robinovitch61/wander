@@ -1,10 +1,13 @@
-/* Admin Actions for tasks
+/*
+	Admin Actions for tasks
+
 Restart, Stop, etc.
 */
 package nomad
 
 import (
 	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
@@ -23,7 +26,7 @@ type TaskAdminActionCompleteMsg struct {
 }
 
 type TaskAdminActionFailedMsg struct {
-	Err error
+	Err                          error
 	TaskName, AllocName, AllocID string
 }
 
@@ -34,7 +37,7 @@ func GetTaskAdminText(
 	return fmt.Sprintf(
 		"%s task %s in %s (%s)",
 		TaskAdminActions[adminAction],
-		taskName, allocName, formatter.ShortAllocID(allocID))
+		taskName, allocName, formatter.ShortID(allocID))
 }
 
 func GetCmdForTaskAdminAction(
@@ -60,14 +63,14 @@ func RestartTask(client api.Client, taskName, allocName, allocID string) tea.Cmd
 
 		if err != nil {
 			return TaskAdminActionFailedMsg{
-				Err: err,
+				Err:      err,
 				TaskName: taskName, AllocName: allocName, AllocID: allocID}
 		}
 
 		err = client.Allocations().Restart(alloc, taskName, nil)
 		if err != nil {
 			return TaskAdminActionFailedMsg{
-				Err: err,
+				Err:      err,
 				TaskName: taskName, AllocName: allocName, AllocID: allocID}
 		}
 

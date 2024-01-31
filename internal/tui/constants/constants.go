@@ -8,8 +8,7 @@ import (
 )
 
 var LogoString = strings.Join([]string{
-	"█ █ █ █▀█ █▄ █ █▀▄ █▀▀ █▀█",
-	"▀▄▀▄▀ █▀█ █ ▀█ █▄▀ ██▄ █▀▄",
+	"Wander",
 }, "\n")
 
 const ToastDuration = time.Second * 5

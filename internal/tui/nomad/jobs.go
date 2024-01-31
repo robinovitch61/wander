@@ -2,15 +2,16 @@ package nomad
 
 import (
 	"errors"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/message"
-	"sort"
-	"strconv"
-	"strings"
-	"fmt"
 )
 
 // FetchAllocs fetches allocs for a given job
@@ -53,10 +54,13 @@ func FetchAllocs(client api.Client, jobID, namespace string, columns []string) t
 
 func getAllocRowFromColumns(row *api.AllocationListStub, columns []string) []string {
 	knownColMap := map[string]string{
-		"Alloc":      row.ID,
-		"Count":      "10",
+		"Alloc":      formatter.ShortID(row.ID),
+		"Task Group": row.TaskGroup,
+		"Version":    strconv.FormatUint(row.JobVersion, 10),
 		"Created":    getUptime("running", row.CreateTime),
 		"Modified":   formatter.FormatTimeNs(row.ModifyTime),
+		"Node Name":  row.NodeName,
+		"Node ID":    formatter.ShortID(row.NodeID),
 		"Namespace":  row.Namespace,
 	}
 
