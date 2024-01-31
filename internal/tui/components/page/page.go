@@ -2,6 +2,7 @@ package page
 
 import (
 	"fmt"
+	"github.com/robinovitch61/wander/internal/fileio"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -113,7 +114,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case viewport.SaveStatusMsg:
+	case fileio.SaveCompleteMessage:
 		if m.copySavePath {
 			cmds = append(cmds, func() tea.Msg {
 				_ = clipboard.WriteAll(msg.FullPath)
@@ -124,8 +125,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case toast.TimeoutMsg:
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
+		m.viewport.HideToast()
 
 	case tea.KeyMsg:
 		switch {
@@ -232,6 +232,10 @@ func (m *Model) SetAllPageRows(allPageRows []Row) {
 
 func (m *Model) SetFilterPrefix(prefix string) {
 	m.filter.SetPrefix(prefix)
+}
+
+func (m *Model) SetViewportSelectionToTop() {
+	m.viewport.SetSelectedContentIdx(0)
 }
 
 func (m *Model) SetViewportSelectionToBottom() {

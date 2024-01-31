@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+type SaveCompleteMessage struct {
+	FullPath, SuccessMessage, Err string
+}
+
 func SaveToFile(saveDialogValue string, fileContent []string) (string, error) {
 	var path, fileName string
 

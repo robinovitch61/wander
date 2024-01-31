@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/robinovitch61/wander/internal/fileio"
 	"os"
 	"os/exec"
 	"path"
@@ -13,9 +14,9 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/dev"
-	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
+	"github.com/robinovitch61/wander/internal/tui/components/toast"
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
@@ -63,13 +64,13 @@ type Config struct {
 }
 
 type Model struct {
-	config    Config
-	client    api.Client
+	config Config
+	client api.Client
 
-	header       header.Model
-	compact      bool
-	currentPage  nomad.Page
-	pageModels   map[nomad.Page]*page.Model
+	header      header.Model
+	compact     bool
+	currentPage nomad.Page
+	pageModels  map[nomad.Page]*page.Model
 
 	inJobsMode   bool
 	jobID        string
@@ -207,6 +208,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
+			case nomad.TaskAdminConfirmPage:
+				// always make user go down one to confirm
+				m.getCurrentPageModel().SetViewportSelectionToTop()
 			}
 			cmds = append(cmds, nomad.UpdatePageDataWithDelay(m.updateID, m.currentPage, m.config.UpdateSeconds))
 		}
@@ -302,27 +306,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 
+	case fileio.SaveCompleteMessage:
+		toastMsg := msg.SuccessMessage
+		toastStyle := style.SuccessToast
+		if msg.Err != "" {
+			toastStyle = style.ErrorToast
+			toastMsg = fmt.Sprintf("Error: %s", msg.Err)
+		}
+		newToast := toast.New(toastMsg)
+		m.getCurrentPageModel().SetToast(newToast, toastStyle)
+		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
+
 	case nomad.TaskAdminActionCompleteMsg:
-		m.getCurrentPageModel().SetToast(
-			toast.New(
-				fmt.Sprintf(
-					"%s completed successfully",
-					nomad.GetTaskAdminText(
-						m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID))),
-			style.SuccessToast,
-		)
+		newToast := toast.New(fmt.Sprintf(
+			"%s completed successfully",
+			nomad.GetTaskAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
+		))
+		m.getCurrentPageModel().SetToast(newToast, style.SuccessToast)
+		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 
 	case nomad.TaskAdminActionFailedMsg:
-		m.getCurrentPageModel().SetToast(
-			toast.New(
-				fmt.Sprintf(
-					"%s failed with error: %s",
-					nomad.GetTaskAdminText(
-						m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
-					msg.Error())),
-			style.ErrorToast,
-		)
-
+		newToast := toast.New(fmt.Sprintf(
+			"%s failed with error: %s",
+			nomad.GetTaskAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
+			msg.Error(),
+		))
+		m.getCurrentPageModel().SetToast(newToast, style.ErrorToast)
+		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 	}
 
 	currentPageModel = m.getCurrentPageModel()
@@ -420,8 +430,10 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					m.adminAction = nomad.KeyToAdminAction(selectedPageRow.Key)
 				case nomad.TaskAdminConfirmPage:
 					if selectedPageRow.Key == constants.ConfirmationKey {
-						cmds = append(cmds, nomad.GetCmdForTaskAdminAction(
-							m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID))
+						cmds = append(
+							cmds,
+							nomad.GetCmdForTaskAdminAction(m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID),
+						)
 					} else {
 						backPage := m.currentPage.Backward(m.inJobsMode)
 						m.setPage(backPage)
@@ -728,7 +740,6 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				AllPageRows: rows,
 			}
 		}
-
 	case nomad.TaskAdminConfirmPage:
 		return func() tea.Msg {
 			// this does no async work, just constructs the confirmation page
@@ -743,7 +754,6 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 				},
 			}
 		}
-
 	default:
 		panic(fmt.Sprintf("Load command for page:%s not found", m.currentPage))
 	}

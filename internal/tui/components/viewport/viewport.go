@@ -18,10 +18,6 @@ const lineContinuationIndicator = "..."
 
 var lenLineContinuationIndicator = stringWidth(lineContinuationIndicator)
 
-type SaveStatusMsg struct {
-	FullPath, SuccessMessage, Err string
-}
-
 type Model struct {
 	header         []string
 	wrappedHeader  []string
@@ -134,15 +130,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	} else {
 		switch msg := msg.(type) {
-		case SaveStatusMsg:
-			if msg.Err != "" {
-				m.toast = toast.New(fmt.Sprintf("Error: %s", msg.Err))
-				m.toast.MessageStyle = style.ErrorToast.Copy().Width(m.width)
-			} else {
-				m.toast = toast.New(msg.SuccessMessage)
-				m.toast.MessageStyle = style.SuccessToast.Copy().Width(m.width)
-			}
-
 		case tea.KeyMsg:
 			switch {
 			case key.Matches(msg, m.keyMap.Up):
@@ -740,9 +727,9 @@ func (m Model) getSaveCommand() tea.Cmd {
 
 		savePathWithFileName, err := fileio.SaveToFile(m.saveDialog.Value(), saveContent)
 		if err != nil {
-			return SaveStatusMsg{Err: err.Error()}
+			return fileio.SaveCompleteMessage{Err: err.Error()}
 		}
-		return SaveStatusMsg{FullPath: savePathWithFileName, SuccessMessage: fmt.Sprintf("Success: saved to %s", savePathWithFileName)}
+		return fileio.SaveCompleteMessage{FullPath: savePathWithFileName, SuccessMessage: fmt.Sprintf("Success: saved to %s", savePathWithFileName)}
 	}
 }
 

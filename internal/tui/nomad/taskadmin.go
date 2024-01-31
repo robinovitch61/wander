@@ -1,4 +1,6 @@
-/* Admin Actions for tasks
+/*
+	Admin Actions for tasks
+
 Restart, Stop, etc.
 */
 package nomad
@@ -23,7 +25,7 @@ type TaskAdminActionCompleteMsg struct {
 }
 
 type TaskAdminActionFailedMsg struct {
-	Err error
+	Err                          error
 	TaskName, AllocName, AllocID string
 }
 
@@ -57,21 +59,19 @@ func GetCmdForTaskAdminAction(
 func RestartTask(client api.Client, taskName, allocName, allocID string) tea.Cmd {
 	return func() tea.Msg {
 		alloc, _, err := client.Allocations().Info(allocID, nil)
-
 		if err != nil {
 			return TaskAdminActionFailedMsg{
-				Err: err,
-				TaskName: taskName, AllocName: allocName, AllocID: allocID}
+				Err:      err,
+				TaskName: taskName, AllocName: allocName, AllocID: allocID,
+			}
 		}
-
 		err = client.Allocations().Restart(alloc, taskName, nil)
 		if err != nil {
 			return TaskAdminActionFailedMsg{
-				Err: err,
-				TaskName: taskName, AllocName: allocName, AllocID: allocID}
+				Err:      err,
+				TaskName: taskName, AllocName: allocName, AllocID: allocID,
+			}
 		}
-
-		return TaskAdminActionCompleteMsg{
-			TaskName: taskName, AllocName: allocName, AllocID: allocID}
+		return TaskAdminActionCompleteMsg{TaskName: taskName, AllocName: allocName, AllocID: allocID}
 	}
 }

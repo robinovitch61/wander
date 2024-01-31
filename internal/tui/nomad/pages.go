@@ -158,7 +158,19 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage, ExecCompletePage}
+	noReloadPages := []Page{
+		LoglinePage,
+		JobEventsPage,
+		JobEventPage,
+		AllocEventsPage,
+		AllocEventPage,
+		AllEventsPage,
+		AllEventPage,
+		ExecPage,
+		ExecCompletePage,
+		TaskAdminPage,
+		TaskAdminConfirmPage,
+	}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -193,18 +205,20 @@ func (p Page) CanBeFirstPage() bool {
 
 func (p Page) doesUpdate() bool {
 	noUpdatePages := []Page{
-		LoglinePage,      // doesn't load
-		ExecPage,         // doesn't reload
-		ExecCompletePage, // doesn't reload
-		LogsPage,         // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
-		JobSpecPage,      // would require changes to make scrolling possible
-		AllocSpecPage,    // would require changes to make scrolling possible
-		JobEventsPage,    // constant connection, streams data
-		JobEventPage,     // doesn't load
-		AllocEventsPage,  // constant connection, streams data
-		AllocEventPage,   // doesn't load
-		AllEventsPage,    // constant connection, streams data
-		AllEventPage,     // doesn't load
+		LoglinePage,          // doesn't load
+		ExecPage,             // doesn't reload
+		ExecCompletePage,     // doesn't reload
+		LogsPage,             // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
+		JobSpecPage,          // would require changes to make scrolling possible
+		AllocSpecPage,        // would require changes to make scrolling possible
+		JobEventsPage,        // constant connection, streams data
+		JobEventPage,         // doesn't load
+		AllocEventsPage,      // constant connection, streams data
+		AllocEventPage,       // doesn't load
+		AllEventsPage,        // constant connection, streams data
+		AllEventPage,         // doesn't load
+		TaskAdminPage,        // doesn't load
+		TaskAdminConfirmPage, // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -251,7 +265,7 @@ func (p Page) String() string {
 	case TaskAdminPage:
 		return "task admin menu"
 	case TaskAdminConfirmPage:
-		return "confirm"
+		return "execute"
 	}
 	return "unknown"
 }
@@ -476,6 +490,9 @@ func GetPageKeyHelp(
 	var fourthRow []key.Binding
 	if nextPage := currentPage.Forward(inJobsMode); nextPage != currentPage {
 		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward(inJobsMode).String())
+		if currentPage == TaskAdminConfirmPage {
+			changeKeyHelp(&keymap.KeyMap.Forward, "choose")
+		}
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
