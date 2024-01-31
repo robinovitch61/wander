@@ -10,10 +10,10 @@
 An efficient terminal application/TUI for interacting with your [HashiCorp Nomad](https://www.nomadproject.io/) cluster.
 
 - Browse jobs, allocations, and tasks
-- Restart tasks
 - Live tail logs
 - Tail global or targeted events
 - Exec to interact with running tasks
+- Administrative actions (e.g. restart tasks)
 - View resource usage stats (memory, CPU)
 - See full job or allocation specs
 - Save any content to a local file
