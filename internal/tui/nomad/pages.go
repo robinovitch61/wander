@@ -163,6 +163,16 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    TaskAdminConfirmPage.LoadingString(),
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
+		AllocAdminPage: {
+			Width: width, Height: height,
+			LoadingString:    TaskAdminPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		AllocAdminConfirmPage: {
+			Width: width, Height: height,
+			LoadingString:    TaskAdminConfirmPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
 	}
 }
 
@@ -197,7 +207,7 @@ func (p Page) ShowsTasks() bool {
 }
 
 func (p Page) HasAdminMenu() bool {
-	adminMenuPages := []Page{AllTasksPage, JobTasksPage, AllocTasksPage}
+	adminMenuPages := []Page{AllTasksPage, JobTasksPage, AllocTasksPage, AllocsPage}
 	for _, adminMenuPage := range adminMenuPages {
 		if adminMenuPage == p {
 			return true
@@ -429,6 +439,19 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
 	case StatsPage:
 		return fmt.Sprintf("Stats for Allocation %s", allocName)
+
+	case AllocAdminPage:
+		return fmt.Sprintf(
+			"Admin Actions for Alloc %s (%s)",
+			allocEventFilterPrefix(allocName, allocID),
+			formatter.ShortID(allocID))
+
+	case AllocAdminConfirmPage:
+		return fmt.Sprintf(
+			"Confirm Admin Action for Alloc %s (%s)",
+			allocEventFilterPrefix(allocName, allocID),
+			formatter.ShortID(allocID))
+
 	case TaskAdminPage:
 		return fmt.Sprintf("Admin Actions for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortID(allocID))
 	case TaskAdminConfirmPage:

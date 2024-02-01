@@ -16,8 +16,8 @@ import (
 var (
 	// AllocAdminActions maps task-specific AdminActions to their display text
 	AllocAdminActions = map[AdminAction]string{
-		RestartTaskAction: "Restart",
-		//StopTaskAction:    "Stop",
+		RestartAllocAction: "Restart",
+		//StopAllocAction:    "Stop",
 	}
 )
 
@@ -33,23 +33,23 @@ type AllocAdminActionFailedMsg struct {
 func (e AllocAdminActionFailedMsg) Error() string { return e.Err.Error() }
 
 func GetAllocAdminText(
-	adminAction AdminAction, taskName, allocName, allocID string) string {
+	adminAction AdminAction, allocName, allocID string) string {
 	return fmt.Sprintf(
-		"%s task %s in %s (%s)",
+		"%s allocation %s (%s)",
 		AllocAdminActions[adminAction],
-		taskName, allocName, formatter.ShortID(allocID))
+		allocName, 
+		formatter.ShortID(allocID))
 }
 
 func GetCmdForAllocAdminAction(
 	client api.Client,
 	adminAction AdminAction,
-	taskName,
 	allocName,
 	allocID string,
 ) tea.Cmd {
 	switch adminAction {
-	case RestartTaskAction:
-		return RestartTask(client, taskName, allocName, allocID)
+	case RestartAllocAction:
+		return RestartAlloc(client, allocName, allocID)
 	//case StopTaskAction:
 	//	return StopTask(client, taskName, allocName, allocID)
 	default:
