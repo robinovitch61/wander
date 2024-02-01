@@ -39,6 +39,8 @@ const (
 	LogsPage
 	LoglinePage
 	StatsPage
+	AllocAdminPage
+	AllocAdminConfirmPage
 	TaskAdminPage
 	TaskAdminConfirmPage
 )
@@ -302,6 +304,10 @@ func (p Page) Forward(inJobsMode bool) Page {
 		return LogsPage
 	case LogsPage:
 		return LoglinePage
+	case AllocAdminPage:
+		return AllocAdminConfirmPage
+	case AllocAdminConfirmPage:
+		return AllocsPage
 	case TaskAdminPage:
 		return TaskAdminConfirmPage
 	case TaskAdminConfirmPage:
@@ -354,6 +360,10 @@ func (p Page) Backward(inJobsMode bool) Page {
 		return LogsPage
 	case StatsPage:
 		return returnToTasksPage(inJobsMode)
+	case AllocAdminPage:
+		return AllocsPage
+	case AllocAdminConfirmPage:
+		return AllocAdminPage
 	case TaskAdminPage:
 		return returnToTasksPage(inJobsMode)
 	case TaskAdminConfirmPage:

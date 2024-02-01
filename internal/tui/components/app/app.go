@@ -675,8 +675,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return nomad.FetchJobs(m.client, m.config.JobColumns)
 
 	case nomad.AllocsPage:
-		namespace := "default"
-		return nomad.FetchAllocs(m.client, m.jobID, namespace, m.config.AllocColumns)
+		return nomad.FetchAllocs(m.client, m.jobID, m.jobNamespace, m.config.AllocColumns)
 
 	case nomad.AllTasksPage:
 		return nomad.FetchAllTasks(m.client, m.config.AllTaskColumns)
