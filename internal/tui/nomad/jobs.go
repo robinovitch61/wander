@@ -23,8 +23,6 @@ func FetchAllocs(client api.Client, jobID, namespace string, columns []string) t
 		allocResults, _, err := client.Jobs().Allocations(jobID, true, queryOpts)
 
 		if len(allocResults) == 0 {
-			allocResults, _, _ := client.Jobs().Allocations(jobID, false, nil)
-			fmt.Println("allocResults", allocResults)
 			return message.ErrMsg{Err: errors.New("no allocs found")}
 		}
 
