@@ -2,7 +2,6 @@ package nomad
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"

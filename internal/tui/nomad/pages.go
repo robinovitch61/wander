@@ -383,7 +383,7 @@ func (p Page) Backward(inJobsMode bool) Page {
 }
 
 func allocEventFilterPrefix(allocName, allocID string) string {
-	return fmt.Sprintf("%s %s", style.Bold.Render(allocName), formatter.ShortID(allocID))
+	return fmt.Sprintf("%s (%s)", style.Bold.Render(allocName), formatter.ShortID(allocID))
 }
 
 func taskFilterPrefix(taskName, allocName string) string {
@@ -442,15 +442,13 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 
 	case AllocAdminPage:
 		return fmt.Sprintf(
-			"Admin Actions for Alloc %s (%s)",
-			allocEventFilterPrefix(allocName, allocID),
-			formatter.ShortID(allocID))
+			"Admin Actions for Alloc %s",
+			allocEventFilterPrefix(allocName, allocID))
 
 	case AllocAdminConfirmPage:
 		return fmt.Sprintf(
-			"Confirm Admin Action for Alloc %s (%s)",
-			allocEventFilterPrefix(allocName, allocID),
-			formatter.ShortID(allocID))
+			"Confirm Admin Action for Alloc %s",
+			allocEventFilterPrefix(allocName, allocID))
 
 	case TaskAdminPage:
 		return fmt.Sprintf("Admin Actions for Task %s (%s)", taskFilterPrefix(taskName, allocName), formatter.ShortID(allocID))
