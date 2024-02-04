@@ -35,6 +35,8 @@ func (d *data) IncrementFilteredSelectionNum() {
 	d.FilteredSelectionNum++
 	if d.FilteredSelectionNum >= len(d.FilteredContentIdxs) {
 		d.FilteredSelectionNum = 0
+	} else if d.FilteredSelectionNum < 0 {
+		d.FilteredSelectionNum = 0
 	}
 	d.CurrentFilteredContentIdx = d.FilteredContentIdxs[d.FilteredSelectionNum]
 }
@@ -45,6 +47,8 @@ func (d *data) DecrementFilteredSelectionNum() {
 	}
 	d.FilteredSelectionNum--
 	if d.FilteredSelectionNum < 0 {
+		d.FilteredSelectionNum = len(d.FilteredContentIdxs) - 1
+	} else if d.FilteredSelectionNum >= len(d.FilteredContentIdxs) {
 		d.FilteredSelectionNum = len(d.FilteredContentIdxs) - 1
 	}
 	d.CurrentFilteredContentIdx = d.FilteredContentIdxs[d.FilteredSelectionNum]

@@ -176,9 +176,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentPageLoading() {
 				m.getCurrentPageModel().SetViewportXOffset(0)
 			}
-			if m.getCurrentPageModel().FilterWithContext {
-				m.getCurrentPageModel().ResetContextFilter()
-			}
+			//if m.getCurrentPageModel().FilterWithContext {
+			// I don't remember why I originally had this here, but it seems unequivocally bad:
+			// https://github.com/robinovitch61/wander/issues/128
+			// Delete this soon if no issues arise from its removal. If they do, comment why you have this here :)
+			//m.getCurrentPageModel().ResetContextFilter()
+			//}
 			m.getCurrentPageModel().SetLoading(false)
 
 			if m.currentPage.CanBeFirstPage() && len(msg.AllPageRows) == 0 {
