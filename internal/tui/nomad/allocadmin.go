@@ -11,6 +11,7 @@ var (
 	// AllocAdminActions maps allocation-specific AdminActions to their display text
 	AllocAdminActions = map[AdminAction]string{
 		RestartTaskAction: "Restart",
+		RestartAllocAction: "Restart",
 		StopAllocAction:   "Stop",
 	}
 )
@@ -27,7 +28,7 @@ func GetAllocAdminText(adminAction AdminAction, taskName, allocName, allocID str
 			"%s task %s in %s (%s)",
 			AllocAdminActions[adminAction],
 			taskName, allocName, formatter.ShortAllocID(allocID))
-	case StopAllocAction:
+	case RestartAllocAction, StopAllocAction:
 		return fmt.Sprintf(
 			"%s allocation %s (%s)",
 			AllocAdminActions[adminAction],
@@ -47,6 +48,8 @@ func GetCmdForAllocAdminAction(
 	switch adminAction {
 	case RestartTaskAction:
 		return RestartTask(client, taskName, allocName, allocID)
+	case RestartAllocAction:
+		return RestartAllocation(client, allocName, allocID)
 	case StopAllocAction:
 		return StopAllocation(client, allocName, allocID)
 	default:
@@ -71,6 +74,28 @@ func RestartTask(client api.Client, taskName, allocName, allocID string) tea.Cmd
 			}
 		}
 		return AllocAdminActionCompleteMsg{TaskName: taskName, AllocName: allocName, AllocID: allocID}
+	}
+}
+
+func RestartAllocation(client api.Client, allocName, allocID string) tea.Cmd {
+	return func() tea.Msg {
+		alloc, _, err := client.Allocations().Info(allocID, nil)
+		if err != nil {
+			return AllocAdminActionCompleteMsg{
+				Err:       err,
+				AllocName: allocName, AllocID: allocID,
+			}
+		}
+
+		// Empty task name restarts all tasks in the allocation
+		err = client.Allocations().Restart(alloc, "", nil)
+		if err != nil {
+			return AllocAdminActionCompleteMsg{
+				Err:       err,
+				AllocName: allocName, AllocID: allocID,
+			}
+		}
+		return AllocAdminActionCompleteMsg{AllocName: allocName, AllocID: allocID}
 	}
 }
 
