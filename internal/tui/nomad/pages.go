@@ -38,6 +38,8 @@ const (
 	StatsPage
 	AllocAdminPage
 	AllocAdminConfirmPage
+	JobAdminPage
+	JobAdminConfirmPage
 )
 
 func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
@@ -144,6 +146,16 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    AllocAdminConfirmPage.LoadingString(),
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 		},
+		JobAdminPage: {
+			Width: width, Height: height,
+			LoadingString:    JobAdminPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		JobAdminConfirmPage: {
+			Width: width, Height: height,
+			LoadingString:    JobAdminConfirmPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
 	}
 }
 
@@ -170,6 +182,8 @@ func (p Page) DoesReload() bool {
 		ExecCompletePage,
 		AllocAdminPage,
 		AllocAdminConfirmPage,
+		JobAdminPage,
+		JobAdminConfirmPage,
 	}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
@@ -190,7 +204,7 @@ func (p Page) ShowsTasks() bool {
 }
 
 func (p Page) HasAdminMenu() bool {
-	adminMenuPages := []Page{AllTasksPage, JobTasksPage}
+	adminMenuPages := []Page{AllTasksPage, JobTasksPage, JobsPage}
 	for _, adminMenuPage := range adminMenuPages {
 		if adminMenuPage == p {
 			return true
@@ -219,6 +233,8 @@ func (p Page) doesUpdate() bool {
 		AllEventPage,          // doesn't load
 		AllocAdminPage,        // doesn't load
 		AllocAdminConfirmPage, // doesn't load
+		JobAdminPage, 		   // doesn't load
+		JobAdminConfirmPage,   // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -264,7 +280,9 @@ func (p Page) String() string {
 		return "stats"
 	case AllocAdminPage:
 		return "task admin menu"
-	case AllocAdminConfirmPage:
+	case JobAdminPage:
+		return "job admin menu"
+	case AllocAdminConfirmPage, JobAdminConfirmPage:
 		return "execute"
 	}
 	return "unknown"
@@ -294,6 +312,10 @@ func (p Page) Forward(inJobsMode bool) Page {
 		return AllocAdminConfirmPage
 	case AllocAdminConfirmPage:
 		return returnToTasksPage(inJobsMode)
+	case JobAdminPage:
+		return JobAdminConfirmPage
+	case JobAdminConfirmPage:
+		return JobsPage
 	}
 	return p
 }
@@ -341,6 +363,10 @@ func (p Page) Backward(inJobsMode bool) Page {
 		return returnToTasksPage(inJobsMode)
 	case AllocAdminConfirmPage:
 		return AllocAdminPage
+	case JobAdminPage:
+		return JobsPage
+	case JobAdminConfirmPage:
+		return JobAdminPage
 	}
 	return p
 }
@@ -400,6 +426,10 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Admin Actions for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case AllocAdminConfirmPage:
 		return fmt.Sprintf("Confirm Admin Action for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+	case JobAdminPage:
+		return fmt.Sprintf("Admin Actions for Job %s", style.Bold.Render(jobID))
+	case JobAdminConfirmPage:
+		return fmt.Sprintf("Confirm Admin Action for Job %s", style.Bold.Render(jobID))
 	default:
 		panic("page not found")
 	}
