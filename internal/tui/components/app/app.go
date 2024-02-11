@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strings"
 	"time"
 
@@ -755,10 +756,15 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return func() tea.Msg {
 			// this does no async work, just constructs the task admin menu
 			var rows []page.Row
+			var sortedAllocAdminActions []int
 			for action := range nomad.AllocAdminActions {
+				sortedAllocAdminActions = append(sortedAllocAdminActions, int(action))
+			}
+			sort.Ints(sortedAllocAdminActions)
+			for _, action := range sortedAllocAdminActions {
 				rows = append(rows, page.Row{
-					Key: nomad.AdminActionToKey(action),
-					Row: nomad.GetAllocAdminText(action, m.taskName, m.alloc.Name, m.alloc.ID),
+					Key: nomad.AdminActionToKey(nomad.AdminAction(action)),
+					Row: nomad.GetAllocAdminText(nomad.AdminAction(action), m.taskName, m.alloc.Name, m.alloc.ID),
 				})
 			}
 			return nomad.PageLoadedMsg{
@@ -785,10 +791,15 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 		return func() tea.Msg {
 			// this does no async work, just constructs the job admin menu
 			var rows []page.Row
+			var sortedJobAdminActions []int
 			for action := range nomad.JobAdminActions {
+				sortedJobAdminActions = append(sortedJobAdminActions, int(action))
+			}
+			sort.Ints(sortedJobAdminActions)
+			for _, action := range sortedJobAdminActions {
 				rows = append(rows, page.Row{
-					Key: nomad.AdminActionToKey(action),
-					Row: nomad.GetJobAdminText(action, m.jobID),
+					Key: nomad.AdminActionToKey(nomad.AdminAction(action)),
+					Row: nomad.GetJobAdminText(nomad.AdminAction(action), m.jobID),
 				})
 			}
 			return nomad.PageLoadedMsg{

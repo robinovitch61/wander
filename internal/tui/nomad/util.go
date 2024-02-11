@@ -16,6 +16,7 @@ const keySeparator = "|【=◈︿◈=】|"
 type AdminAction int8
 
 // all admin actions, task or job
+// the definition order of these is important, as it's used for sorting
 const (
 	RestartTaskAction AdminAction = iota
 	RestartAllocAction
