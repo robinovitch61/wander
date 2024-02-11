@@ -211,7 +211,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case nomad.ExecPage:
 				m.getCurrentPageModel().SetInputPrefix("Enter command: ")
-			case nomad.AllocAdminConfirmPage:
+			case nomad.AllocAdminConfirmPage, nomad.JobAdminConfirmPage:
 				// always make user go down one to confirm
 				m.getCurrentPageModel().SetViewportSelectionToTop()
 			}
@@ -337,6 +337,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newToast := toast.New(toastMsg)
 		m.getCurrentPageModel().SetToast(newToast, toastStyle)
 		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
+
+	case nomad.JobAdminActionCompleteMsg:
+		toastMsg := fmt.Sprintf(
+			"%s completed successfully",
+			nomad.GetJobAdminText(m.adminAction, msg.JobID),
+		)
+		toastStyle := style.SuccessToast
+		if msg.Err != nil {
+			toastMsg = fmt.Sprintf(
+				"%s failed with error: %s",
+				nomad.GetJobAdminText(m.adminAction, msg.JobID),
+				msg.Err.Error(),
+			)
+			toastStyle = style.ErrorToast
+		}
+		newToast := toast.New(toastMsg)
+		m.getCurrentPageModel().SetToast(newToast, toastStyle)
+		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 	}
 
 	currentPageModel = m.getCurrentPageModel()
@@ -437,6 +455,21 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 						cmds = append(
 							cmds,
 							nomad.GetCmdForAllocAdminAction(m.client, m.adminAction, m.taskName, m.alloc.Name, m.alloc.ID),
+						)
+					} else {
+						backPage := m.currentPage.Backward(m.inJobsMode)
+						m.setPage(backPage)
+						cmds = append(cmds, m.getCurrentPageCmd())
+						return tea.Batch(cmds...)
+					}
+				case nomad.JobAdminPage:
+					m.adminAction = nomad.KeyToAdminAction(selectedPageRow.Key)
+				case nomad.JobAdminConfirmPage:
+					if selectedPageRow.Key == constants.ConfirmationKey {
+						cmds = append(
+							cmds,
+							nomad.GetCmdForJobAdminAction(
+								m.client, m.adminAction, m.jobID, m.jobNamespace),
 						)
 					} else {
 						backPage := m.currentPage.Backward(m.inJobsMode)
@@ -595,15 +628,25 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		if key.Matches(msg, keymap.KeyMap.AdminMenu) && m.currentPage.HasAdminMenu() {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				// Get task info from the currently selected row
-				taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
-				if err != nil {
-					m.err = err
-					return nil
-				}
-				if taskInfo.Running {
-					m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
-					m.setPage(nomad.AllocAdminPage)
+
+				if m.currentPage == nomad.JobsPage {
+					m.jobID, m.jobNamespace = nomad.JobIDAndNamespaceFromKey(selectedPageRow.Key)
+					m.setPage(nomad.JobAdminPage)
 					return m.getCurrentPageCmd()
+				}
+
+				if m.currentPage == nomad.JobTasksPage {
+
+					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
+					if err != nil {
+						m.err = err
+						return nil
+					}
+					if taskInfo.Running {
+						m.alloc, m.taskName = taskInfo.Alloc, taskInfo.TaskName
+						m.setPage(nomad.AllocAdminPage)
+						return m.getCurrentPageCmd()
+					}
 				}
 			}
 		}
@@ -751,6 +794,36 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 			confirmationText = strings.ToLower(confirmationText[:1]) + confirmationText[1:]
 			return nomad.PageLoadedMsg{
 				Page:        nomad.AllocAdminConfirmPage,
+				TableHeader: []string{"Are you sure?"},
+				AllPageRows: []page.Row{
+					{Key: "Cancel", Row: "Cancel"},
+					{Key: constants.ConfirmationKey, Row: fmt.Sprintf("Yes, %s", confirmationText)},
+				},
+			}
+		}
+	case nomad.JobAdminPage:
+		return func() tea.Msg {
+			// this does no async work, just constructs the job admin menu
+			var rows []page.Row
+			for action := range nomad.JobAdminActions {
+				rows = append(rows, page.Row{
+					Key: nomad.AdminActionToKey(action),
+					Row: nomad.GetJobAdminText(action, m.jobID),
+				})
+			}
+			return nomad.PageLoadedMsg{
+				Page:        nomad.JobAdminPage,
+				TableHeader: []string{"Available Admin Actions"},
+				AllPageRows: rows,
+			}
+		}
+	case nomad.JobAdminConfirmPage:
+		return func() tea.Msg {
+			// this does no async work, just constructs the confirmation page
+			confirmationText := nomad.GetJobAdminText(m.adminAction, m.jobID)
+			confirmationText = strings.ToLower(confirmationText[:1]) + confirmationText[1:]
+			return nomad.PageLoadedMsg{
+				Page:        nomad.JobAdminConfirmPage,
 				TableHeader: []string{"Are you sure?"},
 				AllPageRows: []page.Row{
 					{Key: "Cancel", Row: "Cancel"},

@@ -22,9 +22,10 @@ const (
 	StopAllocAction
 	RestartJobAction
 	StopJobAction
+	StopAndPurgeJobAction
 )
 
-// AdminActionToKey and KeyToAdminAction are used to render the AllocAdminPage
+// AdminActionToKey and KeyToAdminAction are used for admin menu serialization/deserialization
 func AdminActionToKey(adminAction AdminAction) string {
 	switch adminAction {
 	case RestartTaskAction:
@@ -37,6 +38,8 @@ func AdminActionToKey(adminAction AdminAction) string {
 		return "restart-job"
 	case StopJobAction:
 		return "stop-job"
+	case StopAndPurgeJobAction:
+		return "stop-and-purge-job"
 	default:
 		return ""
 	}
@@ -54,6 +57,8 @@ func KeyToAdminAction(adminAction string) AdminAction {
 		return RestartJobAction
 	case "stop-job":
 		return StopJobAction
+	case "stop-and-purge-job":
+		return StopAndPurgeJobAction
 	default:
 		return -1
 	}
