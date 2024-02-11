@@ -26,10 +26,6 @@ const (
 	StopAndPurgeJobAction
 )
 
-func (a AdminAction) Sort() int {
-	return int(a)
-}
-
 // AdminActionToKey and KeyToAdminAction are used for admin menu serialization/deserialization
 func AdminActionToKey(adminAction AdminAction) string {
 	switch adminAction {
