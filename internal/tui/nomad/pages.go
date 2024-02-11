@@ -233,7 +233,7 @@ func (p Page) doesUpdate() bool {
 		AllEventPage,          // doesn't load
 		AllocAdminPage,        // doesn't load
 		AllocAdminConfirmPage, // doesn't load
-		JobAdminPage, 		   // doesn't load
+		JobAdminPage,          // doesn't load
 		JobAdminConfirmPage,   // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {

@@ -10,9 +10,9 @@ import (
 var (
 	// AllocAdminActions maps allocation-specific AdminActions to their display text
 	AllocAdminActions = map[AdminAction]string{
-		RestartTaskAction: "Restart",
+		RestartTaskAction:  "Restart",
 		RestartAllocAction: "Restart",
-		StopAllocAction:   "Stop",
+		StopAllocAction:    "Stop",
 	}
 )
 

@@ -9,13 +9,13 @@ import (
 
 var (
 	JobAdminActions = map[AdminAction]string{
-		StopJobAction:   "Stop",
-		StopAndPurgeJobAction:   "Stop and purge",
+		StopJobAction:         "Stop",
+		StopAndPurgeJobAction: "Stop and purge",
 	}
 )
 
 type JobAdminActionCompleteMsg struct {
-	Err     error
+	Err   error
 	JobID string
 }
 
@@ -51,7 +51,7 @@ func StopJob(client api.Client, jobID, jobNamespace string, purge bool) tea.Cmd 
 		_, _, err := client.Jobs().Deregister(jobID, purge, opts)
 		if err != nil {
 			return JobAdminActionCompleteMsg{
-				Err: err,
+				Err:   err,
 				JobID: jobID,
 			}
 		}
