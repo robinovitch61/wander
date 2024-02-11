@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/wander/internal/dev"
@@ -304,6 +305,12 @@ func initConfig(cmd *cobra.Command, nameToArg map[string]arg) error {
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	// bind viper to env vars, will prioritize env vars over config file
