@@ -16,6 +16,7 @@ const keySeparator = "|【=◈︿◈=】|"
 type AdminAction int8
 
 // all admin actions, task or job
+// the definition order of these is important, as it's used for sorting
 const (
 	RestartTaskAction AdminAction = iota
 	RestartAllocAction
@@ -24,6 +25,10 @@ const (
 	StopJobAction
 	StopAndPurgeJobAction
 )
+
+func (a AdminAction) Sort() int {
+	return int(a)
+}
 
 // AdminActionToKey and KeyToAdminAction are used for admin menu serialization/deserialization
 func AdminActionToKey(adminAction AdminAction) string {
