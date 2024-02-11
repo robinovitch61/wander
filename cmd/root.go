@@ -208,7 +208,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolP(cliLong, rootNameToArg[cliLong].cliShort, rootNameToArg[cliLong].defaultIfBool, rootNameToArg[cliLong].description)
 
 	// colors, config or env var only
-	viper.BindPFlag("", rootCmd.PersistentFlags().Lookup(rootNameToArg["logo-color"].cfgFileEnvVar))
+	_ = viper.BindPFlag("", rootCmd.PersistentFlags().Lookup(rootNameToArg["logo-color"].cfgFileEnvVar))
 
 	for _, cliLong = range []string{
 		"addr",
@@ -247,7 +247,7 @@ func init() {
 		} else {
 			rootCmd.PersistentFlags().StringP(cliLong, c.cliShort, c.defaultString, c.description)
 		}
-		viper.BindPFlag(cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
+		_ = viper.BindPFlag(cliLong, rootCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
 	}
 
 	// serve
@@ -265,7 +265,7 @@ func init() {
 		} else {
 			serveCmd.PersistentFlags().StringP(cliLong, c.cliShort, c.defaultString, c.description)
 		}
-		viper.BindPFlag(cliLong, serveCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
+		_ = viper.BindPFlag(cliLong, serveCmd.PersistentFlags().Lookup(c.cfgFileEnvVar))
 	}
 
 	// exec
@@ -304,13 +304,6 @@ func initConfig(cmd *cobra.Command, nameToArg map[string]arg) error {
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	} else {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// no config file found, that's ok
-		} else {
-			fmt.Println(err)
-			os.Exit(1)
-		}
 	}
 
 	// bind viper to env vars, will prioritize env vars over config file
@@ -333,14 +326,14 @@ func bindFlags(cmd *cobra.Command, nameToArg map[string]arg) {
 			val := v.Get(viperName)
 			err := cmd.Flags().Set(cliLong, fmt.Sprintf("%v", val))
 			if err != nil {
-				fmt.Println(fmt.Sprintf("error setting flag %s: %v", cliLong, err))
+				fmt.Printf("error setting flag %s: %v\n", cliLong, err)
 				os.Exit(1)
 			}
 		}
 	})
 }
 
-func mainEntrypoint(cmd *cobra.Command, args []string) {
+func mainEntrypoint(cmd *cobra.Command, _ []string) {
 	dev.Debug("~STARTING UP~")
 	rootOpts := getRootOpts(cmd)
 	initialModel, options := setup(cmd, rootOpts, "")

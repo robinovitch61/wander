@@ -86,7 +86,6 @@ type Model struct {
 
 	eventsStream nomad.EventsStream
 	event        string
-	meta         map[string]string
 
 	logsStream      nomad.LogsStream
 	lastLogFinished bool
@@ -434,7 +433,6 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 	if !m.currentPageFilterFocused() && !m.currentPageViewportSaving() {
 		switch {
-
 		case key.Matches(msg, keymap.KeyMap.Compact):
 			m.toggleCompact()
 			return nil
@@ -516,9 +514,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				m.getCurrentPageModel().SetLoading(true)
 				return m.getCurrentPageCmd()
 			}
-
 		}
-
 		if key.Matches(msg, keymap.KeyMap.Exec) {
 			if selectedPageRow, err := m.getCurrentPageModel().GetSelectedPageRow(); err == nil {
 				if m.currentPage.ShowsTasks() {
@@ -636,7 +632,6 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				}
 
 				if m.currentPage == nomad.JobTasksPage {
-
 					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 					if err != nil {
 						m.err = err
@@ -689,21 +684,6 @@ func (m *Model) setPage(page nomad.Page) {
 
 func (m *Model) getCurrentPageModel() *page.Model {
 	return m.pageModels[m.currentPage]
-}
-
-func (m *Model) appendToViewport(content string, startOnNewLine bool) {
-	stringRows := strings.Split(content, "\n")
-	var pageRows []page.Row
-	for _, row := range stringRows {
-		stripOS := formatter.StripOSCommandSequences(row)
-		stripped := formatter.StripANSI(stripOS)
-		// bell seems to mess with parent terminal
-		if stripped != "\a" {
-			pageRows = append(pageRows, page.Row{Row: stripped})
-		}
-	}
-	m.getCurrentPageModel().AppendToViewport(pageRows, startOnNewLine)
-	m.getCurrentPageModel().ScrollViewportToBottom()
 }
 
 func (m *Model) updateKeyHelp() {

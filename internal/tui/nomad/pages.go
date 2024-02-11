@@ -407,7 +407,7 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case AllEventsPage:
 		return fmt.Sprintf("All Events in Namespace %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
-		return fmt.Sprintf("Event")
+		return "Event"
 	case JobTasksPage:
 		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
 	case ExecPage:
@@ -530,7 +530,7 @@ func GetPageKeyHelp(
 		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	} else if prevPage := currentPage.Backward(inJobsMode); prevPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward(inJobsMode).String()))
+		changeKeyHelp(&keymap.KeyMap.Back, currentPage.Backward(inJobsMode).String())
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 

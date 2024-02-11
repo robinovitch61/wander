@@ -53,7 +53,7 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 		if len(foundAllocs) > 0 {
 			if len(foundAllocs) == 1 && len(maps.Values(foundAllocs)[0]) == 1 && maps.Values(foundAllocs)[0][0] != nil {
 				// only one job with one allocation found, use that
-				alloc, _, err = client.Allocations().Info(maps.Values(foundAllocs)[0][0].ID, nil)
+				alloc, _, _ = client.Allocations().Info(maps.Values(foundAllocs)[0][0].ID, nil)
 			} else {
 				// multiple jobs and/or allocations found, print them and exit
 				for job, jobAllocs := range foundAllocs {
@@ -78,7 +78,7 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 				}
 				return 1, err
 			} else if len(shortIDAllocs) == 1 {
-				alloc, _, err = client.Allocations().Info(shortIDAllocs[0].ID, nil)
+				alloc, _, _ = client.Allocations().Info(shortIDAllocs[0].ID, nil)
 			} else {
 				return 1, fmt.Errorf("no allocations found for alloc id %s", allocID)
 			}
@@ -108,14 +108,21 @@ func AllocExec(client *api.Client, allocID, task string, args []string) (int, er
 }
 
 // execImpl invokes the Alloc Exec api call, it also prepares and restores terminal states as necessary.
-func execImpl(client *api.Client, alloc *api.Allocation, task string,
-	command []string, escapeChar string, stdin io.Reader, stdout, stderr io.WriteCloser) (int, error) {
-
+func execImpl(
+	client *api.Client,
+	alloc *api.Allocation,
+	task string,
+	command []string,
+	escapeChar string,
+	stdin io.Reader,
+	stdout,
+	stderr io.WriteCloser,
+) (int, error) {
 	// attempt to clear screen
 	time.Sleep(10 * time.Millisecond)
-	os.Stdout.Write([]byte("\033c"))
+	_, _ = os.Stdout.Write([]byte("\033c"))
 
-	fmt.Println(fmt.Sprintf("Exec session for %s (%s), task %s", alloc.Name, formatter.ShortAllocID(alloc.ID), task))
+	fmt.Printf("Exec session for %s (%s), task %s\n", alloc.Name, formatter.ShortAllocID(alloc.ID), task)
 
 	sizeCh := make(chan api.TerminalSize, 1)
 
@@ -183,7 +190,7 @@ func setRawTerminal(stream interface{}) (cleanup func(), err error) {
 	}
 
 	return func() {
-		term.RestoreTerminal(fd, state)
+		_ = term.RestoreTerminal(fd, state)
 	}, nil
 }
 
@@ -200,7 +207,7 @@ func setRawTerminalOutput(stream interface{}) (cleanup func(), err error) {
 	}
 
 	return func() {
-		term.RestoreTerminal(fd, state)
+		_ = term.RestoreTerminal(fd, state)
 	}, nil
 }
 
@@ -276,7 +283,7 @@ func (r *reader) pipe() {
 
 		if n > 0 {
 			state = r.processBuf(bw, rb, n, state)
-			bw.Flush()
+			_ = bw.Flush()
 			if state == sLookChar {
 				// terminated with ~ - let's read one more character
 				n, err = r.impl.Read(rb[:1])
@@ -284,14 +291,14 @@ func (r *reader) pipe() {
 					state = sLookNewLine
 					if rb[0] == r.escapeChar {
 						// only emit escape character once
-						bw.WriteByte(rb[0])
-						bw.Flush()
+						_ = bw.WriteByte(rb[0])
+						_ = bw.Flush()
 					} else if r.handler(rb[0]) {
 						// skip if handled
 					} else {
-						bw.WriteByte(r.escapeChar)
-						bw.WriteByte(rb[0])
-						bw.Flush()
+						_ = bw.WriteByte(r.escapeChar)
+						_ = bw.WriteByte(rb[0])
+						_ = bw.Flush()
 						if rb[0] == '\n' || rb[0] == '\r' {
 							state = sLookEscapeChar
 						}
@@ -303,10 +310,10 @@ func (r *reader) pipe() {
 		if err != nil {
 			// write ~ if it's the last thing
 			if state == sLookChar {
-				bw.WriteByte(r.escapeChar)
+				_ = bw.WriteByte(r.escapeChar)
 			}
-			bw.Flush()
-			r.pw.CloseWithError(err)
+			_ = bw.Flush()
+			_ = r.pw.CloseWithError(err)
 			break
 		}
 	}
@@ -324,19 +331,19 @@ START:
 	if s == sLookEscapeChar && buf[i] == r.escapeChar {
 		if i+1 >= n {
 			// buf terminates with ~ - write all before
-			bw.Write(buf[wi:i])
+			_, _ = bw.Write(buf[wi:i])
 			return sLookChar
 		}
 
 		nc := buf[i+1]
 		if nc == r.escapeChar {
 			// skip one escape char
-			bw.Write(buf[wi:i])
+			_, _ = bw.Write(buf[wi:i])
 			i++
 			wi = i
 		} else if r.handler(nc) {
 			// skip both characters
-			bw.Write(buf[wi:i])
+			_, _ = bw.Write(buf[wi:i])
 			i = i + 2
 			wi = i
 		} else if nc == '\n' || nc == '\r' {
@@ -353,14 +360,14 @@ START:
 	for {
 		if i >= n {
 			// got to end without new line, write and return
-			bw.Write(buf[wi:n])
+			_, _ = bw.Write(buf[wi:n])
 			return sLookNewLine
 		}
 
 		if buf[i] == '\n' || buf[i] == '\r' {
 			// buf terminated at new line
 			if i+1 >= n {
-				bw.Write(buf[wi:n])
+				_, _ = bw.Write(buf[wi:n])
 				return sLookEscapeChar
 			}
 
