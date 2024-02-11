@@ -20,7 +20,6 @@ type Model struct {
 	ID           int
 	message      string
 	Timeout      time.Duration
-	initialized  bool
 	Visible      bool
 	MessageStyle lipgloss.Style
 }
@@ -61,10 +60,6 @@ func (m Model) ViewHeight() int {
 
 type TimeoutMsg struct {
 	ID int
-}
-
-func (m Model) timeoutAfterDuration() tea.Cmd {
-	return tea.Tick(m.Timeout, func(t time.Time) tea.Msg { return TimeoutMsg{m.ID} })
 }
 
 func nextID() int {

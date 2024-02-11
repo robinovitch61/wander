@@ -100,7 +100,7 @@ func getEventsFromJQQuery(event string, code *gojq.Code) ([]Event, error) {
 		if err != nil {
 			events = append(events, Event{event, fmt.Sprintf("events jq json error: %s", err)})
 		}
-		events = append(events, Event{event, fmt.Sprintf("%s", j)})
+		events = append(events, Event{event, string(j)})
 	}
 	return events, nil
 }

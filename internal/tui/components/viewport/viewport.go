@@ -415,9 +415,7 @@ func (m *Model) updateWrappedHeader() {
 	var allWrappedHeader []string
 	for _, line := range m.header {
 		wrappedLinesForLine := m.getWrappedLines(line)
-		for _, wrappedLine := range wrappedLinesForLine {
-			allWrappedHeader = append(allWrappedHeader, wrappedLine)
-		}
+		allWrappedHeader = append(allWrappedHeader, wrappedLinesForLine...)
 	}
 	m.wrappedHeader = allWrappedHeader
 }
