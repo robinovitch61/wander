@@ -632,7 +632,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					return m.getCurrentPageCmd()
 				}
 
-				if m.currentPage == nomad.JobTasksPage {
+				if m.currentPage == nomad.JobTasksPage || m.currentPage == nomad.AllTasksPage {
 					taskInfo, err := nomad.TaskInfoFromKey(selectedPageRow.Key)
 					if err != nil {
 						m.err = err
