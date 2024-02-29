@@ -2,6 +2,9 @@ package nomad
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hashicorp/nomad/api"
@@ -11,8 +14,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
-	"strings"
-	"time"
 )
 
 type Page int8
@@ -507,6 +508,7 @@ func GetPageKeyHelp(
 			firstRow = append(firstRow, keymap.KeyMap.Reload)
 		}
 	}
+	firstRow = append(firstRow, keymap.KeyMap.GarbageCollect)
 
 	viewportKeyMap := viewport.GetKeyMap()
 	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}

@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/robinovitch61/wander/internal/fileio"
 	"os"
 	"os/exec"
 	"path"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/itchyny/gojq"
 	"github.com/robinovitch61/wander/internal/dev"
+	"github.com/robinovitch61/wander/internal/fileio"
 	"github.com/robinovitch61/wander/internal/tui/components/header"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/components/toast"
@@ -509,6 +509,23 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 					return tea.Batch(cmds...)
 				}
 			}
+
+		case key.Matches(msg, keymap.KeyMap.GarbageCollect):
+			err := m.client.System().GarbageCollect()
+			if err != nil {
+				// Create an error toast
+				toastMsg := fmt.Sprintf("Error performing system GC: %s", err)
+				toastStyle := style.ErrorToast
+				newToast := toast.New(toastMsg)
+				m.getCurrentPageModel().SetToast(newToast, toastStyle)
+			} else {
+				// Create a success toast
+				toastMsg := "System garbage collection completed successfully."
+				toastStyle := style.SuccessToast
+				newToast := toast.New(toastMsg)
+				m.getCurrentPageModel().SetToast(newToast, toastStyle)
+			}
+			return nil
 
 		case key.Matches(msg, keymap.KeyMap.Reload):
 			if m.currentPage.DoesReload() {
