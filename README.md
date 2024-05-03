@@ -13,6 +13,7 @@ An efficient terminal application/TUI for interacting with your [HashiCorp Nomad
 - Live tail logs
 - Tail global or targeted events
 - Exec to interact with running tasks
+- Administrative actions (e.g. restart tasks)
 - View resource usage stats (memory, CPU)
 - See full job or allocation specs
 - Save any content to a local file
@@ -299,4 +300,4 @@ go build  # outputs ./wander executable
 
 The [scripts](/scripts) directory contains various development helper scripts.
 
-If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `wander.log`.
+If the `WANDER_DEBUG` environment variable is set to `true`, the `dev.Debug(s string)` function outputs to `WANDER_DEBUG_PATH` (defaults to `wander.log`).

@@ -46,10 +46,6 @@ type Table struct {
 	HeaderRows, ContentRows []string
 }
 
-func (t *Table) isEmpty() bool {
-	return len(t.HeaderRows) == 0 && len(t.ContentRows) == 0
-}
-
 type tableConfig struct {
 	writer *tablewriter.Table
 	string *strings.Builder
@@ -120,7 +116,7 @@ func pluralize(s string, q float64) string {
 
 func FormatTimeNsSinceNow(t int64) string {
 	tm := time.Unix(0, t).UTC()
-	since := time.Now().Sub(tm)
+	since := time.Since(tm)
 	if secs := since.Seconds(); secs > 0 && secs < 60 {
 		val := math.Floor(secs)
 		out := fmt.Sprintf("%.0f second", val)

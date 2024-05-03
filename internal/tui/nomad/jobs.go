@@ -101,5 +101,4 @@ func toJobsKey(jobResponseEntry *api.JobListStub) string {
 func JobIDAndNamespaceFromKey(key string) (string, string) {
 	split := strings.Split(key, " ")
 	return split[0], split[1]
-
 }

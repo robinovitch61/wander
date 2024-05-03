@@ -44,10 +44,7 @@ func validateToken(token string) error {
 }
 
 func trueIfTrue(v string) bool {
-	if strings.ToLower(strings.TrimSpace(v)) == "true" {
-		return true
-	}
-	return false
+	return strings.ToLower(strings.TrimSpace(v)) == "true"
 }
 
 func retrieveLogoColor() string {

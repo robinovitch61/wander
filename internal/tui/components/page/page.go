@@ -2,6 +2,9 @@ package page
 
 import (
 	"fmt"
+	"github.com/robinovitch61/wander/internal/fileio"
+	"strings"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -14,7 +17,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
-	"strings"
 )
 
 type Config struct {
@@ -112,7 +114,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case viewport.SaveStatusMsg:
+	case fileio.SaveCompleteMessage:
 		if m.copySavePath {
 			cmds = append(cmds, func() tea.Msg {
 				_ = clipboard.WriteAll(msg.FullPath)
@@ -123,8 +125,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case toast.TimeoutMsg:
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
+		m.viewport.HideToast()
 
 	case tea.KeyMsg:
 		switch {
@@ -233,6 +234,10 @@ func (m *Model) SetFilterPrefix(prefix string) {
 	m.filter.SetPrefix(prefix)
 }
 
+func (m *Model) SetViewportSelectionToTop() {
+	m.viewport.SetSelectedContentIdx(0)
+}
+
 func (m *Model) SetViewportSelectionToBottom() {
 	m.viewport.SetSelectedContentIdx(len(m.pageData.FilteredRows) - 1)
 }
@@ -243,6 +248,10 @@ func (m *Model) ScrollViewportToBottom() {
 
 func (m *Model) SetViewportXOffset(n int) {
 	m.viewport.SetXOffset(n)
+}
+
+func (m *Model) SetToast(toast toast.Model, style lipgloss.Style) {
+	m.viewport.SetToast(toast, style)
 }
 
 func (m *Model) HideToast() {

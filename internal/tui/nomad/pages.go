@@ -36,6 +36,10 @@ const (
 	LogsPage
 	LoglinePage
 	StatsPage
+	AllocAdminPage
+	AllocAdminConfirmPage
+	JobAdminPage
+	JobAdminConfirmPage
 )
 
 func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
@@ -132,6 +136,26 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    StatsPage.LoadingString(),
 			SelectionEnabled: false, WrapText: false, RequestInput: false,
 		},
+		AllocAdminPage: {
+			Width: width, Height: height,
+			LoadingString:    AllocAdminPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		AllocAdminConfirmPage: {
+			Width: width, Height: height,
+			LoadingString:    AllocAdminConfirmPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		JobAdminPage: {
+			Width: width, Height: height,
+			LoadingString:    JobAdminPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
+		JobAdminConfirmPage: {
+			Width: width, Height: height,
+			LoadingString:    JobAdminConfirmPage.LoadingString(),
+			SelectionEnabled: true, WrapText: false, RequestInput: false,
+		},
 	}
 }
 
@@ -146,7 +170,21 @@ func (p Page) DoesLoad() bool {
 }
 
 func (p Page) DoesReload() bool {
-	noReloadPages := []Page{LoglinePage, JobEventsPage, JobEventPage, AllocEventsPage, AllocEventPage, AllEventsPage, AllEventPage, ExecPage, ExecCompletePage}
+	noReloadPages := []Page{
+		LoglinePage,
+		JobEventsPage,
+		JobEventPage,
+		AllocEventsPage,
+		AllocEventPage,
+		AllEventsPage,
+		AllEventPage,
+		ExecPage,
+		ExecCompletePage,
+		AllocAdminPage,
+		AllocAdminConfirmPage,
+		JobAdminPage,
+		JobAdminConfirmPage,
+	}
 	for _, noReloadPage := range noReloadPages {
 		if noReloadPage == p {
 			return false
@@ -165,24 +203,38 @@ func (p Page) ShowsTasks() bool {
 	return false
 }
 
+func (p Page) HasAdminMenu() bool {
+	adminMenuPages := []Page{AllTasksPage, JobTasksPage, JobsPage}
+	for _, adminMenuPage := range adminMenuPages {
+		if adminMenuPage == p {
+			return true
+		}
+	}
+	return false
+}
+
 func (p Page) CanBeFirstPage() bool {
 	return p == JobsPage || p == AllTasksPage
 }
 
 func (p Page) doesUpdate() bool {
 	noUpdatePages := []Page{
-		LoglinePage,      // doesn't load
-		ExecPage,         // doesn't reload
-		ExecCompletePage, // doesn't reload
-		LogsPage,         // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
-		JobSpecPage,      // would require changes to make scrolling possible
-		AllocSpecPage,    // would require changes to make scrolling possible
-		JobEventsPage,    // constant connection, streams data
-		JobEventPage,     // doesn't load
-		AllocEventsPage,  // constant connection, streams data
-		AllocEventPage,   // doesn't load
-		AllEventsPage,    // constant connection, streams data
-		AllEventPage,     // doesn't load
+		LoglinePage,           // doesn't load
+		ExecPage,              // doesn't reload
+		ExecCompletePage,      // doesn't reload
+		LogsPage,              // currently makes scrolling impossible - solve in https://github.com/robinovitch61/wander/issues/1
+		JobSpecPage,           // would require changes to make scrolling possible
+		AllocSpecPage,         // would require changes to make scrolling possible
+		JobEventsPage,         // constant connection, streams data
+		JobEventPage,          // doesn't load
+		AllocEventsPage,       // constant connection, streams data
+		AllocEventPage,        // doesn't load
+		AllEventsPage,         // constant connection, streams data
+		AllEventPage,          // doesn't load
+		AllocAdminPage,        // doesn't load
+		AllocAdminConfirmPage, // doesn't load
+		JobAdminPage,          // doesn't load
+		JobAdminConfirmPage,   // doesn't load
 	}
 	for _, noUpdatePage := range noUpdatePages {
 		if noUpdatePage == p {
@@ -226,6 +278,12 @@ func (p Page) String() string {
 		return "log"
 	case StatsPage:
 		return "stats"
+	case AllocAdminPage:
+		return "task admin menu"
+	case JobAdminPage:
+		return "job admin menu"
+	case AllocAdminConfirmPage, JobAdminConfirmPage:
+		return "execute"
 	}
 	return "unknown"
 }
@@ -234,7 +292,7 @@ func (p Page) LoadingString() string {
 	return fmt.Sprintf("Loading %s...", p.String())
 }
 
-func (p Page) Forward() Page {
+func (p Page) Forward(inJobsMode bool) Page {
 	switch p {
 	case JobsPage:
 		return JobTasksPage
@@ -250,6 +308,14 @@ func (p Page) Forward() Page {
 		return LogsPage
 	case LogsPage:
 		return LoglinePage
+	case AllocAdminPage:
+		return AllocAdminConfirmPage
+	case AllocAdminConfirmPage:
+		return returnToTasksPage(inJobsMode)
+	case JobAdminPage:
+		return JobAdminConfirmPage
+	case JobAdminConfirmPage:
+		return JobsPage
 	}
 	return p
 }
@@ -293,6 +359,14 @@ func (p Page) Backward(inJobsMode bool) Page {
 		return LogsPage
 	case StatsPage:
 		return returnToTasksPage(inJobsMode)
+	case AllocAdminPage:
+		return returnToTasksPage(inJobsMode)
+	case AllocAdminConfirmPage:
+		return AllocAdminPage
+	case JobAdminPage:
+		return JobsPage
+	case JobAdminConfirmPage:
+		return JobAdminPage
 	}
 	return p
 }
@@ -333,7 +407,7 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 	case AllEventsPage:
 		return fmt.Sprintf("All Events in Namespace %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
-		return fmt.Sprintf("Event")
+		return "Event"
 	case JobTasksPage:
 		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
 	case ExecPage:
@@ -348,6 +422,14 @@ func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID str
 		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
 	case StatsPage:
 		return fmt.Sprintf("Stats for Allocation %s", allocName)
+	case AllocAdminPage:
+		return fmt.Sprintf("Admin Actions for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+	case AllocAdminConfirmPage:
+		return fmt.Sprintf("Confirm Admin Action for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+	case JobAdminPage:
+		return fmt.Sprintf("Admin Actions for Job %s", style.Bold.Render(jobID))
+	case JobAdminConfirmPage:
+		return fmt.Sprintf("Confirm Admin Action for Job %s", style.Bold.Render(jobID))
 	default:
 		panic("page not found")
 	}
@@ -377,6 +459,7 @@ type UpdatePageDataMsg struct {
 	Page Page
 }
 
+// Update page data with a delay. This is useful for pages that update.
 func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 	if p.doesUpdate() && d > 0 {
 		return tea.Tick(d, func(t time.Time) tea.Msg { return UpdatePageDataMsg{id, p} })
@@ -427,11 +510,19 @@ func GetPageKeyHelp(
 
 	viewportKeyMap := viewport.GetKeyMap()
 	secondRow := []key.Binding{viewportKeyMap.Save, keymap.KeyMap.Wrap}
+
+	if currentPage.HasAdminMenu() {
+		secondRow = append(secondRow, keymap.KeyMap.AdminMenu)
+	}
+
 	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}
 
 	var fourthRow []key.Binding
-	if nextPage := currentPage.Forward(); nextPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward().String())
+	if nextPage := currentPage.Forward(inJobsMode); nextPage != currentPage {
+		changeKeyHelp(&keymap.KeyMap.Forward, currentPage.Forward(inJobsMode).String())
+		if currentPage == AllocAdminConfirmPage {
+			changeKeyHelp(&keymap.KeyMap.Forward, "choose")
+		}
 		fourthRow = append(fourthRow, keymap.KeyMap.Forward)
 	}
 
@@ -439,7 +530,7 @@ func GetPageKeyHelp(
 		changeKeyHelp(&keymap.KeyMap.Back, "remove filter")
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	} else if prevPage := currentPage.Backward(inJobsMode); prevPage != currentPage {
-		changeKeyHelp(&keymap.KeyMap.Back, fmt.Sprintf("%s", currentPage.Backward(inJobsMode).String()))
+		changeKeyHelp(&keymap.KeyMap.Back, currentPage.Backward(inJobsMode).String())
 		fourthRow = append(fourthRow, keymap.KeyMap.Back)
 	}
 

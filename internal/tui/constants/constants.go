@@ -34,3 +34,5 @@ const DefaultEventJQQuery = `.Events[] | {"1:Index": .Index, "2:Topic": .Topic, 
 
 // DefaultAllocEventJQQuery is a single line as this shows up verbatim in `wander --help`
 const DefaultAllocEventJQQuery = `.Index as $index | .Events[] | .Type as $type | .Payload.Allocation | .DeploymentStatus.Healthy as $healthy | .ClientStatus as $clientStatus | .Name as $allocName | (.TaskStates // {"":{"Events": [{}]}}) | to_entries[] | .key as $k | .value.Events[] | {"0:Index": $index, "1:AllocName": $allocName, "2:TaskName": $k, "3:Type": $type, "4:Time": ((.Time // 0) / 1000000000 | todate), "5:Msg": .DisplayMessage, "6:Healthy": $healthy, "7:ClientStatus": $clientStatus}`
+
+const ConfirmationKey = "Yes"

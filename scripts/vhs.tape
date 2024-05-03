@@ -92,6 +92,7 @@ Backspace 10
 Type@200ms "bash"
 Sleep 500ms
 Enter
+Sleep 500ms
 Type@150ms "ls -la"
 Sleep 300ms
 Enter
@@ -103,11 +104,25 @@ Sleep 2s
 Escape@300ms 2
 Sleep 500ms
 
+# Admin Actions for Task
+Type "X"
+Sleep 1s
+Type@150ms "jj"
+Sleep 1s
+Enter
+Sleep 1s
+Type "j"
+Sleep 1s
+Enter
+Sleep 2s
+
 # Back to All Jobs
 Type "J"
 Sleep 1s
 
 # Tasks for Job
+Type "j"
+Sleep 500ms
 Enter
 Sleep 100ms
 Screenshot ../img/screenshots/Tasks_for_Job.png

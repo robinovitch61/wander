@@ -13,6 +13,58 @@ import (
 
 const keySeparator = "|【=◈︿◈=】|"
 
+type AdminAction int8
+
+// all admin actions, task or job
+// the definition order of these is important, as it's used for sorting
+const (
+	RestartTaskAction AdminAction = iota
+	RestartAllocAction
+	StopAllocAction
+	RestartJobAction
+	StopJobAction
+	StopAndPurgeJobAction
+)
+
+// AdminActionToKey and KeyToAdminAction are used for admin menu serialization/deserialization
+func AdminActionToKey(adminAction AdminAction) string {
+	switch adminAction {
+	case RestartTaskAction:
+		return "restart-task"
+	case RestartAllocAction:
+		return "restart-allocation"
+	case StopAllocAction:
+		return "stop-task"
+	case RestartJobAction:
+		return "restart-job"
+	case StopJobAction:
+		return "stop-job"
+	case StopAndPurgeJobAction:
+		return "stop-and-purge-job"
+	default:
+		return ""
+	}
+}
+
+func KeyToAdminAction(adminAction string) AdminAction {
+	switch adminAction {
+	case "restart-task":
+		return RestartTaskAction
+	case "restart-allocation":
+		return RestartAllocAction
+	case "stop-task":
+		return StopAllocAction
+	case "restart-job":
+		return RestartJobAction
+	case "stop-job":
+		return StopJobAction
+	case "stop-and-purge-job":
+		return StopAndPurgeJobAction
+	default:
+		return -1
+	}
+}
+
 type taskRowEntry struct {
 	FullAllocationAsJSON                                string
 	NodeID, JobID, ID, TaskGroup, Name, TaskName, State string
