@@ -323,7 +323,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
 			if m.session != nil {
-				wc := wish.Command(m.session, c.Path, c.Args...)
+				wc := wish.Command(m.session, c.Path, c.Args[1:]...)
 				dev.Debug(fmt.Sprintf("path: %s, args: %v", c.Path, c.Args))
 				return m, tea.Exec(wc, func(err error) tea.Msg {
 					return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
