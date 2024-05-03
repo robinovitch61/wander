@@ -2,6 +2,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/wish"
+	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/robinovitch61/wander/internal/fileio"
 	"os"
 	"os/exec"
@@ -71,6 +74,9 @@ type Model struct {
 
 	session ssh.Session
 
+	renderer *lipgloss.Renderer
+	styles   style.Styles
+
 	header      header.Model
 	compact     bool
 	currentPage nomad.Page
@@ -112,16 +118,24 @@ func getFirstPage(c Config) nomad.Page {
 
 func InitialModel(c Config, session ssh.Session) Model {
 	firstPage := getFirstPage(c)
+	var renderer *lipgloss.Renderer
+	if session != nil {
+		renderer = bubbletea.MakeRenderer(session)
+	}
+	styles := style.NewStyles(renderer)
 	initialHeader := header.New(
 		constants.LogoString,
 		c.LogoColor,
 		c.URL,
 		c.Version,
-		nomad.GetPageKeyHelp(firstPage, false, false, false, nomad.StdOut, false, !c.StartAllTasksView),
+		nomad.GetPageKeyHelp(firstPage, false, false, false, nomad.StdOut, false, !c.StartAllTasksView, styles),
+		styles,
 	)
 	return Model{
 		config:      c,
 		session:     session,
+		renderer:    renderer,
+		styles:      styles,
 		header:      initialHeader,
 		currentPage: firstPage,
 		updateID:    nextUpdateID(),
@@ -309,9 +323,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
 			if m.session != nil {
-				//pty, _, _ := m.session.Pty()
-				c := exec.Command("vim", "tmp.txt")
-				return m, tea.ExecProcess(c, func(err error) tea.Msg {
+				wc := wish.Command(m.session, c.Path, c.Args...)
+				dev.Debug(fmt.Sprintf("path: %s, args: %v", c.Path, c.Args))
+				return m, tea.Exec(wc, func(err error) tea.Msg {
 					return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
 				})
 			}
@@ -322,12 +336,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fileio.SaveCompleteMessage:
 		toastMsg := msg.SuccessMessage
-		toastStyle := style.SuccessToast
+		toastStyle := m.styles.SuccessToast
 		if msg.Err != "" {
 			toastMsg = fmt.Sprintf("Error: %s", msg.Err)
-			toastStyle = style.ErrorToast
+			toastStyle = m.styles.ErrorToast
 		}
-		newToast := toast.New(toastMsg)
+		newToast := toast.New(toastMsg, m.styles.SuccessToast)
 		m.getCurrentPageModel().SetToast(newToast, toastStyle)
 		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 
@@ -336,16 +350,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			"%s completed successfully",
 			nomad.GetAllocAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
 		)
-		toastStyle := style.SuccessToast
+		toastStyle := m.styles.SuccessToast
 		if msg.Err != nil {
 			toastMsg = fmt.Sprintf(
 				"%s failed with error: %s",
 				nomad.GetAllocAdminText(m.adminAction, msg.TaskName, msg.AllocName, msg.AllocID),
 				msg.Err.Error(),
 			)
-			toastStyle = style.ErrorToast
+			toastStyle = m.styles.ErrorToast
 		}
-		newToast := toast.New(toastMsg)
+		newToast := toast.New(toastMsg, m.styles.SuccessToast)
 		m.getCurrentPageModel().SetToast(newToast, toastStyle)
 		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 
@@ -354,16 +368,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			"%s completed successfully",
 			nomad.GetJobAdminText(m.adminAction, msg.JobID),
 		)
-		toastStyle := style.SuccessToast
+		toastStyle := m.styles.SuccessToast
 		if msg.Err != nil {
 			toastMsg = fmt.Sprintf(
 				"%s failed with error: %s",
 				nomad.GetJobAdminText(m.adminAction, msg.JobID),
 				msg.Err.Error(),
 			)
-			toastStyle = style.ErrorToast
+			toastStyle = m.styles.ErrorToast
 		}
-		newToast := toast.New(toastMsg)
+		newToast := toast.New(toastMsg, m.styles.SuccessToast)
 		m.getCurrentPageModel().SetToast(newToast, toastStyle)
 		cmds = append(cmds, tea.Tick(newToast.Timeout, func(t time.Time) tea.Msg { return toast.TimeoutMsg{ID: newToast.ID} }))
 	}
@@ -400,9 +414,9 @@ func (m *Model) initialize() error {
 	firstPage := getFirstPage(m.config)
 
 	m.pageModels = make(map[nomad.Page]*page.Model)
-	for k, pageConfig := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CompactTables) {
+	for k, pageConfig := range nomad.GetAllPageConfigs(m.width, m.getPageHeight(), m.config.CompactTables, m.styles) {
 		startFiltering := m.config.StartFiltering && k == firstPage
-		p := page.New(pageConfig, m.config.CopySavePath, startFiltering, m.config.FilterWithContext)
+		p := page.New(pageConfig, m.config.CopySavePath, startFiltering, m.config.FilterWithContext, m.styles)
 		m.pageModels[k] = &p
 	}
 
@@ -663,7 +677,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			case key.Matches(msg, keymap.KeyMap.StdOut):
 				if !m.currentPageLoading() && m.logType != nomad.StdOut {
 					m.logType = nomad.StdOut
-					m.getCurrentPageModel().SetViewportStyle(style.ViewportHeaderStyle, style.StdOut)
+					m.getCurrentPageModel().SetViewportStyle(m.styles.ViewportHeaderStyle, m.styles.StdOut)
 					m.getCurrentPageModel().SetLoading(true)
 					return m.getCurrentPageCmd()
 				}
@@ -671,8 +685,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			case key.Matches(msg, keymap.KeyMap.StdErr):
 				if !m.currentPageLoading() && m.logType != nomad.StdErr {
 					m.logType = nomad.StdErr
-					stdErrHeaderStyle := style.ViewportHeaderStyle.Copy().Inherit(style.StdErr)
-					m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, style.StdErr)
+					stdErrHeaderStyle := m.styles.ViewportHeaderStyle.Copy().Inherit(m.styles.StdErr)
+					m.getCurrentPageModel().SetViewportStyle(stdErrHeaderStyle, m.styles.StdErr)
 					m.getCurrentPageModel().SetLoading(true)
 					return m.getCurrentPageCmd()
 				}
@@ -699,7 +713,16 @@ func (m *Model) getCurrentPageModel() *page.Model {
 }
 
 func (m *Model) updateKeyHelp() {
-	newKeyHelp := nomad.GetPageKeyHelp(m.currentPage, m.currentPageFilterFocused(), m.currentPageFilterApplied(), m.currentPageViewportSaving(), m.logType, m.compact, m.inJobsMode)
+	newKeyHelp := nomad.GetPageKeyHelp(
+		m.currentPage,
+		m.currentPageFilterFocused(),
+		m.currentPageFilterApplied(),
+		m.currentPageViewportSaving(),
+		m.logType,
+		m.compact,
+		m.inJobsMode,
+		m.styles,
+	)
 	m.header.SetKeyHelp(newKeyHelp)
 }
 
@@ -762,7 +785,7 @@ func (m Model) getCurrentPageCmd() tea.Cmd {
 	case nomad.LoglinePage:
 		return nomad.PrettifyLine(m.logline, nomad.LoglinePage)
 	case nomad.StatsPage:
-		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name)
+		return nomad.FetchStats(m.client, m.alloc.ID, m.alloc.Name, m.styles)
 	case nomad.AllocAdminPage:
 		return func() tea.Msg {
 			// this does no async work, just constructs the task admin menu
@@ -859,5 +882,14 @@ func (m Model) currentPageViewportSaving() bool {
 }
 
 func (m Model) getFilterPrefix(page nomad.Page) string {
-	return page.GetFilterPrefix(m.config.Namespace, m.jobID, m.taskName, m.alloc.Name, m.alloc.ID, m.config.Event.Topics, m.config.Event.Namespace)
+	return page.GetFilterPrefix(
+		m.config.Namespace,
+		m.jobID,
+		m.taskName,
+		m.alloc.Name,
+		m.alloc.ID,
+		m.config.Event.Topics,
+		m.config.Event.Namespace,
+		m.styles,
+	)
 }

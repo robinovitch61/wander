@@ -72,16 +72,18 @@ type Model struct {
 	SpecialHighlightStyle lipgloss.Style
 	ContentStyle          lipgloss.Style
 	FooterStyle           lipgloss.Style
+	PseudoPromptStyle     lipgloss.Style
+	ViewportStyle         lipgloss.Style
 	// ConditionalStyle styles lines containing key with corresponding style in value
 	ConditionalStyle map[string]lipgloss.Style
 }
 
-func New(width, height int, compactTableContent bool) (m Model) {
+func New(width, height int, compactTableContent bool, styles style.Styles) (m Model) {
 	m.saveDialog = textinput.New()
 	m.saveDialog.Prompt = "> "
-	m.saveDialog.PromptStyle = style.SaveDialogPromptStyle
-	m.saveDialog.PlaceholderStyle = style.SaveDialogPlaceholderStyle
-	m.saveDialog.TextStyle = style.SaveDialogTextStyle
+	m.saveDialog.PromptStyle = styles.SaveDialogPromptStyle
+	m.saveDialog.PlaceholderStyle = styles.SaveDialogPlaceholderStyle
+	m.saveDialog.TextStyle = styles.SaveDialogTextStyle
 
 	m.setWidthAndHeight(width, height)
 
@@ -94,11 +96,13 @@ func New(width, height int, compactTableContent bool) (m Model) {
 
 	m.SpecialContentIdx = -1
 
-	m.HeaderStyle = style.ViewportHeaderStyle
-	m.SelectedContentStyle = style.ViewportSelectedRowStyle
-	m.HighlightStyle = style.ViewportHighlightStyle
-	m.SpecialHighlightStyle = style.ViewportSpecialHighlightStyle
-	m.FooterStyle = style.ViewportFooterStyle
+	m.HeaderStyle = styles.ViewportHeaderStyle
+	m.SelectedContentStyle = styles.ViewportSelectedRowStyle
+	m.HighlightStyle = styles.ViewportHighlightStyle
+	m.SpecialHighlightStyle = styles.ViewportSpecialHighlightStyle
+	m.FooterStyle = styles.ViewportFooterStyle
+	m.PseudoPromptStyle = styles.PseudoPrompt
+	m.ViewportStyle = styles.Viewport
 	return m
 }
 
@@ -307,7 +311,7 @@ func (m Model) View() string {
 	}
 
 	if m.showPrompt {
-		viewString = strings.TrimRight(viewString, "\n") + style.PseudoPrompt.Render(" ") + "\n"
+		viewString = strings.TrimRight(viewString, "\n") + m.PseudoPromptStyle.Render(" ") + "\n"
 	}
 
 	if footerHeight > 0 {
@@ -316,7 +320,7 @@ func (m Model) View() string {
 		viewString += strings.Repeat("\n", padCount)
 		viewString += footerString
 	}
-	renderedViewString := style.Viewport.Width(m.width).Height(m.height).Render(viewString)
+	renderedViewString := m.ViewportStyle.Width(m.width).Height(m.height).Render(viewString)
 
 	if m.toast.Visible {
 		lines := strings.Split(renderedViewString, "\n")

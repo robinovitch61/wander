@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/wander/internal/dev"
 	"github.com/robinovitch61/wander/internal/tui/constants"
-	"github.com/robinovitch61/wander/internal/tui/style"
 	"sync"
 	"time"
 )
@@ -24,13 +23,13 @@ type Model struct {
 	MessageStyle lipgloss.Style
 }
 
-func New(message string) Model {
+func New(message string, successStyle lipgloss.Style) Model {
 	return Model{
 		ID:           nextID(),
 		message:      message,
 		Timeout:      constants.ToastDuration,
 		Visible:      true,
-		MessageStyle: style.SuccessToast,
+		MessageStyle: successStyle,
 	}
 }
 

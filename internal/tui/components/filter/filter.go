@@ -20,9 +20,10 @@ type Model struct {
 	textinput textinput.Model
 	compact   bool
 	suffix    string
+	styles    style.Styles
 }
 
-func New(prefix string) Model {
+func New(prefix string, styles style.Styles) Model {
 	ti := textinput.New()
 	ti.Prompt = ""
 	ti.Cursor.SetMode(cursor.CursorHide)
@@ -30,6 +31,7 @@ func New(prefix string) Model {
 		prefix:    prefix,
 		keyMap:    keyMap,
 		textinput: ti,
+		styles:    styles,
 	}
 }
 
@@ -42,9 +44,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.textinput.Focused() {
-		m.textinput.TextStyle = style.FilterEditing
-		m.textinput.PromptStyle = style.FilterEditing
-		m.textinput.Cursor.TextStyle = style.FilterEditing
+		m.textinput.TextStyle = m.styles.FilterEditing
+		m.textinput.PromptStyle = m.styles.FilterEditing
+		m.textinput.Cursor.TextStyle = m.styles.FilterEditing
 		if len(m.textinput.Value()) > 0 {
 			// editing existing filter
 			m.textinput.Prompt = "filter: "
@@ -59,14 +61,14 @@ func (m Model) View() string {
 		if len(m.textinput.Value()) > 0 {
 			// filter applied, not editing
 			m.textinput.Prompt = "filter: "
-			m.textinput.Cursor.TextStyle = style.FilterApplied
-			m.textinput.PromptStyle = style.FilterApplied
-			m.textinput.TextStyle = style.FilterApplied
+			m.textinput.Cursor.TextStyle = m.styles.FilterApplied
+			m.textinput.PromptStyle = m.styles.FilterApplied
+			m.textinput.TextStyle = m.styles.FilterApplied
 		} else {
 			// no filter, not editing
 			m.textinput.Prompt = ""
-			m.textinput.PromptStyle = style.Regular
-			m.textinput.TextStyle = style.Regular
+			m.textinput.PromptStyle = m.styles.Regular
+			m.textinput.TextStyle = m.styles.Regular
 			m.textinput.SetValue("'/' to filter")
 			m.SetSuffix("")
 		}
@@ -75,7 +77,7 @@ func (m Model) View() string {
 	filterString := m.textinput.View()
 	filterStringStyle := m.textinput.TextStyle.Copy().MarginLeft(1).PaddingLeft(1).PaddingRight(0)
 
-	filterPrefixStyle := style.FilterPrefix.Copy()
+	filterPrefixStyle := m.styles.FilterPrefix.Copy()
 	if m.compact {
 		filterPrefixStyle = filterPrefixStyle.UnsetBorderStyle().Padding(0).MarginLeft(0).MarginRight(1)
 	}

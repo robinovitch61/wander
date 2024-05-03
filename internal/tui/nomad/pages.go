@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/robinovitch61/wander/internal/tui/components/page"
 	"github.com/robinovitch61/wander/internal/tui/components/viewport"
-	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/formatter"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/style"
@@ -42,21 +41,21 @@ const (
 	JobAdminConfirmPage
 )
 
-func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Config {
+func GetAllPageConfigs(width, height int, compactTables bool, styles style.Styles) map[Page]page.Config {
 	return map[Page]page.Config{
 		JobsPage: {
 			Width: width, Height: height,
 			LoadingString:    JobsPage.LoadingString(),
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
-			ViewportConditionalStyle: constants.JobsTableStatusStyles,
+			ViewportConditionalStyle: style.GetTableStyles(styles),
 		},
 		AllTasksPage: {
 			Width: width, Height: height,
 			LoadingString:    AllTasksPage.LoadingString(),
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
-			ViewportConditionalStyle: constants.TasksTableStatusStyles,
+			ViewportConditionalStyle: style.GetTableStyles(styles),
 		},
 		JobSpecPage: {
 			Width: width, Height: height,
@@ -104,7 +103,7 @@ func GetAllPageConfigs(width, height int, compactTables bool) map[Page]page.Conf
 			LoadingString:    JobTasksPage.LoadingString(),
 			SelectionEnabled: true, WrapText: false, RequestInput: false,
 			CompactTableContent:      compactTables,
-			ViewportConditionalStyle: constants.TasksTableStatusStyles,
+			ViewportConditionalStyle: style.GetTableStyles(styles),
 		},
 		ExecPage: {
 			Width: width, Height: height,
@@ -371,65 +370,65 @@ func (p Page) Backward(inJobsMode bool) Page {
 	return p
 }
 
-func allocEventFilterPrefix(allocName, allocID string) string {
-	return fmt.Sprintf("%s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+func allocEventFilterPrefix(allocName, allocID string, styles style.Styles) string {
+	return fmt.Sprintf("%s %s", styles.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 }
 
-func taskFilterPrefix(taskName, allocName string) string {
-	return fmt.Sprintf("%s in %s", style.Bold.Render(taskName), allocName)
+func taskFilterPrefix(taskName, allocName string, styles style.Styles) string {
+	return fmt.Sprintf("%s in %s", styles.Bold.Render(taskName), allocName)
 }
 
-func namespaceFilterPrefix(namespace string) string {
+func namespaceFilterPrefix(namespace string, styles style.Styles) string {
 	if namespace == "*" {
 		return "All Namespaces"
 	}
-	return fmt.Sprintf("Namespace %s", style.Bold.Render(namespace))
+	return fmt.Sprintf("Namespace %s", styles.Bold.Render(namespace))
 }
 
-func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID string, eventTopics Topics, eventNamespace string) string {
+func (p Page) GetFilterPrefix(namespace, jobID, taskName, allocName, allocID string, eventTopics Topics, eventNamespace string, styles style.Styles) string {
 	switch p {
 	case JobsPage:
-		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace))
+		return fmt.Sprintf("Jobs in %s", namespaceFilterPrefix(namespace, styles))
 	case AllTasksPage:
-		return fmt.Sprintf("All Tasks in %s", namespaceFilterPrefix(namespace))
+		return fmt.Sprintf("All Tasks in %s", namespaceFilterPrefix(namespace, styles))
 	case JobSpecPage:
-		return fmt.Sprintf("Spec for Job %s", style.Bold.Render(jobID))
+		return fmt.Sprintf("Spec for Job %s", styles.Bold.Render(jobID))
 	case JobEventsPage:
-		return fmt.Sprintf("Events for Job %s (%s)", style.Bold.Render(jobID), getTopicNames(eventTopics))
+		return fmt.Sprintf("Events for Job %s (%s)", styles.Bold.Render(jobID), getTopicNames(eventTopics))
 	case JobEventPage:
-		return fmt.Sprintf("Event for Job %s", style.Bold.Render(jobID))
+		return fmt.Sprintf("Event for Job %s", styles.Bold.Render(jobID))
 	case JobMetaPage:
 		return fmt.Sprintf("Meta for Job %s", jobID)
 	case AllocEventsPage:
-		return fmt.Sprintf("Events for Allocation %s", allocEventFilterPrefix(allocName, allocID))
+		return fmt.Sprintf("Events for Allocation %s", allocEventFilterPrefix(allocName, allocID, styles))
 	case AllocEventPage:
-		return fmt.Sprintf("Event for Allocation %s", allocEventFilterPrefix(allocName, allocID))
+		return fmt.Sprintf("Event for Allocation %s", allocEventFilterPrefix(allocName, allocID, styles))
 	case AllEventsPage:
 		return fmt.Sprintf("All Events in Namespace %s (%s)", eventNamespace, formatEventTopics(eventTopics))
 	case AllEventPage:
 		return "Event"
 	case JobTasksPage:
-		return fmt.Sprintf("Tasks for Job %s", style.Bold.Render(jobID))
+		return fmt.Sprintf("Tasks for Job %s", styles.Bold.Render(jobID))
 	case ExecPage:
-		return fmt.Sprintf("Exec for Task %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Exec for Task %s", taskFilterPrefix(taskName, allocName, styles))
 	case ExecCompletePage:
-		return fmt.Sprintf("Exec Complete for Task %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Exec Complete for Task %s", taskFilterPrefix(taskName, allocName, styles))
 	case AllocSpecPage:
-		return fmt.Sprintf("Spec for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Spec for Allocation %s %s", styles.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case LogsPage:
-		return fmt.Sprintf("Logs for Task %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Logs for Task %s", taskFilterPrefix(taskName, allocName, styles))
 	case LoglinePage:
-		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName))
+		return fmt.Sprintf("Log Line for Task %s", taskFilterPrefix(taskName, allocName, styles))
 	case StatsPage:
 		return fmt.Sprintf("Stats for Allocation %s", allocName)
 	case AllocAdminPage:
-		return fmt.Sprintf("Admin Actions for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Admin Actions for Allocation %s %s", styles.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case AllocAdminConfirmPage:
-		return fmt.Sprintf("Confirm Admin Action for Allocation %s %s", style.Bold.Render(allocName), formatter.ShortAllocID(allocID))
+		return fmt.Sprintf("Confirm Admin Action for Allocation %s %s", styles.Bold.Render(allocName), formatter.ShortAllocID(allocID))
 	case JobAdminPage:
-		return fmt.Sprintf("Admin Actions for Job %s", style.Bold.Render(jobID))
+		return fmt.Sprintf("Admin Actions for Job %s", styles.Bold.Render(jobID))
 	case JobAdminConfirmPage:
-		return fmt.Sprintf("Confirm Admin Action for Job %s", style.Bold.Render(jobID))
+		return fmt.Sprintf("Confirm Admin Action for Job %s", styles.Bold.Render(jobID))
 	default:
 		panic("page not found")
 	}
@@ -467,10 +466,10 @@ func UpdatePageDataWithDelay(id int, p Page, d time.Duration) tea.Cmd {
 	return nil
 }
 
-func getShortHelp(bindings []key.Binding) string {
+func getShortHelp(bindings []key.Binding, styles style.Styles) string {
 	var output string
 	for _, km := range bindings {
-		output += style.KeyHelpKey.Render(km.Help().Key) + " " + style.KeyHelpDescription.Render(km.Help().Desc) + "  "
+		output += styles.KeyHelpKey.Render(km.Help().Key) + " " + styles.KeyHelpDescription.Render(km.Help().Desc) + "  "
 	}
 	output = strings.TrimSpace(output)
 	return output
@@ -485,10 +484,11 @@ func GetPageKeyHelp(
 	filterFocused, filterApplied, saving bool,
 	logType LogType,
 	compact, inJobsMode bool,
+	styles style.Styles,
 ) string {
 	if compact {
 		changeKeyHelp(&keymap.KeyMap.Compact, "expand header")
-		return getShortHelp([]key.Binding{keymap.KeyMap.Compact})
+		return getShortHelp([]key.Binding{keymap.KeyMap.Compact}, styles)
 	} else {
 		changeKeyHelp(&keymap.KeyMap.Compact, "compact")
 	}
@@ -564,26 +564,26 @@ func GetPageKeyHelp(
 	if currentPage == ExecPage {
 		changeKeyHelp(&keymap.KeyMap.Forward, "run command")
 		secondRow = append(fourthRow, keymap.KeyMap.Forward)
-		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		return getShortHelp(firstRow, styles) + "\n" + getShortHelp(secondRow, styles)
 	}
 
 	if saving {
 		changeKeyHelp(&keymap.KeyMap.Forward, "confirm save")
 		changeKeyHelp(&keymap.KeyMap.Back, "cancel save")
 		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
-		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		return getShortHelp(firstRow, styles) + "\n" + getShortHelp(secondRow, styles)
 	}
 
 	if filterFocused {
 		changeKeyHelp(&keymap.KeyMap.Forward, "apply filter")
 		changeKeyHelp(&keymap.KeyMap.Back, "cancel filter")
 		secondRow = []key.Binding{keymap.KeyMap.Back, keymap.KeyMap.Forward}
-		return getShortHelp(firstRow) + "\n" + getShortHelp(secondRow)
+		return getShortHelp(firstRow, styles) + "\n" + getShortHelp(secondRow, styles)
 	}
 
 	var final string
 	for _, row := range [][]key.Binding{firstRow, secondRow, thirdRow, fourthRow} {
-		final += getShortHelp(row) + "\n"
+		final += getShortHelp(row, styles) + "\n"
 	}
 
 	return strings.TrimRight(final, "\n")
