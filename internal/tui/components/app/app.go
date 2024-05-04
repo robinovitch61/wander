@@ -320,15 +320,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			c.Env = os.Environ()
 
 			stdoutProxy := &nomad.StdoutProxy{}
-			c.Stdout = stdoutProxy
 			m.getCurrentPageModel().SetDoesNeedNewInput()
 			if m.session != nil {
 				wc := wish.Command(m.session, c.Path, c.Args[1:]...)
-				dev.Debug(fmt.Sprintf("path: %s, args: %v", c.Path, c.Args))
+				wc.SetStdout(stdoutProxy)
 				return m, tea.Exec(wc, func(err error) tea.Msg {
 					return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
 				})
 			}
+			c.Stdout = stdoutProxy
 			return m, tea.ExecProcess(c, func(err error) tea.Msg {
 				return nomad.ExecCompleteMsg{Output: string(stdoutProxy.SavedOutput)}
 			})
