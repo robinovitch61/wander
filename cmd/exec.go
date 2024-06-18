@@ -32,6 +32,17 @@ var (
 )
 
 func execEntrypoint(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		cmd.Help()
+		os.Exit(0)
+	}
+
+	allocID := args[0]
+	execArgs := args[1:]
+	if len(execArgs) == 0 {
+		fmt.Println(fmt.Errorf("no command specified"))
+		os.Exit(1)
+	}
 	task := cmd.Flags().Lookup("task").Value.String()
 	// can ignore storing rootOpts here as exec just needs a client
 	config := getConfig(cmd, []string{}, "")
@@ -40,12 +51,7 @@ func execEntrypoint(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Errorf("could not get client: %v", err))
 		os.Exit(1)
 	}
-	allocID := args[0]
-	execArgs := args[1:]
-	if len(execArgs) == 0 {
-		fmt.Println("no command specified")
-		os.Exit(1)
-	}
+
 	_, err = nomad.AllocExec(client, allocID, task, execArgs)
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not exec into task: %v", err))
