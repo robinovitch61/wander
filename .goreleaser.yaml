@@ -4,6 +4,8 @@
 #
 # Thanks to @neomantra for setup work on this https://github.com/robinovitch61/wander/issues/33
 
+version: 2
+
 project_name: wander
 
 before:
@@ -59,7 +61,7 @@ brews:
   - name: wander
     homepage: https://github.com/robinovitch61/wander
     description: "An efficient terminal application/TUI for interacting with your HashiCorp Nomad cluster."
-    folder: Formula
+    directory: Formula
     commit_author:
       name: "Leo Robinovitch"
       email: "leorobinovitch@gmail.com"
