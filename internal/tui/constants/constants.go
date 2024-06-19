@@ -1,8 +1,6 @@
 package constants
 
 import (
-	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 	"time"
 )
@@ -19,13 +17,6 @@ const SaveDialogPlaceholder = "Output file name (path optional)"
 const TableSeparator = "|【=◈︿◈=】|"
 
 const TablePadding = "   "
-
-var JobsTableStatusStyles = map[string]lipgloss.Style{
-	TablePadding + "pending" + TablePadding: style.JobRowPending,
-	TablePadding + "dead" + TablePadding:    style.JobRowDead,
-}
-
-var TasksTableStatusStyles = JobsTableStatusStyles
 
 const DefaultPageInput = "/bin/sh"
 

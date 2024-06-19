@@ -6,12 +6,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
+	"github.com/charmbracelet/wish/activeterm"
 	bm "github.com/charmbracelet/wish/bubbletea"
 	"github.com/spf13/cobra"
 	"log"
+	"net"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -58,9 +59,9 @@ var (
 )
 
 func serveEntrypoint(cmd *cobra.Command, args []string) {
+	var err error
 	host := cmd.Flags().Lookup("host").Value.String()
 	portStr := cmd.Flags().Lookup("port").Value.String()
-	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not convert %s to integer", portStr))
 		os.Exit(1)
@@ -68,7 +69,12 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 	hostKeyPath := cmd.Flags().Lookup("host-key-path").Value.String()
 	hostKeyPEM := cmd.Flags().Lookup("host-key-pem").Value.String()
 
-	options := []ssh.Option{wish.WithAddress(fmt.Sprintf("%s:%d", host, port))}
+	options := []ssh.Option{wish.WithAddress(net.JoinHostPort(host, portStr))}
+
+	// Allocate a pty.
+	// This creates a pseudoconsole on windows, compatibility is limited in that case
+	options = append(options, ssh.AllocatePty())
+
 	if hostKeyPath != "" {
 		options = append(options, wish.WithHostKeyPath(hostKeyPath))
 	}
@@ -77,6 +83,8 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 	}
 	middleware := wish.WithMiddleware(
 		bm.Middleware(generateTeaHandler(cmd)),
+		// ensure the user has requested a tty
+		activeterm.Middleware(),
 		customLoggingMiddleware(),
 	)
 	options = append(options, middleware)
@@ -88,7 +96,7 @@ func serveEntrypoint(cmd *cobra.Command, args []string) {
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	log.Printf("Starting SSH server on %s:%d", host, port)
+	log.Printf("Starting SSH server on %s:%s", host, portStr)
 	go func() {
 		if err = s.ListenAndServe(); err != nil {
 			log.Fatalln(err)
@@ -112,6 +120,6 @@ func generateTeaHandler(cmd *cobra.Command) func(ssh.Session) (tea.Model, []tea.
 		if sshCommands := s.Command(); len(sshCommands) == 1 {
 			overrideToken = strings.TrimSpace(sshCommands[0])
 		}
-		return setup(cmd, changedOpts, overrideToken)
+		return setup(cmd, changedOpts, overrideToken, s)
 	}
 }

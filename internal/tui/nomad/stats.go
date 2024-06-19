@@ -10,7 +10,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/style"
 )
 
-func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
+func FetchStats(client api.Client, allocID, allocName string, styles style.Styles) tea.Cmd {
 	return func() tea.Msg {
 		alloc, _, err := client.Allocations().Info(allocID, nil)
 		if err != nil {
@@ -47,9 +47,9 @@ func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
 					memMiB := float64(allocMemory.Usage) / 1024 / 1024
 					givenMemMiB := *allocatedMemoryMB
 					perc := memMiB / float64(givenMemMiB) * 100
-					stylePercent := style.Regular
+					stylePercent := styles.Regular
 					if perc > 100 {
-						stylePercent = style.StatBad
+						stylePercent = styles.StatBad
 					}
 					percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
 					allocMemoryTableVal = fmt.Sprintf("%.0f/%d MiB (%s)", memMiB, givenMemMiB, percStr)
@@ -59,9 +59,9 @@ func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
 					cpuMhz := int(allocCpu.TotalTicks)
 					givenCpuMhz := *allocatedCpuMhz
 					perc := float64(cpuMhz) / float64(givenCpuMhz) * 100
-					stylePercent := style.Regular
+					stylePercent := styles.Regular
 					if perc > 100 {
-						stylePercent = style.StatBad
+						stylePercent = styles.StatBad
 					}
 					percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
 					allocCpuTableVal = fmt.Sprintf("%d/%d MHz (%s)", cpuMhz, givenCpuMhz, percStr)
@@ -87,9 +87,9 @@ func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
 						memMiB := float64(taskMemory.Usage) / 1024 / 1024
 						givenMemMiB := *taskGivenResources.MemoryMB
 						perc := memMiB / float64(givenMemMiB) * 100
-						stylePercent := style.Regular
+						stylePercent := styles.Regular
 						if perc > 100 {
-							stylePercent = style.StatBad
+							stylePercent = styles.StatBad
 						}
 						percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
 						taskMemoryTableVal = fmt.Sprintf("%.0f/%d MiB (%s)", memMiB, givenMemMiB, percStr)
@@ -99,9 +99,9 @@ func FetchStats(client api.Client, allocID, allocName string) tea.Cmd {
 						cpuMhz := int(taskCpu.TotalTicks)
 						givenCpuMhz := *taskGivenResources.CPU
 						perc := float64(cpuMhz) / float64(givenCpuMhz) * 100
-						stylePercent := style.Regular
+						stylePercent := styles.Regular
 						if perc > 100 {
-							stylePercent = style.StatBad
+							stylePercent = styles.StatBad
 						}
 						percStr := stylePercent.Render(fmt.Sprintf("%.1f%%", perc))
 						taskCpuTableVal = fmt.Sprintf("%d/%d MHz (%s)", cpuMhz, givenCpuMhz, percStr)

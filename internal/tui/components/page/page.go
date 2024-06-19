@@ -3,6 +3,7 @@ package page
 import (
 	"fmt"
 	"github.com/robinovitch61/wander/internal/fileio"
+	"github.com/robinovitch61/wander/internal/tui/style"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -50,12 +51,12 @@ type Model struct {
 	FilterWithContext bool
 }
 
-func New(c Config, copySavePath, startFiltering, filterWithContext bool) Model {
-	pageFilter := filter.New("")
+func New(c Config, copySavePath, startFiltering, filterWithContext bool, styles style.Styles) Model {
+	pageFilter := filter.New("", styles)
 	if startFiltering {
 		pageFilter.Focus()
 	}
-	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight(), c.CompactTableContent)
+	pageViewport := viewport.New(c.Width, c.Height-pageFilter.ViewHeight(), c.CompactTableContent, styles)
 	pageViewport.SetSelectionEnabled(c.SelectionEnabled)
 	pageViewport.SetWrapText(c.WrapText)
 	pageViewport.ConditionalStyle = c.ViewportConditionalStyle
