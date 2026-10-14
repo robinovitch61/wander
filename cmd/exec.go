@@ -27,7 +27,7 @@ var (
   wander exec alright_stop --task redis -- echo -n "hi"
 `,
 		Run:               execEntrypoint,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return nil },
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return initConfig(cmd, rootNameToArg) },
 	}
 )
 
