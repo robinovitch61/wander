@@ -1,9 +1,10 @@
+version: "2"
+
 linters:
-  # Enable specific linter
-  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  default: none
+  # Staticcheck includes the former gosimple checks.
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
