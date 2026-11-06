@@ -26,6 +26,8 @@ type keyMap struct {
 	Spec            key.Binding
 	Wrap            key.Binding
 	AdminMenu       key.Binding
+	Sort            key.Binding
+	SortDirection   key.Binding
 }
 
 var KeyMap = keyMap{
@@ -112,5 +114,14 @@ var KeyMap = keyMap{
 	AdminMenu: key.NewBinding(
 		key.WithKeys("X"),
 		key.WithHelp("X", "admin"),
+	),
+	// s is taken by Stats on the task views, so sorting uses S and D on every view
+	Sort: key.NewBinding(
+		key.WithKeys("S"),
+		key.WithHelp("S", "sort"),
+	),
+	SortDirection: key.NewBinding(
+		key.WithKeys("D"),
+		key.WithHelp("D", "sort rev"),
 	),
 }

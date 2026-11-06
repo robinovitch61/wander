@@ -213,6 +213,12 @@ func (p Page) HasAdminMenu() bool {
 	return false
 }
 
+// Sorts is true for the table pages that can be sorted by their columns. Event and log pages keep
+// their time order, and the admin menus, specs and stats are not lists to sort.
+func (p Page) Sorts() bool {
+	return p == JobsPage || p == AllTasksPage || p == JobTasksPage || p == JobMetaPage
+}
+
 func (p Page) CanBeFirstPage() bool {
 	return p == JobsPage || p == AllTasksPage
 }
@@ -452,6 +458,8 @@ type PageLoadedMsg struct {
 	AllPageRows  []page.Row
 	EventsStream EventsStream
 	LogsStream   LogsStream
+	// SortColumns name the columns of each row's SortValues; empty for pages that don't sort
+	SortColumns []string
 }
 
 type UpdatePageDataMsg struct {
@@ -513,6 +521,10 @@ func GetPageKeyHelp(
 
 	if currentPage.HasAdminMenu() {
 		secondRow = append(secondRow, keymap.KeyMap.AdminMenu)
+	}
+
+	if currentPage.Sorts() {
+		secondRow = append(secondRow, keymap.KeyMap.Sort, keymap.KeyMap.SortDirection)
 	}
 
 	thirdRow := []key.Binding{viewportKeyMap.Down, viewportKeyMap.Up, viewportKeyMap.PageDown, viewportKeyMap.PageUp, viewportKeyMap.Bottom, viewportKeyMap.Top}

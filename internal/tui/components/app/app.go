@@ -172,6 +172,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nomad.PageLoadedMsg:
 		if msg.Page == m.currentPage {
 			m.getCurrentPageModel().SetHeader(msg.TableHeader)
+			m.getCurrentPageModel().SetSortColumns(msg.SortColumns)
 			m.getCurrentPageModel().SetAllPageRows(msg.AllPageRows)
 			if m.currentPageLoading() {
 				m.getCurrentPageModel().SetViewportXOffset(0)

@@ -37,17 +37,44 @@ func FetchJobs(client api.Client, columns []string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := jobResponsesAsTable(jobResults, columns)
-		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		return PageLoadedMsg{Page: JobsPage, TableHeader: tableHeader, AllPageRows: allPageData, SortColumns: columns}
 	}
 }
 
-func getCount(row *api.JobListStub) string {
+func getCountParts(row *api.JobListStub) (int, int) {
 	num, denom := 0, 0
 	for _, v := range row.JobSummary.Summary {
 		num += v.Running
 		denom += v.Running + v.Starting + v.Queued
 	}
+	return num, denom
+}
+
+func getCount(row *api.JobListStub) string {
+	num, denom := getCountParts(row)
 	return strconv.Itoa(num) + "/" + strconv.Itoa(denom)
+}
+
+// getJobSortValuesFromColumns gives what each column of a job row sorts by, given its rendered cells
+func getJobSortValuesFromColumns(row *api.JobListStub, columns, cells []string) []page.SortValue {
+	num, denom := getCountParts(row)
+	knownColMap := map[string]page.SortValue{
+		"Priority": page.NumSortValue(float64(row.Priority)),
+		// running count first, then the wanted count
+		"Count":        page.NumSortValue(float64(num), float64(denom)),
+		"Submitted":    timeNsSortValue(row.SubmitTime),
+		"Since Submit": uptimeSortValue(row.Status, row.SubmitTime),
+	}
+
+	var values []page.SortValue
+	for i, cell := range cells {
+		if v, exists := knownColMap[columns[i]]; exists {
+			values = append(values, v)
+		} else {
+			values = append(values, page.TextSortValue(cell))
+		}
+	}
+	return values
 }
 
 func getJobRowFromColumns(row *api.JobListStub, columns []string) []string {
@@ -80,15 +107,18 @@ func getJobRowFromColumns(row *api.JobListStub, columns []string) []string {
 func jobResponsesAsTable(jobResponse []*api.JobListStub, columns []string) ([]string, []page.Row) {
 	var jobResponseRows [][]string
 	var keys []string
+	var sortValues [][]page.SortValue
 	for _, row := range jobResponse {
-		jobResponseRows = append(jobResponseRows, getJobRowFromColumns(row, columns))
+		cells := getJobRowFromColumns(row, columns)
+		jobResponseRows = append(jobResponseRows, cells)
 		keys = append(keys, toJobsKey(row))
+		sortValues = append(sortValues, getJobSortValuesFromColumns(row, columns, cells))
 	}
 	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {
-		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+		rows = append(rows, page.Row{Key: keys[idx], Row: row, SortValues: sortValues[idx]})
 	}
 
 	return table.HeaderRows, rows
