@@ -114,7 +114,7 @@ func jobResponsesAsTable(jobResponse []*api.JobListStub, columns []string) ([]st
 		keys = append(keys, toJobsKey(row))
 		sortValues = append(sortValues, getJobSortValuesFromColumns(row, columns, cells))
 	}
-	table := formatter.GetRenderedTableAsString(columns, jobResponseRows)
+	table := formatter.GetRenderedTableAsString(page.SortableColumns(columns), jobResponseRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {

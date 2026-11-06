@@ -1,12 +1,14 @@
 package page
 
 import (
-	"fmt"
 	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/robinovitch61/wander/internal/tui/components/viewport"
+	"github.com/robinovitch61/wander/internal/tui/constants"
 )
 
 // SortValue is what a table cell sorts by: its meaning rather than its rendered text,
@@ -204,14 +206,56 @@ func (s *sortState) flip() {
 	}
 }
 
-// String describes the sort for the filter line, or is empty in the natural order
-func (s sortState) String() string {
-	if s.column < 0 || s.column >= len(s.columns) {
-		return ""
-	}
-	arrow := "↑"
+const (
+	ascendingArrow  = " ↑"
+	descendingArrow = " ↓"
+)
+
+// sortArrowWidth is the number of cells the arrow takes after the sorted column's name in the header:
+// two, or three in East Asian locales, where the arrows are wide
+func sortArrowWidth() int {
+	return max(viewport.StringWidth(ascendingArrow), viewport.StringWidth(descendingArrow))
+}
+
+func (s sortState) arrow() string {
 	if s.descending {
-		arrow = "↓"
+		return descendingArrow
 	}
-	return fmt.Sprintf("sort: %s %s", s.columns[s.column], arrow)
+	return ascendingArrow
+}
+
+// SortableColumns gives each column name room for the sort arrow, to render the header of a table that
+// sorts. Columns as wide as their header then keep their width when the arrow shows; compact tables
+// trim the room off until it's used.
+func SortableColumns(columns []string) []string {
+	room := strings.Repeat(" ", sortArrowWidth())
+	spaced := make([]string, len(columns))
+	for i, c := range columns {
+		spaced[i] = c + room
+	}
+	return spaced
+}
+
+// withArrow puts the sort arrow after the sorted column's name in a table header, in the room
+// SortableColumns left for it. Headers that aren't the table's, such as "Error", are left alone.
+func (s sortState) withArrow(header []string) []string {
+	if s.column < 0 || s.column >= len(s.columns) || len(header) == 0 {
+		return header
+	}
+	cells := strings.Split(header[0], constants.TableSeparator)
+	if len(cells) < len(s.columns) {
+		return header
+	}
+	name := s.columns[s.column]
+	cell := cells[s.column]
+	room := strings.TrimPrefix(cell, name)
+	if room == cell || strings.Trim(room, " ") != "" {
+		return header
+	}
+	// without room the cell grows; compact tables fit the column to it
+	// the room is spaces, a cell each
+	cells[s.column] = name + s.arrow() + room[min(len(room), sortArrowWidth()):]
+
+	withArrow := append([]string{strings.Join(cells, constants.TableSeparator)}, header[1:]...)
+	return withArrow
 }

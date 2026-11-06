@@ -36,7 +36,7 @@ func metaAsTable(meta map[string]string) ([]string, []page.Row) {
 		keys = append(keys, k)
 	}
 
-	table := formatter.GetRenderedTableAsString(metaColumns, metaRows)
+	table := formatter.GetRenderedTableAsString(page.SortableColumns(metaColumns), metaRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {

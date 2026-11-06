@@ -105,7 +105,7 @@ func jobTasksAsTable(jobTaskRowEntries []taskRowEntry, columns []string) ([]stri
 		ids = append(ids, row.ID+keySeparator+row.TaskName)
 	}
 
-	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
+	table := formatter.GetRenderedTableAsString(page.SortableColumns(columns), taskResponseRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {

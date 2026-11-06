@@ -3,6 +3,7 @@ package page
 import (
 	"fmt"
 	"github.com/robinovitch61/wander/internal/fileio"
+	"slices"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -17,7 +18,6 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
-	"github.com/robinovitch61/wander/internal/tui/style"
 )
 
 type Config struct {
@@ -36,6 +36,9 @@ type Model struct {
 	viewport viewport.Model
 	filter   filter.Model
 	sort     sortState
+
+	// header is the table header as set; shownHeader is it with the sort arrow, as the viewport has it
+	header, shownHeader []string
 
 	loadingString string
 	loading       bool
@@ -212,11 +215,7 @@ func (m Model) View() string {
 			content = m.viewport.View()
 		}
 	}
-	filterLine := m.filter.View()
-	if sortString := m.sort.String(); m.sortable() && sortString != "" {
-		filterLine = lipgloss.JoinHorizontal(lipgloss.Center, filterLine, style.SortIndicator.Render(sortString))
-	}
-	return lipgloss.JoinVertical(lipgloss.Left, filterLine, content)
+	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
 }
 
 func (m *Model) SetWindowSize(width, height int) {
@@ -225,7 +224,26 @@ func (m *Model) SetWindowSize(width, height int) {
 }
 
 func (m *Model) SetHeader(header []string) {
-	m.viewport.SetHeader(header)
+	m.header = header
+	m.shownHeader = m.headerWithSortArrow()
+	// the viewport replaces the table separators in the lines it's given, so it gets its own copy
+	m.viewport.SetHeader(slices.Clone(m.shownHeader))
+}
+
+// headerWithSortArrow is the header with the sort arrow after the sorted column's name
+func (m Model) headerWithSortArrow() []string {
+	if m.sortable() {
+		return m.sort.withArrow(m.header)
+	}
+	return m.header
+}
+
+// updateHeader shows the sort arrow where it now belongs
+func (m *Model) updateHeader() {
+	if header := m.headerWithSortArrow(); !slices.Equal(header, m.shownHeader) {
+		m.shownHeader = header
+		m.viewport.SetHeader(slices.Clone(header))
+	}
 }
 
 func (m *Model) SetInputPrefix(p string) {
@@ -443,6 +461,7 @@ func (m *Model) clearFilter() {
 }
 
 func (m *Model) updateViewport() {
+	m.updateHeader()
 	m.viewport.SetStringToHighlight(m.filter.Value())
 	m.updateFilteredData()
 	m.viewport.SetContent(rowsToStrings(m.pageData.FilteredRows))

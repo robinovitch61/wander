@@ -1,12 +1,24 @@
 package page
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
+	"github.com/robinovitch61/wander/internal/tui/constants"
+	"github.com/robinovitch61/wander/internal/tui/formatter"
 )
+
+// TestMain measures as outside East Asian locales whatever the locale the tests run in, since
+// go-runewidth counts ambiguous characters such as ↑ as two cells under LANG=ja_JP and the like
+func TestMain(m *testing.M) {
+	runewidth.DefaultCondition.EastAsianWidth = false
+	os.Exit(m.Run())
+}
 
 func keysOf(rows []Row) []string {
 	var keys []string
@@ -163,21 +175,132 @@ func TestSortStateCycleAndFlip(t *testing.T) {
 	}
 }
 
-func TestSortStateString(t *testing.T) {
+func TestSortableColumns(t *testing.T) {
+	if got, want := SortableColumns([]string{"Job", "Since Submit"}), []string{"Job  ", "Since Submit  "}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestHeaderArrow(t *testing.T) {
+	sep := constants.TableSeparator
+	header := []string{"Job      " + sep + "Count  " + sep + "Since Submit  " + sep}
 	s := sortState{column: -1}
-	s.setColumns([]string{"Job", "Since Submit"})
-	if got := s.String(); got != "" {
-		t.Errorf("natural order = %q, want no label", got)
+	s.setColumns([]string{"Job", "Count", "Since Submit"})
+	if got := s.withArrow(header); !reflect.DeepEqual(got, header) {
+		t.Errorf("natural order = %q, want the header unchanged", got)
 	}
 	s.cycle()
-	if got, want := s.String(), "sort: Job ↑"; got != want {
-		t.Errorf("ascending = %q, want %q", got, want)
+	if got, want := s.withArrow(header), []string{"Job ↑    " + sep + "Count  " + sep + "Since Submit  " + sep}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Job ascending = %q, want %q", got, want)
 	}
+	// the arrow takes the room left for it, so the cell keeps its width
 	s.cycle()
 	s.flip()
-	if got, want := s.String(), "sort: Since Submit ↓"; got != want {
-		t.Errorf("descending = %q, want %q", got, want)
+	if got, want := s.withArrow(header), []string{"Job      " + sep + "Count ↓" + sep + "Since Submit  " + sep}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Count descending = %q, want %q", got, want)
 	}
+	s.cycle()
+	if got, want := s.withArrow(header), []string{"Job      " + sep + "Count  " + sep + "Since Submit ↑" + sep}; !reflect.DeepEqual(got, want) {
+		t.Errorf("last column ascending = %q, want %q", got, want)
+	}
+	// without room the cell grows by the arrow
+	if got, want := s.withArrow([]string{"Job" + sep + "Count" + sep + "Since Submit" + sep}), []string{"Job" + sep + "Count" + sep + "Since Submit ↑" + sep}; !reflect.DeepEqual(got, want) {
+		t.Errorf("no room = %q, want %q", got, want)
+	}
+	// headers that aren't the table's are left alone
+	for _, other := range [][]string{{"Error"}, {"Job Count Since Submit"}, {}} {
+		if got := s.withArrow(other); !reflect.DeepEqual(got, other) {
+			t.Errorf("withArrow(%q) = %q, want it unchanged", other, got)
+		}
+	}
+}
+
+// sortedTablePage renders a sortable table the way the views do and shows it on a page
+func sortedTablePage(compact bool) Model {
+	columns := []string{"Job", "Count", "Status"}
+	cells := [][]string{{"web-frontend", "1/1", "running"}, {"api", "10/10", "dead"}, {"日本語", "2/3", "pending"}}
+	table := formatter.GetRenderedTableAsString(SortableColumns(columns), cells)
+	var rows []Row
+	for i, r := range table.ContentRows {
+		rows = append(rows, Row{Key: cells[i][0], Row: r, SortValues: []SortValue{
+			TextSortValue(cells[i][0]), TextSortValue(cells[i][1]), TextSortValue(cells[i][2]),
+		}})
+	}
+	m := New(Config{Width: 60, Height: 10, SelectionEnabled: true, CompactTableContent: compact}, false, false, false)
+	m.SetHeader(table.HeaderRows)
+	m.SetSortColumns(columns)
+	m.SetAllPageRows(rows)
+	m.SetLoading(false)
+	return m
+}
+
+// tableLines is the table on the page as plain text, header first, without trailing spaces
+func tableLines(m Model) []string {
+	var lines []string
+	for _, l := range strings.Split(formatter.StripANSI(m.View()), "\n") {
+		if l = strings.TrimRight(l, " "); strings.HasPrefix(l, "Job") || len(lines) > 0 && l != "" {
+			lines = append(lines, l)
+		}
+	}
+	return lines
+}
+
+// The header keeps the arrow over its column, the rows stay aligned with the header, and a table that
+// isn't compact keeps its column widths whatever the sort. A compact table fits each column to its
+// widest cell, the header's arrow included.
+func TestHeaderArrowOnPage(t *testing.T) {
+	checkHeaderArrowOnPage(t)
+}
+
+// In East Asian locales the arrows take two cells each, and the room for them grows to match
+func TestHeaderArrowOnPageEastAsian(t *testing.T) {
+	runewidth.DefaultCondition.EastAsianWidth = true
+	defer func() { runewidth.DefaultCondition.EastAsianWidth = false }()
+	checkHeaderArrowOnPage(t)
+}
+
+func checkHeaderArrowOnPage(t *testing.T) {
+	for _, compact := range []bool{false, true} {
+		m := sortedTablePage(compact)
+		natural := tableLines(m)
+		if len(natural) != 4 || strings.ContainsAny(strings.Join(natural, ""), "↑↓") {
+			t.Fatalf("compact %v: natural order\n%s", compact, strings.Join(natural, "\n"))
+		}
+		naturalStatusAt := cellIndex(natural[0], "Status")
+		for _, step := range []struct{ press, want string }{
+			{"S", "Job ↑"}, {"D", "Job ↓"}, {"S", "Count ↑"}, {"D", "Count ↓"}, {"S", "Status ↑"}, {"D", "Status ↓"},
+		} {
+			m, _ = m.Update(keyPress(step.press))
+			lines := tableLines(m)
+			header := lines[0]
+			if !strings.Contains(header, step.want) || strings.Count(header, "↑")+strings.Count(header, "↓") != 1 {
+				t.Errorf("compact %v: header %q, want one arrow, in %q", compact, header, step.want)
+			}
+			countAt, statusAt := cellIndex(header, "Count"), cellIndex(header, "Status")
+			for _, l := range lines[1:] {
+				if cellIndex(l, "1/1", "10/10", "2/3") != countAt || cellIndex(l, "running", "dead", "pending") != statusAt {
+					t.Errorf("compact %v, %s: row %q is off the header %q", compact, step.want, l, header)
+				}
+			}
+			if !compact && statusAt != naturalStatusAt {
+				t.Errorf("%s: Status moved from cell %d to %d", step.want, naturalStatusAt, statusAt)
+			}
+		}
+		m, _ = m.Update(keyPress("S"))
+		if got := tableLines(m); !reflect.DeepEqual(got, natural) {
+			t.Errorf("compact %v: back in natural order\n%s\nwant\n%s", compact, strings.Join(got, "\n"), strings.Join(natural, "\n"))
+		}
+	}
+}
+
+// cellIndex is the cell at which the first of the words found starts in a line
+func cellIndex(line string, words ...string) int {
+	for _, w := range words {
+		if i := strings.Index(line, w); i >= 0 {
+			return lipgloss.Width(line[:i])
+		}
+	}
+	return -1
 }
 
 func keyPress(s string) tea.KeyMsg {
@@ -305,7 +428,7 @@ func TestSDTypeableInFilter(t *testing.T) {
 	}
 }
 
-// app.go's "No results" message rows have no sort values, so S does nothing and no label shows
+// app.go's "No results" message rows have no sort values, so S does nothing and no arrow shows
 func TestMessageRowsDoNotSort(t *testing.T) {
 	m := New(Config{Width: 100, Height: 30, SelectionEnabled: true}, false, false, false)
 	m.SetHeader([]string{"Job"})
@@ -316,12 +439,15 @@ func TestMessageRowsDoNotSort(t *testing.T) {
 	m.SetAllPageRows([]Row{{Row: "No results. Is the cluster empty or was no nomad token provided?"}, {Row: "Press q or ctrl+c to quit."}})
 	m.SetViewportSelectionEnabled(false)
 	m, _ = m.Update(keyPress("S"))
-	if s := m.sort.String(); s != "" {
-		t.Errorf("error page shows %q", s)
+	if m.sort.column != -1 {
+		t.Errorf("error page sorts by column %d", m.sort.column)
+	}
+	if strings.ContainsAny(m.View(), "↑↓") {
+		t.Errorf("error page shows a sort arrow")
 	}
 }
 
-// a sort that was on when the rows became message rows shows no label
+// a sort that was on when the rows became message rows shows no arrow
 func TestMessageRowsHideSort(t *testing.T) {
 	m := newSortedPage(false, statusRows("x", "y"))
 	m, _ = m.Update(keyPress("S"))
@@ -329,8 +455,8 @@ func TestMessageRowsHideSort(t *testing.T) {
 	if m.sortable() {
 		t.Errorf("message rows are sortable")
 	}
-	if strings.Contains(m.View(), "sort:") {
-		t.Errorf("message rows show a sort label")
+	if strings.ContainsAny(m.View(), "↑↓") {
+		t.Errorf("message rows show a sort arrow")
 	}
 }
 
