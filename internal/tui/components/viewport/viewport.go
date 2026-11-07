@@ -216,7 +216,8 @@ func compactLines(lines []string, maxContentLengthInCol []int) []string {
 	for _, line := range lines {
 		columns := strings.Split(line, constants.TableSeparator)
 		for i, column := range columns {
-			columns[i] = strings.TrimRight(column, " ") + strings.Repeat(" ", maxContentLengthInCol[i]-len(strings.TrimRight(column, " ")))
+			trimmed := strings.TrimRight(column, " ")
+			columns[i] = trimmed + strings.Repeat(" ", maxContentLengthInCol[i]-stringWidth(trimmed))
 		}
 		output = append(output, strings.Join(columns, constants.TablePadding))
 	}
@@ -244,7 +245,7 @@ func horizontallyCompact(header, content []string) ([]string, []string) {
 			return header, content
 		}
 		for i, column := range columns {
-			maxContentLengthInCol[i] = max(maxContentLengthInCol[i], len(strings.TrimRight(column, " ")))
+			maxContentLengthInCol[i] = max(maxContentLengthInCol[i], stringWidth(strings.TrimRight(column, " ")))
 		}
 	}
 
@@ -557,7 +558,7 @@ func (m *Model) updateSaveDialogPlaceholder() {
 	padding := m.width - stringWidth(constants.SaveDialogPlaceholder) - stringWidth(m.saveDialog.Prompt)
 	padding = max(0, padding)
 	placeholder := constants.SaveDialogPlaceholder + strings.Repeat(" ", padding)
-	m.saveDialog.Placeholder = placeholder[:min(stringWidth(placeholder), m.width)]
+	m.saveDialog.Placeholder = cellSlice(placeholder, 0, min(stringWidth(placeholder), m.width))
 }
 
 func (m Model) SelectionEnabled() bool {
@@ -627,16 +628,27 @@ func (m Model) processLines(header, content []string) ([]string, []string) {
 }
 
 func (m Model) getVisiblePartOfLine(line string) string {
-	rightTrimmedLineLength := stringWidth(strings.TrimRight(line, " "))
-	end := min(stringWidth(line), m.xOffset+m.width)
+	// Checked once per line: stringWidth and cellSlice would each rescan it,
+	// and every visible line goes through here on every View.
+	width, slice := stringWidth, cellSlice
+	if isPlainASCII(line) {
+		width = func(s string) int { return len(s) }
+		slice = func(s string, start, end int) string { return s[start:end] }
+	}
+	rightTrimmed := strings.TrimRight(line, " ")
+	rightTrimmedLineLength := width(rightTrimmed)
+	// the trailing spaces take a cell each
+	lineLength := rightTrimmedLineLength + len(line) - len(rightTrimmed)
+	end := min(lineLength, m.xOffset+m.width)
 	start := min(end, m.xOffset)
-	line = line[start:end]
+	line = slice(line, start, end)
 	if m.xOffset+m.width < rightTrimmedLineLength {
-		truncate := max(0, stringWidth(line)-lenLineContinuationIndicator)
-		line = line[:truncate] + lineContinuationIndicator
+		truncate := max(0, width(line)-lenLineContinuationIndicator)
+		line = slice(line, 0, truncate) + lineContinuationIndicator
 	}
 	if m.xOffset > 0 {
-		line = lineContinuationIndicator + line[min(stringWidth(line), lenLineContinuationIndicator):]
+		lineWidth := width(line)
+		line = lineContinuationIndicator + slice(line, min(lineWidth, lenLineContinuationIndicator), lineWidth)
 	}
 	return line
 }
@@ -656,7 +668,9 @@ func (m Model) getCurrentLineIdx() int {
 }
 
 func (m Model) getWrappedLines(line string) []string {
-	if stringWidth(line) < m.width {
+	// a line of fewer bytes than the width fits whatever its characters, as no character takes more cells
+	// than bytes; longer lines are cleaned and trimmed before they're measured in cells
+	if len(line) < m.width {
 		return []string{line}
 	}
 	line = strings.ReplaceAll(line, constants.TableSeparator, constants.TablePadding)
@@ -747,28 +761,4 @@ func max(a, b int) int {
 
 func percent(a, b int) int {
 	return int(float32(a) / float32(b) * 100)
-}
-
-func splitLineIntoSizedChunks(line string, chunkSize int) []string {
-	var wrappedLines []string
-	for {
-		lineWidth := stringWidth(line)
-		if lineWidth == 0 {
-			break
-		}
-
-		width := chunkSize
-		if lineWidth < chunkSize {
-			width = lineWidth
-		}
-
-		wrappedLines = append(wrappedLines, line[0:width])
-		line = line[width:]
-	}
-	return wrappedLines
-}
-
-// stringWidth is a function in case in the future something like utf8.RuneCountInString or lipgloss.Width is better
-func stringWidth(s string) int {
-	return len(s)
 }
