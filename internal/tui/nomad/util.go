@@ -124,3 +124,45 @@ func getUptime(status string, startTime int64) string {
 	}
 	return uptime
 }
+
+// timeNsSortValue sorts a time given in Unix nanoseconds, with zero as missing like FormatTime's "-"
+func timeNsSortValue(t int64) page.SortValue {
+	if t == 0 {
+		return page.MissingSortValue()
+	}
+	return page.NumSortValue(float64(t))
+}
+
+func timeSortValue(t time.Time) page.SortValue {
+	if t.IsZero() {
+		return page.MissingSortValue()
+	}
+	return timeNsSortValue(t.UnixNano())
+}
+
+// uptimeSortValue sorts like getUptime reads: a shorter time since startTime first, missing if not running
+func uptimeSortValue(status string, startTime int64) page.SortValue {
+	if status != "running" {
+		return page.MissingSortValue()
+	}
+	return page.NumSortValue(-float64(startTime))
+}
+
+// getTaskSortValuesFromColumns gives what each column of a task row sorts by, given its rendered cells
+func getTaskSortValuesFromColumns(row taskRowEntry, columns, cells []string) []page.SortValue {
+	knownColMap := map[string]page.SortValue{
+		"Started":  timeSortValue(row.StartedAt),
+		"Finished": timeSortValue(row.FinishedAt),
+		"Uptime":   uptimeSortValue(row.State, row.StartedAt.UnixNano()),
+	}
+
+	var values []page.SortValue
+	for i, cell := range cells {
+		if v, exists := knownColMap[columns[i]]; exists {
+			values = append(values, v)
+		} else {
+			values = append(values, page.TextSortValue(cell))
+		}
+	}
+	return values
+}

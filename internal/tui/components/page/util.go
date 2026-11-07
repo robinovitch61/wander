@@ -2,10 +2,22 @@ package page
 
 type Row struct {
 	Key, Row string
+	// SortValues hold one value per sortable column, for pages that sort
+	SortValues []SortValue
+	// ID identifies the row across refreshes when Key does not, to keep the cursor on it when sorted.
+	// Empty means Key does.
+	ID string
 }
 
 func (r Row) String() string {
 	return r.Row
+}
+
+func (r Row) id() string {
+	if r.ID != "" {
+		return r.ID
+	}
+	return r.Key
 }
 
 func rowsToStrings(rows []Row) []string {

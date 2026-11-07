@@ -21,9 +21,12 @@ func FetchJobMeta(client api.Client, jobID, jobNamespace string) tea.Cmd {
 			Page:        JobMetaPage,
 			TableHeader: tableHeader,
 			AllPageRows: allPageData,
+			SortColumns: metaColumns,
 		}
 	}
 }
+
+var metaColumns = []string{"Key", "Value"}
 
 func metaAsTable(meta map[string]string) ([]string, []page.Row) {
 	var metaRows [][]string
@@ -33,12 +36,13 @@ func metaAsTable(meta map[string]string) ([]string, []page.Row) {
 		keys = append(keys, k)
 	}
 
-	columns := []string{"Key", "Value"}
-	table := formatter.GetRenderedTableAsString(columns, metaRows)
+	table := formatter.GetRenderedTableAsString(metaColumns, metaRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {
-		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+		rows = append(rows, page.Row{Key: keys[idx], Row: row, SortValues: []page.SortValue{
+			page.TextSortValue(metaRows[idx][0]), page.TextSortValue(metaRows[idx][1]),
+		}})
 	}
 	sort.Slice(rows, func(i, j int) bool {
 		return rows[i].Key < rows[j].Key

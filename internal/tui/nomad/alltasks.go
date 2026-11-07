@@ -62,7 +62,7 @@ func FetchAllTasks(client api.Client, columns []string) tea.Cmd {
 		})
 
 		tableHeader, allPageData := tasksAsTable(taskRowEntries, columns)
-		return PageLoadedMsg{Page: AllTasksPage, TableHeader: tableHeader, AllPageRows: allPageData}
+		return PageLoadedMsg{Page: AllTasksPage, TableHeader: tableHeader, AllPageRows: allPageData, SortColumns: columns}
 	}
 }
 
@@ -94,16 +94,21 @@ func getTaskRowFromColumns(row taskRowEntry, columns []string) []string {
 func tasksAsTable(taskRowEntries []taskRowEntry, columns []string) ([]string, []page.Row) {
 	var taskResponseRows [][]string
 	var keys []string
+	var sortValues [][]page.SortValue
+	var ids []string
 	for _, row := range taskRowEntries {
-		taskResponseRows = append(taskResponseRows, getTaskRowFromColumns(row, columns))
+		cells := getTaskRowFromColumns(row, columns)
+		taskResponseRows = append(taskResponseRows, cells)
+		sortValues = append(sortValues, getTaskSortValuesFromColumns(row, columns, cells))
 		keys = append(keys, toTaskKey(row.State, row.FullAllocationAsJSON, row.TaskName))
+		ids = append(ids, row.ID+keySeparator+row.TaskName)
 	}
 
 	table := formatter.GetRenderedTableAsString(columns, taskResponseRows)
 
 	var rows []page.Row
 	for idx, row := range table.ContentRows {
-		rows = append(rows, page.Row{Key: keys[idx], Row: row})
+		rows = append(rows, page.Row{Key: keys[idx], Row: row, SortValues: sortValues[idx], ID: ids[idx]})
 	}
 
 	return table.HeaderRows, rows

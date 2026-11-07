@@ -17,6 +17,7 @@ import (
 	"github.com/robinovitch61/wander/internal/tui/constants"
 	"github.com/robinovitch61/wander/internal/tui/keymap"
 	"github.com/robinovitch61/wander/internal/tui/message"
+	"github.com/robinovitch61/wander/internal/tui/style"
 )
 
 type Config struct {
@@ -34,6 +35,7 @@ type Model struct {
 
 	viewport viewport.Model
 	filter   filter.Model
+	sort     sortState
 
 	loadingString string
 	loading       bool
@@ -75,6 +77,7 @@ func New(c Config, copySavePath, startFiltering, filterWithContext bool) Model {
 		filter:            pageFilter,
 		loadingString:     c.LoadingString,
 		loading:           true,
+		sort:              sortState{column: -1},
 		copySavePath:      copySavePath,
 		doesRequestInput:  c.RequestInput,
 		textinput:         pageTextInput,
@@ -150,6 +153,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, textinput.Blink
 			}
 
+			if m.sortable() {
+				switch {
+				case key.Matches(msg, keymap.KeyMap.Sort):
+					m.changeSort(m.sort.cycle)
+				case key.Matches(msg, keymap.KeyMap.SortDirection):
+					m.changeSort(m.sort.flip)
+				}
+			}
+
 			// not editing filter - pass through to viewport
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
@@ -200,7 +212,11 @@ func (m Model) View() string {
 			content = m.viewport.View()
 		}
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, m.filter.View(), content)
+	filterLine := m.filter.View()
+	if sortString := m.sort.String(); m.sortable() && sortString != "" {
+		filterLine = lipgloss.JoinHorizontal(lipgloss.Center, filterLine, style.SortIndicator.Render(sortString))
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, filterLine, content)
 }
 
 func (m *Model) SetWindowSize(width, height int) {
@@ -225,9 +241,71 @@ func (m *Model) SetLoading(isLoading bool) {
 	m.loading = isLoading
 }
 
+// SetSortColumns names the columns the page can sort by, in the order of each Row's SortValues.
+// No columns means the page doesn't sort. The current sort is kept while the columns stay the same.
+func (m *Model) SetSortColumns(columns []string) {
+	m.sort.setColumns(columns)
+}
+
+// changeSort applies a change to the sort, keeping the cursor on the same row
+func (m *Model) changeSort(change func()) {
+	selected, err := m.GetSelectedPageRow()
+	change()
+	m.updateViewport()
+	if err == nil {
+		m.selectRow(selected)
+	}
+	m.followContextFilterMatch()
+}
+
+// sortable is true when the page has sort columns and its rows have values for them, which
+// message rows such as "No results" don't
+func (m Model) sortable() bool {
+	rows := m.pageData.AllRows
+	return m.sort.sortable() && len(rows) > 0 && len(rows[0].SortValues) > 0
+}
+
+// selectRow moves the cursor to the row with the same identity, if it's shown
+func (m *Model) selectRow(row Row) {
+	for i, r := range m.pageData.FilteredRows {
+		if r.id() == row.id() {
+			m.viewport.SetSelectedContentIdx(i)
+			return
+		}
+	}
+}
+
+// followContextFilterMatch points the current match of a context filter at the selected row when it
+// is a match, or else at the same match number, as the matches' positions change with the sort
+func (m *Model) followContextFilterMatch() {
+	idxs := m.pageData.FilteredContentIdxs
+	if !m.FilterWithContext || len(idxs) == 0 {
+		return
+	}
+	if m.pageData.FilteredSelectionNum >= len(idxs) {
+		m.pageData.FilteredSelectionNum = 0
+	}
+	for n, idx := range idxs {
+		if idx == m.viewport.SelectedContentIdx() {
+			m.pageData.FilteredSelectionNum = n
+			break
+		}
+	}
+	m.pageData.CurrentFilteredContentIdx = idxs[m.pageData.FilteredSelectionNum]
+	m.viewport.SpecialContentIdx = m.pageData.CurrentFilteredContentIdx
+	m.updateFilter()
+}
+
 func (m *Model) SetAllPageRows(allPageRows []Row) {
+	// a refresh can reorder sorted rows, so keep the cursor on its row rather than its index
+	selected, err := m.GetSelectedPageRow()
+	keepSelection := err == nil && m.sortable() && m.sort.column >= 0
 	m.pageData.AllRows = allPageRows
 	m.updateViewport()
+	if keepSelection {
+		m.selectRow(selected)
+		m.followContextFilterMatch()
+	}
 }
 
 func (m *Model) SetFilterPrefix(prefix string) {
@@ -371,13 +449,17 @@ func (m *Model) updateViewport() {
 }
 
 func (m *Model) updateFilteredData() {
+	allRows := m.pageData.AllRows
+	if m.sortable() {
+		allRows = sortRows(allRows, m.sort.column, m.sort.descending)
+	}
 	if !m.filter.HasFilterText() {
-		m.pageData.FilteredRows = m.pageData.AllRows
+		m.pageData.FilteredRows = allRows
 		m.setIndexesOfFilteredRows([]int{})
 	} else if m.FilterWithContext {
-		m.pageData.FilteredRows = m.pageData.AllRows
+		m.pageData.FilteredRows = allRows
 		var indexesOfFilteredRows []int
-		for i, entry := range m.pageData.AllRows {
+		for i, entry := range allRows {
 			if strings.Contains(entry.Row, m.filter.Value()) {
 				indexesOfFilteredRows = append(indexesOfFilteredRows, i)
 			}
@@ -385,7 +467,7 @@ func (m *Model) updateFilteredData() {
 		m.setIndexesOfFilteredRows(indexesOfFilteredRows)
 	} else {
 		var filteredData []Row
-		for _, entry := range m.pageData.AllRows {
+		for _, entry := range allRows {
 			if strings.Contains(entry.Row, m.filter.Value()) {
 				filteredData = append(filteredData, entry)
 			}
